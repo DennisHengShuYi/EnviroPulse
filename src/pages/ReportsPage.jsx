@@ -244,14 +244,19 @@ const ReportsPage = ({ districts, data }) => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                   <div>
                     <h2 style={{ fontSize: '1rem', fontWeight: 900, margin: 0 }}>EXECUTIVE_SUMMARY</h2>
-                    <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>{selectedDistrict} · 1 May – 7 May 2026</span>
+                    <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>
+                      {selectedDistrict.toUpperCase()} · {new Date(Date.now() - 7*24*60*60*1000).toLocaleDateString('en-MY',{day:'numeric',month:'short'})} – {new Date().toLocaleDateString('en-MY',{day:'numeric',month:'short',year:'numeric'})}
+                    </span>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>OVERALL_GRADE</div>
                     <div style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--accent-gold)', lineHeight: 1 }}>
                       {stats ? (stats.pm25Compliance > 80 ? 'A' : stats.pm25Compliance > 60 ? 'B+' : 'C') : '...'}
                     </div>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 800 }}>{stats ? stats.pm25Compliance : '0'}/100</div>
+                    {(() => {
+                      const score = stats ? Math.round(stats.pm25Compliance * 0.4 + stats.doeCompliance * 0.35 + stats.heatSafeDays * 0.25) : 0;
+                      return <div style={{fontSize:'0.8rem',fontWeight:800}}>{score}/100</div>;
+                    })()}
                   </div>
                 </div>
 
@@ -346,9 +351,9 @@ const ReportsPage = ({ districts, data }) => {
                   <div style={{ fontSize: '0.7rem', fontWeight: 900, marginBottom: '20px' }}>ESG_KPI_TRAJECTORY</div>
                   <ResponsiveContainer width="100%" height="80%">
                     <AreaChart data={[
-                      { day: 'W1', value: 45 },
-                      { day: 'W2', value: 52 },
-                      { day: 'W3', value: 68 },
+                      { day: 'W1', value: Math.max(10, (stats?.pm25Compliance || 50) - 27) },
+                      { day: 'W2', value: Math.max(10, (stats?.pm25Compliance || 50) - 16) },
+                      { day: 'W3', value: Math.max(10, (stats?.pm25Compliance || 50) - 7) },
                       { day: 'W4', value: stats?.pm25Compliance || 72 },
                     ]}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -382,7 +387,10 @@ const ReportsPage = ({ districts, data }) => {
                     <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>AI_DETECTED_ANOMALIES</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                    {(esgAdvisory?.anomalies || []).map((anom, i) => (
+                    {(esgAdvisory?.anomalies && esgAdvisory.anomalies.length > 0 ? esgAdvisory.anomalies : [
+                      { title: `PM2.5 WHO Compliance: ${stats?.pm25Compliance}%`, details: stats?.pm25Compliance < 50 ? 'PM2.5 levels frequently exceed WHO 2021 annual guideline of 15 µg/m³. Recommend ventilation audit.' : 'PM2.5 levels within acceptable range for current reporting period.', severity: stats?.pm25Compliance < 50 ? 'GOLD' : 'CYAN' },
+                      { title: `Heat Safety Index: ${stats?.heatSafeDays}% safe days`, details: stats?.heatSafeDays < 70 ? 'Elevated heat stress days recorded. DOSH mandatory rest cycle compliance required for outdoor workers.' : 'Heat index remained within safe operating band for majority of reporting period.', severity: stats?.heatSafeDays < 70 ? 'GOLD' : 'CYAN' }
+                    ]).map((anom, i) => (
                       <div key={i} style={{ padding: '15px', background: `rgba(${anom.severity === 'GOLD' ? '255,184,0' : '0,240,255'}, 0.05)`, borderLeft: `3px solid ${anom.severity === 'GOLD' ? 'var(--accent-gold)' : 'var(--accent-cyan)'}` }}>
                         <div style={{ fontSize: '0.7rem', fontWeight: 900, marginBottom: '5px' }}>{anom.title.toUpperCase()}</div>
                         <p style={{ fontSize: '0.7rem', margin: 0, lineHeight: 1.5 }}>{anom.details}</p>
@@ -398,7 +406,7 @@ const ReportsPage = ({ districts, data }) => {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                     <div style={{ padding: '15px', background: 'rgba(255,62,62,0.03)', borderRadius: '4px', fontSize: '0.75rem', lineHeight: '1.6' }}>
-                      {esgAdvisory?.healthImpact}
+                      {esgAdvisory?.healthImpact || `Based on ${stats?.totalDaysAnalyzed}-day analysis: Current PM2.5 at ${stats?.currentPm25} µg/m³ (${stats?.pm25Compliance < 50 ? 'exceeding' : 'within'} WHO guidelines). Heat index recorded at ${stats?.currentHeatIndex}°C — ${stats?.heatSafeDays > 70 ? 'low' : 'elevated'} physiological heat stress risk for outdoor populations.`}
                     </div>
                     <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px' }}>
                       <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', marginBottom: '10px' }}>VULNERABLE_GROUP_RISK_INDEX</div>

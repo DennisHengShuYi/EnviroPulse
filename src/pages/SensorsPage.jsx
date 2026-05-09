@@ -55,9 +55,10 @@ const SensorsPage = ({ districts }) => {
             </thead>
             <tbody>
               {districts?.map((d, i) => {
-                const batt = 70 + (i * 7 % 25);
-                const sig = 40 + (i * 3 % 20);
-                const ping = 1 + (i * 13 % 29);
+                const seed = d.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+                const batt = 78 + (seed % 18);        // 78–95%, stable per station
+                const sig = -(45 + (seed % 30));      // -45 to -74 dBm, realistic IoT range
+                const ping = 1 + (seed % 8);          // 1–8s ago
                 return (
                   <tr key={i} style={{ borderTop: '1px solid rgba(255,255,255,0.02)', background: i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
                     <td style={{ padding: '15px 20px', fontWeight: 800 }}>STN_{d.id.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()}</td>

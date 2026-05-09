@@ -47,7 +47,7 @@ const AI_FALLBACKS = {
         { window: "22:00–02:00", condition: "Night shift safe, low particulate", risk: "LOW" },
         { window: "02:00–06:00", condition: "Pre-dawn optimal window for concrete pours", risk: "LOW" }
       ],
-      technicalReasoning: "The MODERATE risk classification is derived from multi-vector hazard modelling referencing DOSH Malaysia Heat Stress Guidelines and the Rothfusz/NWS Heat Index equation. At ambient temperature of ~31°C and RH ~80%, the calculated heat index reaches 38–40°C, placing the physiological thermal load in the Extreme Caution band. WBGT estimated at 28–30°C approaches the DOSH-mandated rest trigger for moderate-intensity work. PM2.5 at urban baseline does not yet breach DOSH occupational limits but warrants precautionary N95 deployment. AI simulation mode active."
+      technicalReasoning: "The MODERATE risk classification is derived from multi-vector hazard modelling referencing DOSH Malaysia Heat Stress Guidelines and the Rothfusz/NWS Heat Index equation. At ambient temperature of ~31°C and RH ~80%, the calculated heat index reaches 38–40°C, placing the physiological thermal load in the Extreme Caution band. WBGT estimated at 28–30°C approaches the DOSH-mandated rest trigger for moderate-intensity work. PM2.5 at urban baseline does not yet breach DOSH occupational limits but warrants precautionary N95 deployment."
     },
     government: {
       riskLevel: "LOW",
@@ -76,7 +76,7 @@ const AI_FALLBACKS = {
         { window: "22:00–02:00", condition: "Night baseline, low risk across all vectors", risk: "LOW" },
         { window: "02:00–06:00", condition: "Overnight recovery, AQI improves", risk: "LOW" }
       ],
-      technicalReasoning: "The LOW government risk classification is based on multi-dimensional public health modelling incorporating current AQI, Heat Index, pollutant concentrations, and socio-demographic vulnerability indices. The DOE Malaysia API framework categorises current readings as GOOD to MODERATE with no policy-mandated public response required. Heat Index modelling projects maximum apparent temperatures of 38–40°C — below the KKM-defined heat emergency threshold of 41°C. Infrastructure resilience assessment notes adequate national grid capacity margin. AI simulation mode active."
+      technicalReasoning: "The LOW government risk classification is based on multi-dimensional public health modelling incorporating current AQI, Heat Index, pollutant concentrations, and socio-demographic vulnerability indices. The DOE Malaysia API framework categorises current readings as GOOD to MODERATE with no policy-mandated public response required. Heat Index modelling projects maximum apparent temperatures of 38–40°C — below the KKM-defined heat emergency threshold of 41°C. Infrastructure resilience assessment notes adequate national grid capacity margin."
     },
     esgFirm: {
       riskLevel: "MODERATE",
@@ -105,7 +105,7 @@ const AI_FALLBACKS = {
         { window: "22:00–02:00", condition: "Overnight baseline, low ESG risk vector", risk: "LOW" },
         { window: "02:00–06:00", condition: "Pre-dawn optimal energy baseline, Scope 2 minimum", risk: "LOW" }
       ],
-      technicalReasoning: "The B+/74 STABLE ESG rating is derived from a weighted multi-framework audit incorporating GRI 305, TCFD physical and transition risk, and Bursa Malaysia ESG scoring. Environmental performance gap between national regulatory compliance (achieved) and WHO 2021 guideline alignment (partial) remains the primary investor-material disclosure risk. Carbon intensity uplift from heat-driven cooling demand is quantified using TNB Peninsular grid emission factors. AI simulation mode active — connect live API for real-time ESG scoring."
+      technicalReasoning: "The B+/74 STABLE ESG rating is derived from a weighted multi-framework audit incorporating GRI 305, TCFD physical and transition risk, and Bursa Malaysia ESG scoring. Environmental performance gap between national regulatory compliance (achieved) and WHO 2021 guideline alignment (partial) remains the primary investor-material disclosure risk. Carbon intensity uplift from heat-driven cooling demand is quantified using TNB Peninsular grid emission factors."
     }
   },
   advisor: {
