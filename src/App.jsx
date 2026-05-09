@@ -13,6 +13,7 @@ import City3DView from './components/City3DView';
 import AnalyticsPage from './pages/AnalyticsPage';
 import SensorsPage from './pages/SensorsPage';
 import ReportsPage from './pages/ReportsPage';
+import AlertsPage from './pages/AlertsPage';
 
 // Helper to calculate distance between two coordinates
 const getDistance = (lat1, lon1, lat2, lon2) => {
@@ -215,6 +216,7 @@ function App() {
         />
       );
       case 'sensors': return <SensorsPage districts={districts} />;
+      case 'alerts': return <AlertsPage />;
       case 'reports': return <ReportsPage data={data} districts={districts} />;
       default: return <div>Page Not Found</div>;
     }

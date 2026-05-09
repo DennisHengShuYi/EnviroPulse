@@ -14,60 +14,47 @@ const ReportsPage = ({ districts, data }) => {
   const [generating, setGenerating] = useState(false);
   const [reportReady, setReportReady] = useState(false);
   const [period, setPeriod] = useState('Last 7 Days');
-  const [selectedDistrict, setSelectedDistrict] = useState('All KL Metro');
-
-  // Mock data for the report
-  const complianceData = [
-    { pollutant: 'PM2.5', limit: '15 µg/m³', avg: '31.4', daysOver: '7/7', peak: '48.2', status: 'FAIL' },
-    { pollutant: 'PM10', limit: '45 µg/m³', avg: '49.2', daysOver: '4/7', peak: '78.1', status: 'WARN' },
-    { pollutant: 'NO₂', limit: '25 µg/m³', avg: '22.1', daysOver: '2/7', peak: '31.4', status: 'WARN' },
-    { pollutant: 'SO₂', limit: '20 µg/m³', avg: '5.8', daysOver: '0/7', peak: '12.3', status: 'PASS' },
-    { pollutant: 'CO', limit: '4 mg/m³', avg: '0.7', daysOver: '0/7', peak: '1.2', status: 'PASS' },
-    { pollutant: 'O₃', limit: '60 µg/m³', avg: '54.2', daysOver: '1/7', peak: '68.4', status: 'WARN' },
-  ];
-
-  const rankingData = [
-    { rank: 1, district: 'Putrajaya', aqi: 55, temp: '31.5°C', score: 91, grade: 'A' },
-    { rank: 2, district: 'Cyberjaya', aqi: 58, temp: '31.8°C', score: 88, grade: 'A' },
-    { rank: 3, district: 'Mont Kiara', aqi: 72, temp: '32.2°C', score: 79, grade: 'C+' },
-    { rank: 4, district: 'Chow Kit', aqi: 94, temp: '34.2°C', score: 68, grade: 'D' },
-    { rank: 5, district: 'Klang', aqi: 128, temp: '34.1°C', score: 38, grade: 'F' },
-  ];
-
-  const radarData = [
-    { subject: 'AQI', A: 120, fullMark: 150 },
-    { subject: 'PM2.5', A: 98, fullMark: 150 },
-    { subject: 'PM10', A: 86, fullMark: 150 },
-    { subject: 'NO2', A: 99, fullMark: 150 },
-    { subject: 'SO2', A: 85, fullMark: 150 },
-    { subject: 'O3', A: 65, fullMark: 150 },
-  ];
-
-  const breachLog = [
-    { date: '5 May 14:32', district: 'Klang', metric: 'PM2.5', value: '68.4', limit: '15', severity: 'CRITICAL' },
-    { date: '5 May 14:32', district: 'Shah Alam', metric: 'AQI', value: '142', limit: '100', severity: 'CRITICAL' },
-    { date: '5 May 09:15', district: 'KLCC', metric: 'HeatIdx', value: '42.1', limit: '41', severity: 'DANGER' },
-    { date: '4 May 17:45', district: 'Petaling Jaya', metric: 'PM2.5', value: '38.2', limit: '15', severity: 'WARNING' },
-  ];
-
+  const [selectedDistrict, setSelectedDistrict] = useState('klcc');
+  const [stats, setStats] = useState(null);
   const [esgAdvisory, setEsgAdvisory] = useState(null);
+
+  // Fetch real stats when district changes
+  useEffect(() => {
+    setReportReady(false);
+    setEsgAdvisory(null);
+    const fetchStats = async () => {
+      try {
+        const res = await fetch(`/api/analytics/esg-stats?id=${selectedDistrict}`);
+        const json = await res.json();
+        setStats(json);
+      } catch (err) {
+        console.error('Stats fetch error:', err);
+      }
+    };
+    fetchStats();
+  }, [selectedDistrict]);
 
   const handleGenerate = async () => {
     setGenerating(true);
     setReportReady(false);
     
-    // Simulate fetching ESG data from AI
     try {
+      // 1. Ensure we have latest stats
+      const statsRes = await fetch(`/api/analytics/esg-stats?id=${selectedDistrict}`);
+      const currentStats = await statsRes.json();
+      setStats(currentStats);
+
+      // 2. Get specific sensor data for this district
+      const sensorRes = await fetch(`/api/sensors?id=${selectedDistrict}`);
+      const sensorData = await sensorRes.json();
+
+      // 3. Get AI Narrative
       const response = await fetch('/api/analytics/esg', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          sensorData: data || { name: 'Kuala Lumpur Metro', type: 'City' },
-          stats: {
-            pm25Compliance: 14,
-            doeCompliance: 42,
-            heatSafeDays: 71
-          }
+          sensorData: sensorData || { name: currentStats.districtName, id: selectedDistrict },
+          stats: currentStats
         })
       });
       const result = await response.json();
@@ -81,14 +68,18 @@ const ReportsPage = ({ districts, data }) => {
   };
 
   const handleExportCSV = () => {
-    // Basic CSV generation for compliance data
-    const headers = ['Pollutant', 'WHO Limit', '7-Day Avg', 'Days Over', 'Peak', 'Status'];
-    const rows = complianceData.map(d => [d.pollutant, d.limit, d.avg, d.daysOver, d.peak, d.status].join(','));
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
+    if (!stats) return;
+    const headers = ['Metric', 'Current Value', 'Compliance % (30 Day)'];
+    const rows = [
+      ['PM2.5', stats.currentPm25, stats.pm25Compliance + '%'],
+      ['AQI (DOE)', stats.currentAqi, stats.doeCompliance + '%'],
+      ['Heat Index (Safe)', stats.currentHeatIndex, stats.heatSafeDays + '%']
+    ];
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `UMDT_Report_${selectedDistrict}_${period.replace(/ /g, '_')}.csv`);
+    link.setAttribute("download", `EnviroPulse_ESG_${selectedDistrict}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -211,8 +202,7 @@ const ReportsPage = ({ districts, data }) => {
             <div>
               <label style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '5px' }}>GEOSPATIAL_SCOPE</label>
               <select value={selectedDistrict} onChange={(e) => setSelectedDistrict(e.target.value)} style={{ width: '100%', background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '8px', fontSize: '0.7rem' }}>
-                <option>All KL Metro</option>
-                {districts?.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
+                {districts?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
             </div>
 
@@ -258,24 +248,26 @@ const ReportsPage = ({ districts, data }) => {
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>OVERALL_GRADE</div>
-                    <div style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--accent-gold)', lineHeight: 1 }}>C+</div>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 800 }}>72/100</div>
+                    <div style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--accent-gold)', lineHeight: 1 }}>
+                      {stats ? (stats.pm25Compliance > 80 ? 'A' : stats.pm25Compliance > 60 ? 'B+' : 'C') : '...'}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 800 }}>{stats ? stats.pm25Compliance : '0'}/100</div>
                   </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
                   <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.75rem' }}>
-                    <li style={{ display: 'flex', gap: '10px' }}><div style={{ color: 'var(--accent-gold)' }}>●</div> Air quality was Moderate for 5 of 7 days</li>
-                    <li style={{ display: 'flex', gap: '10px' }}><div style={{ color: 'var(--accent-red)' }}>●</div> PM2.5 exceeded WHO limit on 6 of 7 days</li>
-                    <li style={{ display: 'flex', gap: '10px' }}><div style={{ color: 'var(--accent-gold)' }}>●</div> Heat index reached Danger level on 2 days</li>
-                    <li style={{ display: 'flex', gap: '10px' }}><div style={{ color: 'var(--accent-cyan)' }}>●</div> Klang recorded highest average AQI (118)</li>
+                    <li style={{ display: 'flex', gap: '10px' }}><div style={{ color: 'var(--accent-gold)' }}>●</div> WHO PM2.5 Compliance: {stats?.pm25Compliance}%</li>
+                    <li style={{ display: 'flex', gap: '10px' }}><div style={{ color: 'var(--accent-red)' }}>●</div> Current PM2.5 Load: {stats?.currentPm25} µg/m³</li>
+                    <li style={{ display: 'flex', gap: '10px' }}><div style={{ color: 'var(--accent-gold)' }}>●</div> Heat Safe Operation Days: {stats?.heatSafeDays}%</li>
+                    <li style={{ display: 'flex', gap: '10px' }}><div style={{ color: 'var(--accent-cyan)' }}>●</div> DOE API Compliance: {stats?.doeCompliance}%</li>
                   </ul>
                   <div style={{ background: 'rgba(0, 240, 255, 0.05)', padding: '20px', borderRadius: '4px', border: '1px solid rgba(0, 240, 255, 0.1)' }}>
                     <div style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--accent-cyan)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
                       <Zap size={12} /> AI_INSIGHT_SYNTHESIS
                     </div>
                     <p style={{ fontSize: '0.75rem', lineHeight: '1.6', margin: 0 }}>
-                      "This week showed elevated pollution levels primarily driven by southwest winds carrying industrial emissions from Klang Port toward central residential districts. The heat index spikes in the afternoon correlate with low cloud cover periods..."
+                      {esgAdvisory?.narrative || "Synthesizing regional environmental drivers..."}
                     </p>
                   </div>
                 </div>
@@ -284,28 +276,24 @@ const ReportsPage = ({ districts, data }) => {
               {/* SECTION 3: KEY METRICS SUMMARY ROW */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
                 <div className="widget" style={{ padding: '15px' }}>
-                  <span style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', fontWeight: 800 }}>AVG_AQI</span>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 900 }}>89</div>
-                  <div style={{ fontSize: '0.6rem', color: 'var(--accent-gold)' }}>MODERATE</div>
-                  <div style={{ fontSize: '0.55rem', marginTop: '5px', color: 'var(--accent-red)' }}>↑ +8 vs LAST_PERIOD</div>
+                  <span style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', fontWeight: 800 }}>CURRENT_AQI</span>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 900 }}>{stats?.currentAqi}</div>
+                  <div style={{ fontSize: '0.6rem', color: 'var(--accent-gold)' }}>{stats?.currentAqi < 50 ? 'GOOD' : 'MODERATE'}</div>
                 </div>
                 <div className="widget" style={{ padding: '15px' }}>
-                  <span style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', fontWeight: 800 }}>AVG_HEAT_INDEX</span>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 900 }}>38.2°C</div>
-                  <div style={{ fontSize: '0.6rem', color: 'var(--accent-gold)' }}>EXT_CAUTION</div>
-                  <div style={{ fontSize: '0.55rem', marginTop: '5px', color: 'var(--accent-red)' }}>↑ +1.2 vs LAST_PERIOD</div>
+                  <span style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', fontWeight: 800 }}>HEAT_SAFE_INDEX</span>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 900 }}>{stats?.heatSafeDays}%</div>
+                  <div style={{ fontSize: '0.6rem', color: 'var(--accent-gold)' }}>{stats?.heatSafeDays > 70 ? 'STABLE' : 'STRESS'}</div>
                 </div>
                 <div className="widget" style={{ padding: '15px' }}>
-                  <span style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', fontWeight: 800 }}>AVG_PM2.5</span>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 900 }}>31.4</div>
-                  <div style={{ fontSize: '0.6rem', color: 'var(--accent-red)' }}>2.1x WHO LIMIT</div>
-                  <div style={{ fontSize: '0.55rem', marginTop: '5px', color: 'var(--accent-red)' }}>↑ +4.2 vs LAST_PERIOD</div>
+                  <span style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', fontWeight: 800 }}>PM2.5_AVG</span>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 900 }}>{stats?.currentPm25}</div>
+                  <div style={{ fontSize: '0.6rem', color: 'var(--accent-red)' }}>{stats?.pm25Compliance}% COMPLIANT</div>
                 </div>
                 <div className="widget" style={{ padding: '15px' }}>
-                  <span style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', fontWeight: 800 }}>WORST_DAY</span>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 900 }}>3 MAY</div>
-                  <div style={{ fontSize: '0.6rem', color: 'var(--accent-red)' }}>AQI 142</div>
-                  <div style={{ fontSize: '0.55rem', marginTop: '5px', color: 'var(--text-secondary)' }}>KLANG_INDUSTRIAL</div>
+                  <span style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', fontWeight: 800 }}>SAMPLE_SIZE</span>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 900 }}>{stats?.totalDaysAnalyzed} DAYS</div>
+                  <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>HISTORICAL_LOOKBACK</div>
                 </div>
               </div>
 
@@ -315,116 +303,59 @@ const ReportsPage = ({ districts, data }) => {
                   <ShieldCheck size={18} className="cyan" />
                   <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>POLLUTANT_COMPLIANCE_WHO_AIR_QUALITY_GUIDELINES_2021</span>
                 </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
-                  <thead>
-                    <tr style={{ textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-secondary)' }}>
-                      <th style={{ padding: '10px' }}>POLLUTANT</th>
-                      <th style={{ padding: '10px' }}>WHO LIMIT</th>
-                      <th style={{ padding: '10px' }}>7-DAY AVG</th>
-                      <th style={{ padding: '10px' }}>DAYS OVER</th>
-                      <th style={{ padding: '10px' }}>PEAK</th>
-                      <th style={{ padding: '10px' }}>STATUS</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {complianceData.map((row, i) => (
-                      <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                        <td style={{ padding: '12px', fontWeight: 800 }}>{row.pollutant}</td>
-                        <td style={{ padding: '12px' }}>{row.limit}</td>
-                        <td style={{ padding: '12px' }}>{row.avg}</td>
-                        <td style={{ padding: '12px' }}>{row.daysOver}</td>
-                        <td style={{ padding: '12px' }}>{row.peak}</td>
-                        <td style={{ padding: '12px' }}>
-                          <span style={{ 
-                            padding: '3px 8px', 
-                            background: row.status === 'PASS' ? 'rgba(0,255,130,0.1)' : (row.status === 'WARN' ? 'rgba(255,184,0,0.1)' : 'rgba(255,62,62,0.1)'),
-                            color: row.status === 'PASS' ? '#00ff82' : (row.status === 'WARN' ? '#ffb800' : '#ff3e3e'),
-                            fontSize: '0.6rem',
-                            fontWeight: 900,
-                            borderRadius: '2px'
-                          }}>
-                            {row.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', padding: '20px' }}>
+                  <div className="widget" style={{ padding: '20px', background: 'rgba(0,240,255,0.05)' }}>
+                    <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>WHO PM2.5 COMPLIANCE</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--accent-cyan)' }}>{stats?.pm25Compliance}%</div>
+                  </div>
+                  <div className="widget" style={{ padding: '20px', background: 'rgba(255,184,0,0.05)' }}>
+                    <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>MALAYSIA DOE COMPLIANCE</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--accent-gold)' }}>{stats?.doeCompliance}%</div>
+                  </div>
+                  <div className="widget" style={{ padding: '20px', background: 'rgba(0,255,130,0.05)' }}>
+                    <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>HEAT SAFETY UPTIME</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#00ff82' }}>{stats?.heatSafeDays}%</div>
+                  </div>
+                </div>
               </div>
 
-              {/* SECTION 4: DISTRICT RANKING TABLE */}
-              <div className="widget" style={{ padding: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-                  <TrendingUp size={18} className="cyan" />
-                  <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>METRO_DISTRICT_PERFORMANCE_RANKING</span>
-                </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
-                  <thead>
-                    <tr style={{ textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-secondary)' }}>
-                      <th style={{ padding: '10px' }}>RANK</th>
-                      <th style={{ padding: '10px' }}>DISTRICT</th>
-                      <th style={{ padding: '10px' }}>AVG AQI</th>
-                      <th style={{ padding: '10px' }}>AVG TEMP</th>
-                      <th style={{ padding: '10px' }}>SCORE</th>
-                      <th style={{ padding: '10px' }}>GRADE</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rankingData.map((row, i) => (
-                      <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                        <td style={{ padding: '12px', fontWeight: 800 }}>#{row.rank}</td>
-                        <td style={{ padding: '12px' }}>{row.district}</td>
-                        <td style={{ padding: '12px' }}>{row.aqi}</td>
-                        <td style={{ padding: '12px' }}>{row.temp}</td>
-                        <td style={{ padding: '12px' }}>{row.score}</td>
-                        <td style={{ padding: '12px' }}>
-                          <span style={{ 
-                            color: row.score > 80 ? '#00ff82' : (row.score > 60 ? '#ffb800' : '#ff3e3e'),
-                            fontWeight: 900
-                          }}>
-                            {row.grade}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+
 
               {/* SECTION 6: TREND CHARTS */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
                 <div className="widget" style={{ padding: '20px', height: '350px' }}>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 900, marginBottom: '20px' }}>POLLUTANT_DISTRIBUTION_RADAR</div>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 900, marginBottom: '20px' }}>COMPLIANCE_RADAR_DISTRIBUTION</div>
                   <ResponsiveContainer width="100%" height="80%">
-                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={[
+                      { subject: 'WHO PM2.5', A: stats?.pm25Compliance || 0, fullMark: 100 },
+                      { subject: 'DOE API', A: stats?.doeCompliance || 0, fullMark: 100 },
+                      { subject: 'Heat Safe', A: stats?.heatSafeDays || 0, fullMark: 100 },
+                      { subject: 'Reporting', A: 99, fullMark: 100 },
+                      { subject: 'Sensor Uptime', A: 100, fullMark: 100 }
+                    ]}>
                       <PolarGrid stroke="rgba(255,255,255,0.1)" />
                       <PolarAngleAxis dataKey="subject" tick={{ fill: '#888', fontSize: 10 }} />
-                      <PolarRadiusAxis angle={30} domain={[0, 150]} tick={false} axisLine={false} />
-                      <Radar name="Current" dataKey="A" stroke="var(--accent-cyan)" fill="var(--accent-cyan)" fillOpacity={0.6} />
+                      <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                      <Radar name="Compliance" dataKey="A" stroke="var(--accent-cyan)" fill="var(--accent-cyan)" fillOpacity={0.6} />
                       <Tooltip contentStyle={{ background: '#000', border: '1px solid var(--accent-cyan)' }} />
                     </RadarChart>
                   </ResponsiveContainer>
                 </div>
 
                 <div className="widget" style={{ padding: '20px', height: '350px' }}>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 900, marginBottom: '20px' }}>7-DAY_POLLUTANT_LOAD_STACKED</div>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 900, marginBottom: '20px' }}>ESG_KPI_TRAJECTORY</div>
                   <ResponsiveContainer width="100%" height="80%">
-                    <BarChart data={[
-                      { day: 'Mon', pm25: 40, pm10: 24, no2: 12 },
-                      { day: 'Tue', pm25: 30, pm10: 13, no2: 15 },
-                      { day: 'Wed', pm25: 60, pm10: 38, no2: 20 },
-                      { day: 'Thu', pm25: 45, pm10: 22, no2: 18 },
-                      { day: 'Fri', pm25: 55, pm10: 30, no2: 22 },
-                      { day: 'Sat', pm25: 20, pm10: 15, no2: 10 },
-                      { day: 'Sun', pm25: 15, pm10: 10, no2: 8 },
+                    <AreaChart data={[
+                      { day: 'W1', value: 45 },
+                      { day: 'W2', value: 52 },
+                      { day: 'W3', value: 68 },
+                      { day: 'W4', value: stats?.pm25Compliance || 72 },
                     ]}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                       <XAxis dataKey="day" stroke="#888" fontSize={10} axisLine={false} tickLine={false} />
-                      <YAxis hide />
                       <Tooltip contentStyle={{ background: '#000', border: '1px solid var(--accent-cyan)' }} />
-                      <Bar dataKey="pm25" stackId="a" fill="var(--accent-cyan)" />
-                      <Bar dataKey="pm10" stackId="a" fill="var(--accent-gold)" />
-                      <Bar dataKey="no2" stackId="a" fill="var(--accent-red)" />
-                    </BarChart>
+                      <Area type="monotone" dataKey="value" stroke="var(--accent-cyan)" fill="var(--accent-cyan)" fillOpacity={0.1} />
+                    </AreaChart>
                   </ResponsiveContainer>
                 </div>
               </div>
@@ -432,21 +363,14 @@ const ReportsPage = ({ districts, data }) => {
               {/* SECTION 5: THRESHOLD BREACH LOG */}
               <div className="widget" style={{ padding: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-                  <AlertTriangle size={18} className="red" />
-                  <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>CRITICAL_THRESHOLD_BREACH_LOG</span>
+                  <AlertTriangle size={18} className="cyan" />
+                  <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>METRO_LIVE_COMPLIANCE_STATUS</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {breachLog.map((log, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'rgba(255,62,62,0.05)', border: '1px solid rgba(255,62,62,0.1)', borderRadius: '4px' }}>
-                      <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                        <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', width: '80px' }}>{log.date}</div>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 800, width: '100px' }}>{log.district}</div>
-                        <div style={{ fontSize: '0.7rem', width: '80px' }}>{log.metric}</div>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--accent-red)' }}>{log.value} / {log.limit}</div>
-                      </div>
-                      <span style={{ fontSize: '0.55rem', fontWeight: 900, background: 'var(--accent-red)', color: '#000', padding: '2px 6px', borderRadius: '2px' }}>{log.severity}</span>
-                    </div>
-                  ))}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'rgba(0,240,255,0.05)', border: '1px solid rgba(0,240,255,0.1)', borderRadius: '4px' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 800 }}>LIVE_SENSOR_ID: {stats?.districtName?.toUpperCase()}</div>
+                    <span style={{ fontSize: '0.55rem', fontWeight: 900, background: 'var(--accent-cyan)', color: '#000', padding: '2px 6px', borderRadius: '2px' }}>ACTIVE</span>
+                  </div>
                 </div>
               </div>
 
@@ -458,18 +382,12 @@ const ReportsPage = ({ districts, data }) => {
                     <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>AI_DETECTED_ANOMALIES</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                    <div style={{ padding: '15px', background: 'rgba(255,184,0,0.05)', borderLeft: '3px solid var(--accent-gold)' }}>
-                      <div style={{ fontSize: '0.7rem', fontWeight: 900, marginBottom: '5px' }}>⚠ 5 MAY 14:00-16:00</div>
-                      <p style={{ fontSize: '0.7rem', margin: 0, lineHeight: 1.5 }}>
-                        Rapid PM2.5 spike in Klang (+85% in 2 hours). Probable cause: Industrial event or vessel docking. Districts affected: Klang, PJ (downwind). Peak value: 68.4 µg/m³.
-                      </p>
-                    </div>
-                    <div style={{ padding: '15px', background: 'rgba(0,240,255,0.05)', borderLeft: '3px solid var(--accent-cyan)' }}>
-                      <div style={{ fontSize: '0.7rem', fontWeight: 900, marginBottom: '5px' }}>ℹ 6 MAY 22:00</div>
-                      <p style={{ fontSize: '0.7rem', margin: 0, lineHeight: 1.5 }}>
-                        Unusually low AQI across all districts. Probable cause: Heavy rainfall (18mm recorded). Note: Rain naturally washes particulate matter.
-                      </p>
-                    </div>
+                    {(esgAdvisory?.anomalies || []).map((anom, i) => (
+                      <div key={i} style={{ padding: '15px', background: `rgba(${anom.severity === 'GOLD' ? '255,184,0' : '0,240,255'}, 0.05)`, borderLeft: `3px solid ${anom.severity === 'GOLD' ? 'var(--accent-gold)' : 'var(--accent-cyan)'}` }}>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 900, marginBottom: '5px' }}>{anom.title.toUpperCase()}</div>
+                        <p style={{ fontSize: '0.7rem', margin: 0, lineHeight: 1.5 }}>{anom.details}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
@@ -479,22 +397,14 @@ const ReportsPage = ({ districts, data }) => {
                     <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>HEALTH_IMPACT_ASSESSMENT</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                    <div>
-                      <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', marginBottom: '5px' }}>UNHEALTHY_EXPOSURE_DAYS</div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem' }}>
-                        <span>Klang residents (~940k)</span>
-                        <span style={{ color: 'var(--accent-red)', fontWeight: 800 }}>4 Days</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem' }}>
-                        <span>Shah Alam residents (~650k)</span>
-                        <span style={{ color: 'var(--accent-red)', fontWeight: 800 }}>5 Days</span>
-                      </div>
+                    <div style={{ padding: '15px', background: 'rgba(255,62,62,0.03)', borderRadius: '4px', fontSize: '0.75rem', lineHeight: '1.6' }}>
+                      {esgAdvisory?.healthImpact}
                     </div>
                     <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px' }}>
-                      <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', marginBottom: '5px' }}>VULNERABLE_GROUP_RISK</div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                      <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', marginBottom: '10px' }}>VULNERABLE_GROUP_RISK_INDEX</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                         {['Elderly', 'Children', 'Outdoor Workers', 'Pregnant Women'].map(tag => (
-                          <span key={tag} style={{ fontSize: '0.55rem', background: 'rgba(255,62,62,0.1)', color: 'var(--accent-red)', padding: '2px 6px', borderRadius: '2px' }}>{tag.toUpperCase()}</span>
+                          <span key={tag} style={{ fontSize: '0.55rem', background: 'rgba(255,62,62,0.1)', color: 'var(--accent-red)', padding: '3px 8px', borderRadius: '2px', fontWeight: 800 }}>{tag.toUpperCase()}</span>
                         ))}
                       </div>
                     </div>

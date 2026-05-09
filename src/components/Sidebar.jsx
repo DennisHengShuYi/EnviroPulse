@@ -4,7 +4,8 @@ import {
   BarChart2, 
   Activity, 
   FileText, 
-  User 
+  User,
+  Bell
 } from 'lucide-react';
 
 const Sidebar = ({ activePage, setActivePage }) => {
@@ -12,6 +13,7 @@ const Sidebar = ({ activePage, setActivePage }) => {
     { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
     { id: 'analytics', label: 'ANALYTICS', icon: BarChart2 },
     { id: 'sensors', label: 'SENSORS', icon: Activity },
+    { id: 'alerts', label: 'ALERTS', icon: Bell },
     { id: 'reports', label: 'REPORTS', icon: FileText },
   ];
 

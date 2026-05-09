@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, ShieldAlert, Settings, Clock, CheckCircle2, Save, Activity } from 'lucide-react';
+import { Bell, ShieldAlert, Settings, Clock, CheckCircle2, Save, Activity, Trash2 } from 'lucide-react';
 
 const AlertsPage = () => {
   const [config, setConfig] = useState({
@@ -8,18 +8,32 @@ const AlertsPage = () => {
     PM2_5_EXCEEDANCE: 35.0,
     NO2_PEAK_LIMIT: 25.0
   });
+  const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
 
   useEffect(() => {
+    // 1. Fetch Config
     fetch('/api/config/thresholds')
       .then(res => res.json())
       .then(data => {
         setConfig(data);
         setLoading(false);
-      })
-      .catch(err => console.error('Error fetching config:', err));
+      });
+
+    // 2. Fetch Alerts
+    fetch('/api/alerts')
+      .then(res => res.json())
+      .then(data => setAlerts(data));
+
+    const interval = setInterval(() => {
+      fetch('/api/alerts')
+        .then(res => res.json())
+        .then(data => setAlerts(data));
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const handleUpdate = async () => {
@@ -41,13 +55,6 @@ const AlertsPage = () => {
     }
   };
 
-  const alertHistory = [
-    { id: 1, type: 'CRITICAL', metric: 'HEAT_INDEX', zone: 'KLCC', value: '42.8°C', time: '04:12 AM', date: '2026-05-09' },
-    { id: 2, type: 'WARNING', metric: 'AQI_LEVEL', zone: 'SHAH_ALAM', value: '112', time: '02:45 AM', date: '2026-05-09' },
-    { id: 3, type: 'CRITICAL', metric: 'PM2.5', zone: 'KLANG', value: '45.2µg/m³', time: '11:30 PM', date: '2026-05-08' },
-    { id: 4, type: 'WARNING', metric: 'AQI_LEVEL', zone: 'CHOW_KIT', value: '98', time: '09:15 PM', date: '2026-05-08' },
-  ];
-
   return (
     <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '30px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -59,34 +66,78 @@ const AlertsPage = () => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '30px', maxWidth: '800px', margin: '0 auto', width: '100%' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+        {/* Threshold Configuration */}
+        <div className="widget" style={{ padding: '25px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '25px' }}>
+            <Settings size={18} className="cyan" />
+            <span style={{ fontSize: '0.7rem', fontWeight: 800 }}>SYSTEM_THRESHOLD_CALIBRATION</span>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {Object.keys(config).map((key) => (
+              <div key={key}>
+                <label style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
+                  {key.replace(/_/g, ' ')}
+                </label>
+                <input 
+                  type="number"
+                  value={config[key]}
+                  onChange={(e) => setConfig({ ...config, [key]: parseFloat(e.target.value) })}
+                  style={{ width: '100%', background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '10px', borderRadius: '4px', fontSize: '0.8rem' }}
+                />
+              </div>
+            ))}
+            
+            <button 
+              onClick={handleUpdate}
+              disabled={saving}
+              style={{ 
+                background: saveStatus === 'SUCCESS' ? '#00ff82' : 'var(--accent-cyan)', 
+                color: '#000', border: 'none', padding: '12px', fontWeight: 900, borderRadius: '4px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', transition: 'all 0.3s ease' 
+              }}
+            >
+              {saving ? 'SYNCING...' : saveStatus === 'SUCCESS' ? 'THRESHOLD_SYNCED' : 'SAVE_CONFIGURATION'}
+              <Save size={16} />
+            </button>
+          </div>
+        </div>
+
         {/* History Feed */}
         <div className="widget" style={{ padding: '25px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '25px' }}>
             <Clock size={18} className="cyan" />
-            <span style={{ fontSize: '0.7rem', fontWeight: 800 }}>ALERT_HISTORY_FEED</span>
+            <span style={{ fontSize: '0.7rem', fontWeight: 800 }}>LIVE_ALERT_FEED</span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            {alertHistory.map((alert) => (
-              <div key={alert.id} style={{ 
-                padding: '15px', 
-                background: 'rgba(255,255,255,0.02)', 
-                borderLeft: `3px solid ${alert.type === 'CRITICAL' ? 'var(--accent-red)' : 'var(--accent-gold)'}`,
-                borderRadius: '0 4px 4px 0'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '0.6rem', fontWeight: 800, color: alert.type === 'CRITICAL' ? 'var(--accent-red)' : 'var(--accent-gold)' }}>{alert.type}_ALERT</span>
-                  <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>{alert.date} {alert.time}</span>
-                </div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fff' }}>
-                  {alert.metric} breached at {alert.zone}
-                </div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '5px' }}>
-                  RECORDED_VALUE: <span className="white">{alert.value}</span>
-                </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxHeight: '500px', overflowY: 'auto' }}>
+            {alerts.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)', fontSize: '0.7rem' }}>
+                <CheckCircle2 size={30} style={{ marginBottom: '10px', opacity: 0.5 }} />
+                <div>NO_ACTIVE_THRESHOLD_BREACHES_DETECTED</div>
               </div>
-            ))}
+            ) : (
+              alerts.map((alert) => (
+                <div key={alert.id} style={{ 
+                  padding: '15px', 
+                  background: 'rgba(255,62,62,0.05)', 
+                  borderLeft: `3px solid var(--accent-red)`,
+                  borderRadius: '0 4px 4px 0',
+                  border: '1px solid rgba(255,62,62,0.1)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '0.6rem', fontWeight: 900, color: 'var(--accent-red)' }}>{alert.type}_BREACH</span>
+                    <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>{alert.time}</span>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fff' }}>
+                    {alert.metric || alert.type} limit exceeded at {alert.zone}
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '5px' }}>
+                    VALUE: <span style={{ color: 'var(--accent-red)', fontWeight: 800 }}>{alert.value}</span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>

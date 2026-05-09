@@ -128,7 +128,7 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data }) => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '20px' }}>
         
         {/* Pattern Analysis: 7-Day Trend */}
-        <div className="widget" style={{ gridColumn: 'span 8', padding: '20px' }}>
+        <div className="widget" style={{ gridColumn: 'span 12', padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
             <TrendingUp size={18} className="cyan" />
             <h2 style={{ fontSize: '0.8rem', fontWeight: 900, margin: 0 }}>PATTERN_ANALYSIS_HISTORICAL</h2>
@@ -155,67 +155,133 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data }) => {
           </div>
         </div>
 
-        {/* Predictive Engine */}
-        <div className="widget" style={{ gridColumn: 'span 4', padding: '20px', display: 'flex', flexDirection: 'column' }}>
+        {/* Predictive Engine — Full Detail Panel */}
+        <div className="widget" style={{ gridColumn: 'span 12', padding: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Zap size={18} style={{ color: roleColors[activeRole] }} />
-              <h2 style={{ fontSize: '0.8rem', fontWeight: 900, margin: 0 }}>AI_PREDICTIVE_ENGINE</h2>
+              <Zap size={20} style={{ color: roleColors[activeRole] }} />
+              <h2 style={{ fontSize: '0.85rem', fontWeight: 900, margin: 0, letterSpacing: '1px' }}>AI_PREDICTIVE_ENGINE — 48H MULTI-ROLE INTELLIGENCE</h2>
             </div>
-            <div style={{ display: 'flex', gap: '5px', background: 'rgba(255,255,255,0.05)', padding: '2px', borderRadius: '4px' }}>
+            <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)', padding: '3px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)' }}>
               {['construction', 'government', 'esgFirm'].map(role => (
-                <button 
+                <button
                   key={role}
                   onClick={() => setActiveRole(role)}
-                  style={{ 
+                  style={{
                     background: activeRole === role ? roleColors[role] : 'transparent',
                     color: activeRole === role ? '#000' : '#888',
                     border: 'none',
-                    fontSize: '0.5rem',
+                    fontSize: '0.6rem',
                     fontWeight: 900,
-                    padding: '4px 8px',
+                    padding: '6px 14px',
                     cursor: 'pointer',
-                    borderRadius: '2px'
+                    borderRadius: '4px',
+                    transition: 'all 0.2s',
+                    letterSpacing: '0.5px'
                   }}
                 >
-                  {role.toUpperCase()}
+                  {role === 'esgFirm' ? 'ESG_FIRM' : role.toUpperCase()}
                 </button>
               ))}
             </div>
           </div>
 
           {currentPred ? (
-            <div style={{ flex: 1, animation: 'fadeIn 0.3s ease' }}>
-              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '15px', borderRadius: '4px', marginBottom: '15px', borderLeft: `4px solid ${roleColors[activeRole]}` }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <span style={{ fontSize: '0.6rem', fontWeight: 800, color: roleColors[activeRole] }}>48H_FORECAST_NARRATIVE:</span>
-                  <span className={`badge ${currentPred.riskLevel === 'LOW' ? 'badge-success' : 'badge-danger'}`} style={{ position: 'static', padding: '2px 8px' }}>
-                    {currentPred.riskLevel}_RISK
-                  </span>
+            <div style={{ animation: 'fadeIn 0.3s ease' }}>
+              {/* Top Row: Forecast + Risk Matrix + Hourly Outlook */}
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1.5fr', gap: '20px', marginBottom: '20px' }}>
+
+                {/* Forecast Narrative */}
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '18px', borderRadius: '8px', borderLeft: `4px solid ${roleColors[activeRole]}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <span style={{ fontSize: '0.6rem', fontWeight: 900, color: roleColors[activeRole], letterSpacing: '1px' }}>48H_FORECAST_NARRATIVE</span>
+                    <span className={`badge ${currentPred.riskLevel === 'LOW' ? 'badge-success' : currentPred.riskLevel === 'MODERATE' ? '' : 'badge-danger'}`}
+                      style={{ position: 'static', padding: '3px 10px', fontSize: '0.6rem', background: currentPred.riskLevel === 'MODERATE' ? 'rgba(255,184,0,0.2)' : undefined, color: currentPred.riskLevel === 'MODERATE' ? '#ffb800' : undefined, border: currentPred.riskLevel === 'MODERATE' ? '1px solid #ffb800' : undefined }}>
+                      {currentPred.riskLevel}_RISK
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '0.78rem', margin: 0, lineHeight: '1.7', color: '#ddd' }}>{currentPred.forecast48h}</p>
                 </div>
-                <p style={{ fontSize: '0.75rem', margin: 0, lineHeight: '1.5', color: '#eee' }}>{currentPred.forecast48h}</p>
+
+                {/* Risk Matrix */}
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '18px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 900, color: 'var(--text-secondary)', marginBottom: '16px', letterSpacing: '1px' }}>RISK_MATRIX_SCORES</div>
+                  {currentPred.riskMatrix && Object.entries(currentPred.riskMatrix).map(([key, val]) => {
+                    const score = Number(val) || 0;
+                    const color = score >= 70 ? '#ff4d4d' : score >= 45 ? '#ffb800' : '#00ffcc';
+                    return (
+                      <div key={key} style={{ marginBottom: '14px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                          <span style={{ fontSize: '0.58rem', fontWeight: 800, color: '#aaa', textTransform: 'uppercase' }}>{key.replace(/([A-Z])/g, '_$1')}</span>
+                          <span style={{ fontSize: '0.65rem', fontWeight: 900, color }}>{score}</span>
+                        </div>
+                        <div style={{ height: '5px', background: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${Math.min(score, 100)}%`, background: color, borderRadius: '3px', transition: 'width 0.6s ease' }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Hourly Outlook */}
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '18px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 900, color: 'var(--text-secondary)', marginBottom: '14px', letterSpacing: '1px' }}>48H_HOURLY_OUTLOOK</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {(currentPred.hourlyOutlook || []).map((h, i) => {
+                      const riskColor = h.risk === 'HIGH' ? '#ff4d4d' : h.risk === 'MODERATE' ? '#ffb800' : '#00ffcc';
+                      return (
+                        <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                          <span style={{ fontSize: '0.58rem', fontWeight: 900, color: riskColor, minWidth: '85px', fontFamily: 'JetBrains Mono' }}>{h.window}</span>
+                          <div style={{ flex: 1 }}>
+                            <span style={{ fontSize: '0.62rem', color: '#bbb', display: 'block', lineHeight: '1.4' }}>{h.condition}</span>
+                          </div>
+                          <span style={{ fontSize: '0.5rem', fontWeight: 900, color: riskColor, border: `1px solid ${riskColor}`, padding: '1px 5px', borderRadius: '3px', flexShrink: 0 }}>{h.risk}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
-              <div style={{ marginBottom: '15px' }}>
-                <div style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '8px' }}>CRITICAL_PREDICTED_EVENTS:</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
-                  {currentPred.predictedEvents && currentPred.predictedEvents.map((event, i) => (
-                    <div key={i} style={{ fontSize: '0.7rem', color: '#fff', display: 'flex', gap: '10px', alignItems: 'center' }}>
-                      <Activity size={12} style={{ color: roleColors[activeRole] }} />
-                      <span>{event}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              {/* Bottom Row: Chain of Thought + Predicted Events + Technical Reasoning */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '20px' }}>
 
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '15px' }}>
-                <div style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '5px' }}>PREDICTIVE_LOGIC:</div>
-                <p style={{ fontSize: '0.7rem', fontStyle: 'italic', color: '#888', margin: 0 }}>"{currentPred.technicalReasoning}"</p>
+                {/* Chain of Thought */}
+                <div style={{ background: `rgba(${activeRole === 'construction' ? '255,184,0' : activeRole === 'government' ? '0,240,255' : '255,255,255'},0.04)`, padding: '18px', borderRadius: '8px', border: `1px solid rgba(${activeRole === 'construction' ? '255,184,0' : activeRole === 'government' ? '0,240,255' : '255,255,255'},0.15)` }}>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 900, color: roleColors[activeRole], marginBottom: '14px', letterSpacing: '1px' }}>🧠 AI_THINKING_PROCESS — CHAIN OF THOUGHT</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {(currentPred.chainOfThought || []).map((step, i) => (
+                      <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                        <div style={{ minWidth: '20px', height: '20px', borderRadius: '50%', background: roleColors[activeRole], color: '#000', fontSize: '0.58rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, flexShrink: 0 }}>{i + 1}</div>
+                        <div style={{ fontSize: '0.7rem', color: '#ddd', lineHeight: '1.55' }}>{step}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Predicted Events */}
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '18px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 900, color: 'var(--text-secondary)', marginBottom: '14px', letterSpacing: '1px' }}>CRITICAL_PREDICTED_EVENTS ({currentPred.predictedEvents?.length || 0})</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {(currentPred.predictedEvents || []).map((event, i) => (
+                      <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', padding: '10px', background: 'rgba(255,255,255,0.02)', borderRadius: '5px', border: `1px solid rgba(${activeRole === 'construction' ? '255,184,0' : activeRole === 'government' ? '0,240,255' : '255,255,255'},0.08)` }}>
+                        <Activity size={12} style={{ color: roleColors[activeRole], marginTop: '2px', flexShrink: 0 }} />
+                        <span style={{ fontSize: '0.7rem', color: '#ccc', lineHeight: '1.5' }}>{event}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Technical Reasoning */}
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '18px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 900, color: 'var(--text-secondary)', marginBottom: '12px', letterSpacing: '1px' }}>PREDICTIVE_TECHNICAL_REASONING</div>
+                  <p style={{ fontSize: '0.75rem', color: '#bbb', margin: 0, lineHeight: '1.7' }}>{currentPred.technicalReasoning}</p>
+                </div>
               </div>
             </div>
           ) : (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: 'var(--text-secondary)', fontSize: '0.7rem' }}>
-              <BrainCircuit size={40} style={{ marginBottom: '15px', opacity: 0.3 }} />
+            <div style={{ height: '200px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: 'var(--text-secondary)', fontSize: '0.7rem', gap: '12px' }}>
+              <BrainCircuit size={40} style={{ opacity: 0.3 }} />
               INITIALIZING_AI_FORECAST_MODEL...
             </div>
           )}
