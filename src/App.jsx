@@ -79,25 +79,30 @@ function App() {
     init();
   }, []);
 
-  // Periodic Data Fetching (Scoped to Selected District)
+  const [allDistrictsData, setAllDistrictsData] = useState([]);
+
+  // Periodic Data Fetching
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [dataRes, trendRes, alertRes] = await Promise.all([
+        const [dataRes, trendRes, alertRes, allDistRes] = await Promise.all([
           fetch(`http://localhost:3001/api/sensors?id=${selectedDistrict}`),
           fetch(`http://localhost:3001/api/trends?id=${selectedDistrict}`),
-          fetch(`http://localhost:3001/api/alerts?id=${selectedDistrict}`) // Filtered to current district
+          fetch(`http://localhost:3001/api/alerts?id=${selectedDistrict}`),
+          fetch(`http://localhost:3001/api/analytics/comparison`) // Nationwide live data
         ]);
         
-        const [dataJson, trendJson, alertJson] = await Promise.all([
+        const [dataJson, trendJson, alertJson, allDistJson] = await Promise.all([
           dataRes.json(),
           trendRes.json(),
-          alertRes.json()
+          alertRes.json(),
+          allDistRes.json()
         ]);
         
         setData(dataJson);
         setTrends(trendJson);
         setAlerts(alertJson);
+        setAllDistrictsData(allDistJson);
         setLoading(false);
       } catch (error) {
         console.error('Fetch error:', error);
@@ -105,7 +110,7 @@ function App() {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 4000);
+    const interval = setInterval(fetchData, 8000); // 8s for nationwide sync
     return () => clearInterval(interval);
   }, [selectedDistrict]);
 
@@ -150,7 +155,7 @@ function App() {
           {viewMode === '2d' ? (
             <MapHero onSelectDistrict={setSelectedDistrict} selectedId={selectedDistrict} userCoords={userCoords} />
           ) : (
-            <City3DView data={data} />
+            <City3DView data={data} allDistricts={allDistrictsData} />
           )}
         </div>
       </div>

@@ -85,12 +85,12 @@ const MapHero = ({ onSelectDistrict, selectedId, userCoords }) => {
         zoom={mapZoom} 
         scrollWheelZoom={true}
         zoomControl={false}
-        style={{ width: '100%', height: '100%', background: '#000' }}
+        style={{ width: '100%', height: '100%', background: '#f5f5f5' }}
       >
         <ChangeView center={mapCenter} zoom={mapZoom} />
         <TileLayer
           attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
         
         {districts.map(district => (

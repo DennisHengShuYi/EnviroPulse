@@ -64,8 +64,9 @@ const cToF = (c) => (c * 9/5) + 32;
 const fToC = (f) => (f - 32) * 5/9;
 
 // --- DISTRICT DATA PROFILES ---
+// --- COMPREHENSIVE MALAYSIAN DISTRICT PROFILES ---
 const districts = [
-  // --- KUALA LUMPUR & SELANGOR (CENTRAL) ---
+  // SELANGOR & KL
   { id: 'klcc', name: 'KLCC', lat: 3.1579, lng: 101.7123, type: 'Urban core', baseAQI: 85, tempMod: 2.5, region: 'CENTRAL' },
   { id: 'chowkit', name: 'CHOW_KIT', lat: 3.1636, lng: 101.6979, type: 'Urban core', baseAQI: 95, tempMod: 2.8, region: 'CENTRAL' },
   { id: 'bukitbintang', name: 'BUKIT_BINTANG', lat: 3.1466, lng: 101.7115, type: 'Urban core', baseAQI: 88, tempMod: 2.6, region: 'CENTRAL' },
@@ -75,32 +76,52 @@ const districts = [
   { id: 'subang', name: 'SUBANG_JAYA', lat: 3.0767, lng: 101.5883, type: 'Suburban', baseAQI: 75, tempMod: 1.3, region: 'CENTRAL' },
   { id: 'cyberjaya', name: 'CYBERJAYA', lat: 2.9213, lng: 101.6559, type: 'Planned city', baseAQI: 45, tempMod: -0.4, region: 'CENTRAL' },
   { id: 'putrajaya', name: 'PUTRAJAYA', lat: 2.9264, lng: 101.6964, type: 'Planned city', baseAQI: 42, tempMod: -0.5, region: 'CENTRAL' },
+  { id: 'rawang', name: 'RAWANG', lat: 3.3225, lng: 101.5744, type: 'Industrial', baseAQI: 80, region: 'CENTRAL' },
+  { id: 'kajang', name: 'KAJANG', lat: 2.9936, lng: 101.7911, type: 'Suburban', baseAQI: 70, region: 'CENTRAL' },
+  { id: 'puchong', name: 'PUCHONG', lat: 3.0347, lng: 101.6191, type: 'Suburban', baseAQI: 78, region: 'CENTRAL' },
   
-  // --- NORTHERN REGION ---
+  // PENANG & NORTHERN
   { id: 'georgetown', name: 'GEORGE_TOWN', lat: 5.4144, lng: 100.3292, type: 'Urban core', baseAQI: 65, tempMod: 1.5, region: 'NORTHERN' },
   { id: 'bayanlepas', name: 'BAYAN_LEPAS', lat: 5.2950, lng: 100.2590, type: 'Industrial', baseAQI: 70, tempMod: 1.2, region: 'NORTHERN' },
+  { id: 'perai', name: 'PERAI', lat: 5.3850, lng: 100.3800, type: 'Industrial', baseAQI: 90, region: 'NORTHERN' },
   { id: 'ipoh', name: 'IPOH', lat: 4.5975, lng: 101.0901, type: 'Urban core', baseAQI: 60, tempMod: 1.8, region: 'NORTHERN' },
   { id: 'taiping', name: 'TAIPING', lat: 4.8517, lng: 100.7333, type: 'Suburban', baseAQI: 40, tempMod: -1.0, region: 'NORTHERN' },
   { id: 'alorsetar', name: 'ALOR_SETAR', lat: 6.1254, lng: 100.3614, type: 'Suburban', baseAQI: 45, tempMod: 0.5, region: 'NORTHERN' },
   { id: 'langkawi', name: 'LANGKAWI', lat: 6.3500, lng: 99.8000, type: 'Tourist hub', baseAQI: 30, tempMod: -0.5, region: 'NORTHERN' },
+  { id: 'kangar', name: 'KANGAR', lat: 6.4409, lng: 100.1986, type: 'Suburban', baseAQI: 35, region: 'NORTHERN' },
+  { id: 'sungaipetani', name: 'SUNGAI_PETANI', lat: 5.6438, lng: 100.4900, type: 'Industrial', baseAQI: 68, region: 'NORTHERN' },
   
-  // --- SOUTHERN REGION ---
+  // JOHOR & SOUTHERN
   { id: 'jb', name: 'JOHOR_BAHRU', lat: 1.4556, lng: 103.7611, type: 'Urban core', baseAQI: 75, tempMod: 2.0, region: 'SOUTHERN' },
   { id: 'pasirgudang', name: 'PASIR_GUDANG', lat: 1.4700, lng: 103.9000, type: 'Industrial', baseAQI: 95, tempMod: 1.5, region: 'SOUTHERN' },
+  { id: 'skudai', name: 'SKUDAI', lat: 1.5458, lng: 103.6622, type: 'Suburban', baseAQI: 62, region: 'SOUTHERN' },
+  { id: 'muar', name: 'MUAR', lat: 2.0442, lng: 102.5689, type: 'Suburban', baseAQI: 55, region: 'SOUTHERN' },
+  { id: 'batu_pahat', name: 'BATU_PAHAT', lat: 1.8540, lng: 102.9325, type: 'Suburban', baseAQI: 58, region: 'SOUTHERN' },
   { id: 'melaka', name: 'MELAKA_CITY', lat: 2.1896, lng: 102.2501, type: 'Urban core', baseAQI: 55, tempMod: 1.2, region: 'SOUTHERN' },
   { id: 'seremban', name: 'SEREMBAN', lat: 2.7258, lng: 101.9424, type: 'Suburban', baseAQI: 50, tempMod: 0.8, region: 'SOUTHERN' },
+  { id: 'port_dickson', name: 'PORT_DICKSON', lat: 2.5228, lng: 101.7950, type: 'Industrial', baseAQI: 65, region: 'SOUTHERN' },
   
-  // --- EAST COAST ---
+  // PAHANG & EAST COAST
   { id: 'kuantan', name: 'KUANTAN', lat: 3.8127, lng: 103.3256, type: 'Urban core', baseAQI: 48, tempMod: 1.0, region: 'EAST COAST' },
+  { id: 'gebeng', name: 'GEBENG', lat: 3.9744, lng: 103.3931, type: 'Industrial', baseAQI: 85, region: 'EAST COAST' },
   { id: 'kualaterengganu', name: 'KUALA_TERENGGANU', lat: 5.3302, lng: 103.1408, type: 'Suburban', baseAQI: 42, tempMod: 0.5, region: 'EAST COAST' },
+  { id: 'kerteh', name: 'KERTEH', lat: 4.5123, lng: 103.4422, type: 'Industrial', baseAQI: 82, region: 'EAST COAST' },
   { id: 'kotabharu', name: 'KOTA_BHARU', lat: 6.1254, lng: 102.2386, type: 'Suburban', baseAQI: 45, tempMod: 0.7, region: 'EAST COAST' },
+  { id: 'mentakab', name: 'MENTAKAB', lat: 3.4833, lng: 102.3500, type: 'Suburban', baseAQI: 50, region: 'EAST COAST' },
   
-  // --- SABAH & SARAWAK ---
-  { id: 'kuching', name: 'KUCHING', lat: 1.5533, lng: 110.3592, type: 'Urban core', baseAQI: 35, tempMod: 1.0, region: 'BORNEO' },
-  { id: 'miri', name: 'MIRI', lat: 4.3995, lng: 113.9914, type: 'Industrial', baseAQI: 40, tempMod: 0.8, region: 'BORNEO' },
-  { id: 'kotakinabalu', name: 'KOTA_KINABALU', lat: 5.9804, lng: 116.0735, type: 'Urban core', baseAQI: 32, tempMod: 0.5, region: 'BORNEO' },
-  { id: 'sandakan', name: 'SANDAKAN', lat: 5.8394, lng: 118.1172, type: 'Suburban', baseAQI: 30, tempMod: 0.3, region: 'BORNEO' },
-  { id: 'labuan', name: 'LABUAN', lat: 5.2767, lng: 115.2417, type: 'Transport hub', baseAQI: 28, tempMod: 0.1, region: 'BORNEO' }
+  // SARAWAK
+  { id: 'kuching', name: 'KUCHING', lat: 1.5533, lng: 110.3592, type: 'Urban core', baseAQI: 35, tempMod: 1.0, region: 'SARAWAK' },
+  { id: 'miri', name: 'MIRI', lat: 4.3995, lng: 113.9914, type: 'Industrial', baseAQI: 40, tempMod: 0.8, region: 'SARAWAK' },
+  { id: 'bintulu', lat: 3.250, lng: 113.080, name: 'BINTULU', type: 'Industrial', baseAQI: 75, region: 'SARAWAK' },
+  { id: 'sibu', name: 'SIBU', lat: 2.2873, lng: 111.8305, type: 'Suburban', baseAQI: 38, region: 'SARAWAK' },
+  { id: 'samalaju', name: 'SAMALAJU', lat: 3.550, lng: 113.350, type: 'Industrial', baseAQI: 95, region: 'SARAWAK' },
+  
+  // SABAH
+  { id: 'kotakinabalu', name: 'KOTA_KINABALU', lat: 5.9804, lng: 116.0735, type: 'Urban core', baseAQI: 32, tempMod: 0.5, region: 'SABAH' },
+  { id: 'sandakan', name: 'SANDAKAN', lat: 5.8394, lng: 118.1172, type: 'Suburban', baseAQI: 30, tempMod: 0.3, region: 'SABAH' },
+  { id: 'tawau', name: 'TAWAU', lat: 4.2449, lng: 117.8912, type: 'Suburban', baseAQI: 35, region: 'SABAH' },
+  { id: 'labuan', name: 'LABUAN', lat: 5.2767, lng: 115.2417, type: 'Transport hub', baseAQI: 28, tempMod: 0.1, region: 'SABAH' },
+  { id: 'lahaddatu', name: 'LAHAD_DATU', lat: 5.0268, lng: 118.3274, type: 'Suburban', baseAQI: 32, region: 'SABAH' }
 ];
 
 // --- REAL-TIME DATA FETCHING ---
@@ -309,6 +330,8 @@ app.get('/api/analytics/comparison', async (req, res) => {
     return {
       id: d.id,
       name: d.name,
+      lat: d.lat,
+      lng: d.lng,
       aqi: data.metrics.aqi.value,
       temp: parseFloat(data.metrics.temp.value),
       pm25: parseFloat(data.metrics.pm25.value)
