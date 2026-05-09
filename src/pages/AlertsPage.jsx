@@ -1,7 +1,46 @@
-import React from 'react';
-import { Bell, ShieldAlert, Settings, Clock, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bell, ShieldAlert, Settings, Clock, CheckCircle2, Save, Activity } from 'lucide-react';
 
 const AlertsPage = () => {
+  const [config, setConfig] = useState({
+    AQI_CRITICAL: 100,
+    HEAT_INDEX_MAX: 40.0,
+    PM2_5_EXCEEDANCE: 35.0,
+    NO2_PEAK_LIMIT: 25.0
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState(null);
+
+  useEffect(() => {
+    fetch('/api/config/thresholds')
+      .then(res => res.json())
+      .then(data => {
+        setConfig(data);
+        setLoading(false);
+      })
+      .catch(err => console.error('Error fetching config:', err));
+  }, []);
+
+  const handleUpdate = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/config/thresholds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config)
+      });
+      if (res.ok) {
+        setSaveStatus('SUCCESS');
+        setTimeout(() => setSaveStatus(null), 3000);
+      }
+    } catch (err) {
+      setSaveStatus('ERROR');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const alertHistory = [
     { id: 1, type: 'CRITICAL', metric: 'HEAT_INDEX', zone: 'KLCC', value: '42.8°C', time: '04:12 AM', date: '2026-05-09' },
     { id: 2, type: 'WARNING', metric: 'AQI_LEVEL', zone: 'SHAH_ALAM', value: '112', time: '02:45 AM', date: '2026-05-09' },
@@ -20,36 +59,7 @@ const AlertsPage = () => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
-        {/* Configuration Section */}
-        <div className="widget" style={{ padding: '25px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '25px' }}>
-            <Settings size={18} className="cyan" />
-            <span style={{ fontSize: '0.7rem', fontWeight: 800 }}>THRESHOLD_CONFIGURATION</span>
-          </div>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {[
-              { label: 'AQI_CRITICAL', value: '100', unit: 'INDEX' },
-              { label: 'HEAT_INDEX_MAX', value: '41.0', unit: '°C' },
-              { label: 'PM2.5_EXCEEDANCE', value: '35.0', unit: 'µg/m³' },
-              { label: 'NO2_PEAK_LIMIT', value: '25.0', unit: 'ppb' },
-            ].map((cfg, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', background: 'rgba(255,255,255,0.02)', borderRadius: '4px' }}>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{cfg.label}</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <input type="text" defaultValue={cfg.value} style={{ width: '60px', background: '#000', border: '1px solid rgba(0, 240, 255, 0.2)', color: '#fff', padding: '5px', textAlign: 'center', fontSize: '0.75rem', fontFamily: 'JetBrains Mono' }} />
-                  <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>{cfg.unit}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          <button style={{ marginTop: '25px', width: '100%', background: 'rgba(0, 240, 255, 0.1)', border: '1px solid var(--accent-cyan)', color: 'var(--accent-cyan)', padding: '12px', fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer' }}>
-            UPDATE_SYSTEM_PARAMETERS
-          </button>
-        </div>
-
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '30px', maxWidth: '800px', margin: '0 auto', width: '100%' }}>
         {/* History Feed */}
         <div className="widget" style={{ padding: '25px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '25px' }}>

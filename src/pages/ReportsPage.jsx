@@ -50,13 +50,34 @@ const ReportsPage = ({ districts, data }) => {
     { date: '4 May 17:45', district: 'Petaling Jaya', metric: 'PM2.5', value: '38.2', limit: '15', severity: 'WARNING' },
   ];
 
-  const handleGenerate = () => {
+  const [esgAdvisory, setEsgAdvisory] = useState(null);
+
+  const handleGenerate = async () => {
     setGenerating(true);
     setReportReady(false);
-    setTimeout(() => {
-      setGenerating(false);
+    
+    // Simulate fetching ESG data from AI
+    try {
+      const response = await fetch('/api/analytics/esg', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          sensorData: data || { name: 'Kuala Lumpur Metro', type: 'City' },
+          stats: {
+            pm25Compliance: 14,
+            doeCompliance: 42,
+            heatSafeDays: 71
+          }
+        })
+      });
+      const result = await response.json();
+      setEsgAdvisory(result);
       setReportReady(true);
-    }, 2500);
+    } catch (err) {
+      console.error('ESG fetch error:', err);
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const handleExportCSV = () => {
@@ -74,7 +95,72 @@ const ReportsPage = ({ districts, data }) => {
   };
 
   const handlePrintPDF = () => {
-    window.print();
+    const reportEl = document.querySelector('.printable-area');
+    if (!reportEl) { window.print(); return; }
+
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>UMDT Environmental Report — ${selectedDistrict} / ${period}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800;900&display=swap');
+            @page { size: A4 portrait; margin: 1.2cm; }
+            * { box-sizing: border-box; }
+            body {
+              margin: 0; padding: 0;
+              font-family: 'JetBrains Mono', monospace;
+              background: #fff; color: #000;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            /* Hide the config panel (left column), show only report content */
+            .no-print { display: none !important; }
+            /* Make the 2-col grid single column */
+            .report-main-grid {
+              display: block !important;
+              width: 100% !important;
+            }
+            .widget {
+              background: #fff !important;
+              color: #000 !important;
+              border: 1px solid #ccc !important;
+              border-radius: 4px;
+              padding: 16px !important;
+              margin-bottom: 18px !important;
+              width: 100% !important;
+              display: block !important;
+              break-inside: avoid;
+              page-break-inside: avoid;
+            }
+            table { width: 100% !important; border-collapse: collapse; }
+            th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #eee; font-size: 0.75rem; }
+            th { font-weight: 900; color: #333; }
+            h1,h2 { color: #000; }
+            .cyan, [class~="cyan"] { color: #0077aa !important; font-weight: bold; }
+            .gold, [class~="gold"] { color: #996600 !important; font-weight: bold; }
+            .red,  [class~="red"]  { color: #cc0000 !important; font-weight: bold; }
+            /* Grid sections → stack vertically */
+            div[style*="grid-template-columns"] {
+              display: block !important;
+            }
+            /* Recharts SVG — keep visible but sized */
+            svg { max-width: 100%; height: auto; }
+          </style>
+        </head>
+        <body>
+          ${reportEl.innerHTML}
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 1000);
+            };
+          <\/script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   return (
@@ -103,13 +189,10 @@ const ReportsPage = ({ districts, data }) => {
           >
             <TableIcon size={14} /> CSV
           </button>
-          <button style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '8px 15px', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Share2 size={14} /> SHARE
-          </button>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '25px', marginBottom: '40px' }}>
+      <div className="report-main-grid" style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '25px', marginBottom: '40px' }}>
         {/* CONFIG PANEL */}
         <div className="widget no-print" style={{ padding: '20px', height: 'fit-content' }}>
           <div style={{ fontSize: '0.7rem', fontWeight: 900, marginBottom: '20px', borderBottom: '1px solid rgba(0, 240, 255, 0.2)', paddingBottom: '10px' }}>REPORT_CONFIGURATION</div>
@@ -424,44 +507,42 @@ const ReportsPage = ({ districts, data }) => {
                 <div className="widget" style={{ padding: '20px', background: 'rgba(0, 240, 255, 0.02)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
                     <Globe size={18} className="cyan" />
-                    <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>ESG_COMPLIANCE_MODULE</span>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>ESG_ENVIRONMENTAL_STATEMENT</span>
                   </div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 900, marginBottom: '5px', color: 'var(--accent-cyan)' }}>SCORE: {esgAdvisory?.performanceScore || 'N/A'}</div>
                   <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '15px' }}>ALIGNED_TO_GRI_305_ISO_14001</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem' }}>
-                      <span>WHO PM2.5 Compliance:</span>
-                      <span style={{ color: 'var(--accent-red)' }}>14.3%</span>
+                      <span>PM2.5 Compliance:</span>
+                      <span style={{ color: 'var(--accent-red)' }}>{esgAdvisory?.complianceStatement.pm25}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem' }}>
-                      <span>Heat Stress Safety:</span>
-                      <span style={{ color: 'var(--accent-gold)' }}>71.4%</span>
+                      <span>DOE API Status:</span>
+                      <span style={{ color: 'var(--accent-gold)' }}>{esgAdvisory?.complianceStatement.api}</span>
                     </div>
-                    <div style={{ marginTop: '10px', fontSize: '0.6rem', fontStyle: 'italic', color: '#666' }}>
-                      "Deterioration noted across primary indicators compared to April reporting cycle..."
-                    </div>
+                  </div>
+
+                  <div style={{ padding: '10px', background: 'rgba(255,255,255,0.03)', borderRadius: '4px', fontSize: '0.7rem', lineHeight: '1.5' }}>
+                    {esgAdvisory?.narrative}
                   </div>
                 </div>
 
                 <div className="widget" style={{ padding: '20px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
                     <ArrowRight size={18} className="cyan" />
-                    <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>RECOMMENDED_INTERVENTIONS</span>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>AI_RECOMMENDED_INTERVENTIONS</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ display: 'flex', gap: '15px' }}>
-                      <div style={{ background: 'var(--accent-red)', color: '#000', padding: '5px 10px', fontSize: '0.5rem', fontWeight: 900, height: 'fit-content' }}>CRITICAL</div>
-                      <div>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 800 }}>Industrial Emission Audit — Klang Port</div>
-                        <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Target: 15-20% AQI reduction | Stakeholder: DOE</div>
+                    {esgAdvisory?.interventions.map((item, i) => (
+                      <div key={i} style={{ display: 'flex', gap: '15px' }}>
+                        <div style={{ background: item.potential === 'High' ? 'var(--accent-red)' : 'var(--accent-gold)', color: '#000', padding: '5px 10px', fontSize: '0.5rem', fontWeight: 900, height: 'fit-content' }}>{item.potential.toUpperCase()}</div>
+                        <div>
+                          <div style={{ fontSize: '0.75rem', fontWeight: 800 }}>{item.action}</div>
+                          <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Stakeholder: {item.stakeholder}</div>
+                        </div>
                       </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '15px' }}>
-                      <div style={{ background: 'var(--accent-gold)', color: '#000', padding: '5px 10px', fontSize: '0.5rem', fontWeight: 900, height: 'fit-content' }}>HIGH</div>
-                      <div>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 800 }}>Green Corridor Development — Kepong to KLCC</div>
-                        <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Target: Urban Heat reduction | Stakeholder: DBKL</div>
-                      </div>
-                    </div>
+                    ))}
                   </div>
                 </div>
               </div>

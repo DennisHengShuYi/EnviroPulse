@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Clock, ShieldCheck, ChevronDown, Bell, ShieldAlert } from 'lucide-react';
+import { MapPin, Clock, ShieldCheck, ChevronDown, Bell, ShieldAlert, Crosshair } from 'lucide-react';
 
-const Header = ({ districtName, districts, onSelectDistrict, alertCount, onToggleAlerts, showAlerts }) => {
+const Header = ({ districtName, districts, onSelectDistrict, onLocateMe, alertCount, onToggleAlerts, showAlerts }) => {
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -30,32 +30,64 @@ const Header = ({ districtName, districts, onSelectDistrict, alertCount, onToggl
           </span>
         </div>
 
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-          <MapPin size={16} className="cyan" />
-          <select 
-            value={districtName} 
-            onChange={(e) => onSelectDistrict(e.target.value)}
-            style={{ 
-              background: 'transparent', 
-              border: 'none', 
-              color: '#fff', 
-              fontSize: '0.9rem', 
-              fontWeight: 700,
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+            <MapPin size={16} className="cyan" />
+            <select 
+              value={districtName} 
+              onChange={(e) => onSelectDistrict(e.target.value)}
+              style={{ 
+                background: 'transparent', 
+                border: 'none', 
+                color: '#fff', 
+                fontSize: '0.9rem', 
+                fontWeight: 700,
+                cursor: 'pointer',
+                outline: 'none',
+                appearance: 'none',
+                paddingRight: '20px'
+              }}
+            >
+              <optgroup label="CURRENT_GPS" style={{ background: '#111', color: 'var(--accent-cyan)', fontSize: '0.7rem' }}>
+                <option value="user_gps" style={{ background: '#000', color: '#fff' }}>[ LOCAL_STATION ]</option>
+              </optgroup>
+              {Array.from(new Set(districts.map(d => d.region))).map(region => (
+                <optgroup key={region} label={region} style={{ background: '#111', color: '#00f0ff', fontSize: '0.7rem' }}>
+                  {districts.filter(d => d.region === region).map(d => (
+                    <option key={d.id} value={d.id} style={{ background: '#000', color: '#fff' }}>{d.name}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            <ChevronDown size={14} style={{ position: 'absolute', right: 0, pointerEvents: 'none' }} />
+          </div>
+
+          <button 
+            onClick={onLocateMe}
+            title="SYNC GPS LOCATION"
+            style={{
+              background: 'rgba(0, 240, 255, 0.1)',
+              border: '1px solid rgba(0, 240, 255, 0.2)',
+              color: 'var(--accent-cyan)',
+              padding: '6px',
+              borderRadius: '4px',
               cursor: 'pointer',
-              outline: 'none',
-              appearance: 'none',
-              paddingRight: '20px'
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.background = 'rgba(0, 240, 255, 0.2)';
+              e.currentTarget.style.boxShadow = '0 0 10px rgba(0, 240, 255, 0.3)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background = 'rgba(0, 240, 255, 0.1)';
+              e.currentTarget.style.boxShadow = 'none';
             }}
           >
-            {Array.from(new Set(districts.map(d => d.region))).map(region => (
-              <optgroup key={region} label={region} style={{ background: '#111', color: '#00f0ff', fontSize: '0.7rem' }}>
-                {districts.filter(d => d.region === region).map(d => (
-                  <option key={d.id} value={d.id} style={{ background: '#000', color: '#fff' }}>{d.name}</option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-          <ChevronDown size={14} style={{ position: 'absolute', right: 0, pointerEvents: 'none' }} />
+            <Crosshair size={16} />
+          </button>
         </div>
       </div>
 

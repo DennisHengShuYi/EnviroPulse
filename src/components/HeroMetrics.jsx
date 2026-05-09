@@ -79,7 +79,7 @@ const HeroMetrics = ({ data, layout }) => {
         label="PM2.5 CONC." 
         value={data.metrics.pm25.value} 
         unit="µg/m³" 
-        status="ELEVATED" 
+        status={data.metrics.pm25.status || 'NOMINAL'} 
         icon={Droplets}
         colorClass="salmon"
         compact={isVertical}

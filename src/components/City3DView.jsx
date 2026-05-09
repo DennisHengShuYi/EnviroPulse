@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-const City3DView = ({ data, allDistricts, onSelectDistrict }) => {
+const City3DView = ({ data, allDistricts, onSelectDistrict, userCoords, homeDistrictId }) => {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -14,13 +14,18 @@ const City3DView = ({ data, allDistricts, onSelectDistrict }) => {
   // Persistence for simulation
   const pListRef = useRef([]);
   const windOffsetRef = useRef(0);
+  const heatmapFeaturesRef = useRef({ temp: [], aqi: [] });
 
   // Initialize MapLibre
   useEffect(() => {
+    const center = [parseFloat(data.lng), parseFloat(data.lat)];
+
+    console.log(`[City3DView] Initializing Map at: ${center[0]}, ${center[1]} (${data.name})`);
+    
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
       style: 'https://tiles.openfreemap.org/styles/positron',
-      center: [data.lng, data.lat],
+      center: center,
       zoom: 15,
       pitch: 60,
       bearing: -17.6,
@@ -32,16 +37,15 @@ const City3DView = ({ data, allDistricts, onSelectDistrict }) => {
     map.on('load', () => {
       const allDistrictsList = (allDistricts || [data]).filter(d => d && typeof d.lng === 'number' && typeof d.lat === 'number');
       
-      // TEMPERATURE HEATMAP (NATIONWIDE COVERAGE)
+      // TEMPERATURE HEATMAP (HEAT ISLAND EFFECT)
       map.addSource('temp-heat-source', {
         'type': 'geojson',
         'data': {
           'type': 'FeatureCollection',
           'features': allDistrictsList.flatMap(d => 
-            // Generate more points with wider spread for "Malaysia-wide" effect
             Array.from({ length: 25 }).map(() => ({
               'type': 'Feature',
-              'properties': { 'temp': 31 + (Math.random() * 5) },
+              'properties': { 'temp': d.temp },
               'geometry': {
                 'type': 'Point',
                 'coordinates': [d.lng + (Math.random() * 0.4 - 0.2), d.lat + (Math.random() * 0.4 - 0.2)]
@@ -57,17 +61,25 @@ const City3DView = ({ data, allDistricts, onSelectDistrict }) => {
         'source': 'temp-heat-source',
         'layout': { 'visibility': 'none' },
         'paint': {
-          'heatmap-weight': ['get', 'temp'],
-          'heatmap-intensity': 1,
+          'heatmap-weight': ['interpolate', ['linear'], ['get', 'temp'], 25, 0, 40, 1],
+          'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 15, 3],
           'heatmap-color': [
             'interpolate', ['linear'], ['heatmap-density'],
-            0, 'rgba(0, 0, 255, 0)',
-            0.2, 'rgba(0, 150, 255, 0.4)',
-            0.5, 'rgba(255, 184, 0, 0.6)',
-            0.8, 'rgba(255, 60, 60, 0.8)'
+            0, 'rgba(0, 100, 255, 0)',
+            0.1, 'rgba(0, 150, 255, 0.1)',
+            0.3, 'rgba(0, 255, 130, 0.3)',
+            0.5, 'rgba(255, 184, 0, 0.5)',
+            0.7, 'rgba(255, 120, 0, 0.7)',
+            0.9, 'rgba(255, 60, 60, 0.8)'
           ],
-          'heatmap-radius': 180, // Even larger for nationwide blending
-          'heatmap-opacity': 0.45
+          'heatmap-radius': [
+            'interpolate', ['linear'], ['zoom'],
+            0, 2,
+            5, 15,
+            10, 80,
+            15, 300
+          ],
+          'heatmap-opacity': 0.55
         }
       });
 
@@ -79,7 +91,7 @@ const City3DView = ({ data, allDistricts, onSelectDistrict }) => {
           'features': allDistrictsList.flatMap(d => 
             Array.from({ length: 25 }).map(() => ({
               'type': 'Feature',
-              'properties': { 'aqi': 50 + (Math.random() * 120) },
+              'properties': { 'aqi': d.aqi },
               'geometry': {
                 'type': 'Point',
                 'coordinates': [d.lng + (Math.random() * 0.5 - 0.25), d.lat + (Math.random() * 0.5 - 0.25)]
@@ -95,41 +107,141 @@ const City3DView = ({ data, allDistricts, onSelectDistrict }) => {
         'source': 'aqi-heat-source',
         'layout': { 'visibility': 'none' },
         'paint': {
-          'heatmap-weight': ['get', 'aqi'],
-          'heatmap-intensity': 1,
+          'heatmap-weight': ['interpolate', ['linear'], ['get', 'aqi'], 0, 0, 200, 1],
+          'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 15, 3],
           'heatmap-color': [
             'interpolate', ['linear'], ['heatmap-density'],
             0, 'rgba(0, 255, 130, 0)',
-            0.3, 'rgba(0, 255, 130, 0.4)',
-            0.6, 'rgba(255, 184, 0, 0.6)',
-            0.9, 'rgba(255, 60, 60, 0.8)'
+            0.2, 'rgba(0, 255, 130, 0.3)',
+            0.4, 'rgba(255, 184, 0, 0.5)',
+            0.6, 'rgba(255, 120, 0, 0.7)',
+            0.8, 'rgba(255, 60, 60, 0.8)',
+            1.0, 'rgba(128, 0, 128, 0.9)'
           ],
-          'heatmap-radius': 220, // Maximum radius for nationwide atmospheric blanket
-          'heatmap-opacity': 0.4
+          'heatmap-radius': [
+            'interpolate', ['linear'], ['zoom'],
+            0, 2,
+            5, 15,
+            10, 80,
+            15, 300
+          ],
+          'heatmap-opacity': 0.5
         }
       });
 
-      // District Beacon
+      // District Beacon Pinhead
+      const smartCoords = [parseFloat(data.lng), parseFloat(data.lat)];
+
       map.addSource('beacon-source', {
         'type': 'geojson',
-        'data': { 'type': 'Feature', 'geometry': { 'type': 'Point', 'coordinates': [data.lng, data.lat] } }
+        'data': { 
+          'type': 'Feature', 
+          'properties': { 'name': data.name, 'aqi': data.aqi },
+          'geometry': { 'type': 'Point', 'coordinates': smartCoords } 
+        }
       });
 
       map.addLayer({
         'id': 'beacon-glow',
         'type': 'circle',
         'source': 'beacon-source',
-        'paint': { 'circle-radius': 15, 'circle-color': '#00f0ff', 'circle-blur': 1, 'circle-opacity': 0.8 }
+        'paint': { 
+          'circle-radius': 18, 
+          'circle-color': '#00f0ff', 
+          'circle-opacity': 0.4,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#00f0ff'
+        }
       });
 
       map.addLayer({
         'id': 'beacon-core',
         'type': 'circle',
         'source': 'beacon-source',
-        'paint': { 'circle-radius': 6, 'circle-color': '#fff', 'circle-opacity': 1 }
+        'paint': { 
+          'circle-radius': 6, 
+          'circle-color': '#fff', 
+          'circle-stroke-width': 3,
+          'circle-stroke-color': '#00f0ff'
+        }
       });
 
-      // 3D Buildings - Force find source
+      // User Location Marker
+      map.addSource('user-location-source', {
+        'type': 'geojson',
+        'data': { 
+          'type': 'Feature', 
+          'geometry': { 
+            'type': 'Point', 
+            'coordinates': userCoords ? [userCoords.lng, userCoords.lat] : [0, 0] 
+          } 
+        }
+      });
+
+      map.addLayer({
+        'id': 'user-location-glow',
+        'type': 'circle',
+        'source': 'user-location-source',
+        'layout': { 'visibility': userCoords ? 'visible' : 'none' },
+        'paint': {
+          'circle-radius': 12,
+          'circle-color': '#fff',
+          'circle-opacity': 0.3,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#fff'
+        }
+      });
+
+      map.addLayer({
+        'id': 'user-location-core',
+        'type': 'circle',
+        'source': 'user-location-source',
+        'layout': { 'visibility': userCoords ? 'visible' : 'none' },
+        'paint': {
+          'circle-radius': 5,
+          'circle-color': '#007bff',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#fff'
+        }
+      });
+
+      map.addLayer({
+        'id': 'user-location-label',
+        'type': 'symbol',
+        'source': 'user-location-source',
+        'layout': {
+          'visibility': userCoords ? 'visible' : 'none',
+          'text-field': 'YOU_ARE_HERE',
+          'text-font': ['Noto Sans Bold'],
+          'text-size': 10,
+          'text-offset': [0, -2],
+          'text-anchor': 'bottom'
+        },
+        'paint': {
+          'text-color': '#000',
+          'text-halo-color': '#fff',
+          'text-halo-width': 2
+        }
+      });
+
+      // Pinhead Label (Restored)
+      map.addLayer({
+        'id': 'district-label',
+        'type': 'symbol',
+        'source': 'beacon-source',
+        'layout': {
+          'text-field': ['concat', ['get', 'name'], '\nAQI: ', ['get', 'aqi']],
+          'text-size': 12,
+          'text-offset': [0, -2],
+          'text-anchor': 'bottom',
+          'text-font': ['Noto Sans Bold']
+        },
+        'paint': {
+          'text-color': '#fff',
+          'text-halo-color': '#000',
+          'text-halo-width': 2
+        }
+      });
       const style = map.getStyle();
       const buildingSourceId = Object.keys(style.sources).find(s => s === 'openmaptiles' || s === 'building' || s === 'osm_buildings' || s === 'openfreemap') || 'openmaptiles';
       
@@ -200,23 +312,48 @@ const City3DView = ({ data, allDistricts, onSelectDistrict }) => {
     if (!mapRef.current || !mapLoaded) return;
     const map = mapRef.current;
     
-    // Update Nationwide Heatmaps with new data points
     const allDistrictsList = (allDistricts || [data]).filter(d => d && typeof d.lng === 'number' && typeof d.lat === 'number');
     
+    // 1. STABILIZED HEATMAP GENERATION
+    // If features don't exist, generate them once to lock their positions
+    if (heatmapFeaturesRef.current.temp.length === 0 || heatmapFeaturesRef.current.temp.length !== allDistrictsList.length * 25) {
+      heatmapFeaturesRef.current.temp = allDistrictsList.flatMap(d => 
+        Array.from({ length: 25 }).map(() => ({
+          'type': 'Feature',
+          'properties': { 'temp': d.temp || 31, 'districtId': d.id },
+          'geometry': {
+            'type': 'Point',
+            'coordinates': [d.lng + (Math.random() * 0.4 - 0.2), d.lat + (Math.random() * 0.4 - 0.2)]
+          }
+        }))
+      );
+      heatmapFeaturesRef.current.aqi = allDistrictsList.flatMap(d => 
+        Array.from({ length: 25 }).map(() => ({
+          'type': 'Feature',
+          'properties': { 'aqi': d.aqi || 50, 'districtId': d.id },
+          'geometry': {
+            'type': 'Point',
+            'coordinates': [d.lng + (Math.random() * 0.5 - 0.25), d.lat + (Math.random() * 0.5 - 0.25)]
+          }
+        }))
+      );
+    } else {
+      // Positions are locked, just update the live values (properties)
+      heatmapFeaturesRef.current.temp.forEach(f => {
+        const dist = allDistrictsList.find(d => d.id === f.properties.districtId);
+        if (dist) f.properties.temp = dist.temp || 31;
+      });
+      heatmapFeaturesRef.current.aqi.forEach(f => {
+        const dist = allDistrictsList.find(d => d.id === f.properties.districtId);
+        if (dist) f.properties.aqi = dist.aqi || 50;
+      });
+    }
+
     const tempSource = map.getSource('temp-heat-source');
     if (tempSource) {
       tempSource.setData({
         'type': 'FeatureCollection',
-        'features': allDistrictsList.flatMap(d => 
-          Array.from({ length: 25 }).map(() => ({
-            'type': 'Feature',
-            'properties': { 'temp': d.temp || 31 },
-            'geometry': {
-              'type': 'Point',
-              'coordinates': [d.lng + (Math.random() * 0.4 - 0.2), d.lat + (Math.random() * 0.4 - 0.2)]
-            }
-          }))
-        )
+        'features': heatmapFeaturesRef.current.temp
       });
     }
 
@@ -224,23 +361,46 @@ const City3DView = ({ data, allDistricts, onSelectDistrict }) => {
     if (aqiSource) {
       aqiSource.setData({
         'type': 'FeatureCollection',
-        'features': allDistrictsList.flatMap(d => 
-          Array.from({ length: 25 }).map(() => ({
-            'type': 'Feature',
-            'properties': { 'aqi': d.aqi || 50 },
-            'geometry': {
-              'type': 'Point',
-              'coordinates': [d.lng + (Math.random() * 0.5 - 0.25), d.lat + (Math.random() * 0.5 - 0.25)]
-            }
-          }))
-        )
+        'features': heatmapFeaturesRef.current.aqi
       });
     }
 
-    // Update Local Beacon
+    // Smooth FlyTo Transition when district changes
+    if (map && data) {
+      const targetCenter = [parseFloat(data.lng), parseFloat(data.lat)];
+
+      map.flyTo({
+        center: targetCenter,
+        zoom: 15.5,
+        pitch: 65,
+        bearing: -17.6,
+        essential: true,
+        duration: 3500 // Smooth 3.5s cinematic flight
+      });
+    }
+
+    // Update Local Beacon & Pinhead
     const bSource = map.getSource('beacon-source');
     if (bSource) {
-      bSource.setData({ 'type': 'Feature', 'geometry': { 'type': 'Point', 'coordinates': [data.lng, data.lat] } });
+      const smartCoords = [parseFloat(data.lng), parseFloat(data.lat)];
+
+      bSource.setData({ 
+        'type': 'Feature', 
+        'properties': { 'name': data.name, 'aqi': data.aqi },
+        'geometry': { 'type': 'Point', 'coordinates': smartCoords } 
+      });
+    }
+
+    // Update User Location
+    const uSource = map.getSource('user-location-source');
+    if (uSource && userCoords) {
+      uSource.setData({
+        'type': 'Feature',
+        'geometry': { 'type': 'Point', 'coordinates': [userCoords.lng, userCoords.lat] }
+      });
+      map.setLayoutProperty('user-location-glow', 'visibility', 'visible');
+      map.setLayoutProperty('user-location-core', 'visibility', 'visible');
+      map.setLayoutProperty('user-location-label', 'visibility', 'visible');
     }
 
     // Sync Layer Visibilities
@@ -248,10 +408,12 @@ const City3DView = ({ data, allDistricts, onSelectDistrict }) => {
     if (map.getLayer('temp-heat-layer')) map.setLayoutProperty('temp-heat-layer', 'visibility', showTempHeatmap ? 'visible' : 'none');
     if (map.getLayer('aqi-heat-layer')) map.setLayoutProperty('aqi-heat-layer', 'visibility', showAQIHeatmap ? 'visible' : 'none');
     if (map.getLayer('beacon-glow')) {
-      map.setLayoutProperty('beacon-glow', 'visibility', showBeacon ? 'visible' : 'none');
-      map.setLayoutProperty('beacon-core', 'visibility', showBeacon ? 'visible' : 'none');
+      const vis = showBeacon ? 'visible' : 'none';
+      map.setLayoutProperty('beacon-glow', 'visibility', vis);
+      map.setLayoutProperty('beacon-core', 'visibility', vis);
+      if (map.getLayer('district-label')) map.setLayoutProperty('district-label', 'visibility', vis);
     }
-  }, [allDistricts, data, buildingOpacity, showTempHeatmap, showAQIHeatmap, showBeacon, mapLoaded]);
+  }, [allDistricts, data, buildingOpacity, showTempHeatmap, showAQIHeatmap, showBeacon, mapLoaded, userCoords]);
 
   const canvasRef = useRef(null);
 
@@ -261,18 +423,6 @@ const City3DView = ({ data, allDistricts, onSelectDistrict }) => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     let animationFrameId;
-
-    const industrialSources = [
-      // High-Impact Industrial Anchors (Always active)
-      { id: 'klang', lat: 3.0449, lng: 101.4456, label: 'Klang Port' },
-      { id: 'shahalam', lat: 3.0738, lng: 101.5183, label: 'Hicom' },
-      { id: 'perai', lat: 5.3850, lng: 100.3800, label: 'Perai Industrial' },
-      { id: 'pasirgudang', lat: 1.4700, lng: 103.9000, label: 'Pasir Gudang' },
-      { id: 'gebeng', lat: 3.9744, lng: 103.3931, label: 'Gebeng Petro' },
-      { id: 'kerteh', lat: 4.5123, lng: 103.4422, label: 'Kerteh Refinery' },
-      { id: 'bintulu', lat: 3.250, lng: 113.080, label: 'Bintulu MLNG' },
-      { id: 'samalaju', lat: 3.550, lng: 113.350, label: 'Samalaju Steel' }
-    ];
 
     const render = () => {
       if (!mapRef.current) return;
@@ -304,14 +454,11 @@ const City3DView = ({ data, allDistricts, onSelectDistrict }) => {
         }
       }
 
-      // 2. POLLUTION PLUMES (HIGH-VISIBILITY NATIONWIDE FLOW)
+      // 2. POLLUTION PLUMES (DRIVEN BY LIVE DISTRICT DATA)
       if (pListRef.current.length < 2000) {
-        const activeEmitters = [
-          ...industrialSources,
-          ...(allDistricts || [])
-            .filter(d => d.aqi > 50)
-            .map(d => ({ lat: d.lat, lng: d.lng, strength: (d.aqi - 50) / 100 }))
-        ];
+        const activeEmitters = (allDistricts || [])
+          .filter(d => d.aqi > 50)
+          .map(d => ({ lat: d.lat, lng: d.lng, strength: (d.aqi - 50) / 100 }));
 
         activeEmitters.forEach(s => {
           const pos = mapRef.current.project([s.lng, s.lat]);
@@ -367,7 +514,16 @@ const City3DView = ({ data, allDistricts, onSelectDistrict }) => {
   // Handle map flight on focus change
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return;
-    mapRef.current.flyTo({ center: [data.lng, data.lat], zoom: 15, duration: 1500 });
+    
+    const target = [parseFloat(data.lng), parseFloat(data.lat)];
+    
+    console.log(`[City3DView] Standard Flight to: ${target[0]}, ${target[1]} (${data.name})`);
+    mapRef.current.flyTo({ 
+      center: target, 
+      zoom: 15, 
+      duration: 2000, 
+      pitch: 50 
+    });
   }, [data.id, mapLoaded]);
 
   return (

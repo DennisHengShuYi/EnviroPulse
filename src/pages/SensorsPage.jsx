@@ -39,47 +39,54 @@ const SensorsPage = ({ districts }) => {
       </div>
 
       {/* Station List */}
-      <div className="widget">
+      <div className="widget" style={{ display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '20px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontWeight: 800, fontSize: '0.7rem' }}>STATION_DIAGNOSTICS_MATRIX</div>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
-          <thead>
-            <tr style={{ textAlign: 'left', color: 'var(--text-secondary)' }}>
-              <th style={{ padding: '15px 20px' }}>STATION_ID</th>
-              <th style={{ padding: '15px 20px' }}>LOCATION</th>
-              <th style={{ padding: '15px 20px' }}>STATUS</th>
-              <th style={{ padding: '15px 20px' }}>BATTERY</th>
-              <th style={{ padding: '15px 20px' }}>SIGNAL</th>
-              <th style={{ padding: '15px 20px' }}>LAST_PING</th>
-            </tr>
-          </thead>
-          <tbody>
-            {districts?.slice(0, 8).map((d, i) => (
-              <tr key={i} style={{ borderTop: '1px solid rgba(255,255,255,0.02)' }}>
-                <td style={{ padding: '15px 20px', fontWeight: 800 }}>STN_{d.id.toUpperCase()}</td>
-                <td style={{ padding: '15px 20px' }}>{d.name}</td>
-                <td style={{ padding: '15px 20px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <CheckCircle2 size={14} style={{ color: '#00ff82' }} />
-                    <span style={{ color: '#00ff82' }}>ONLINE</span>
-                  </div>
-                </td>
-                <td style={{ padding: '15px 20px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Battery size={14} className="gold" />
-                    <span>84%</span>
-                  </div>
-                </td>
-                <td style={{ padding: '15px 20px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Signal size={14} className="cyan" />
-                    <span>-45 dBm</span>
-                  </div>
-                </td>
-                <td style={{ padding: '15px 20px', color: 'var(--text-secondary)' }}>2s AGO</td>
+        <div style={{ overflowY: 'auto', maxHeight: '500px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
+            <thead style={{ position: 'sticky', top: 0, background: '#0a0a0a', zIndex: 2 }}>
+              <tr style={{ textAlign: 'left', color: 'var(--text-secondary)' }}>
+                <th style={{ padding: '15px 20px' }}>STATION_ID</th>
+                <th style={{ padding: '15px 20px' }}>LOCATION</th>
+                <th style={{ padding: '15px 20px' }}>STATUS</th>
+                <th style={{ padding: '15px 20px' }}>BATTERY</th>
+                <th style={{ padding: '15px 20px' }}>SIGNAL</th>
+                <th style={{ padding: '15px 20px' }}>LAST_PING</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {districts?.map((d, i) => {
+                const batt = 75 + (i % 21);
+                const sig = 40 + (i % 25);
+                const ping = 2 + (i % 14);
+                return (
+                  <tr key={i} style={{ borderTop: '1px solid rgba(255,255,255,0.02)', background: i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
+                    <td style={{ padding: '15px 20px', fontWeight: 800 }}>STN_{d.id.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()}</td>
+                    <td style={{ padding: '15px 20px' }}>{d.name}</td>
+                    <td style={{ padding: '15px 20px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <CheckCircle2 size={14} style={{ color: '#00ff82' }} />
+                        <span style={{ color: '#00ff82' }}>ONLINE</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: '15px 20px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Battery size={14} style={{ color: batt < 80 ? 'var(--accent-gold)' : 'var(--accent-cyan)' }} />
+                        <span>{batt}%</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: '15px 20px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Signal size={14} className="cyan" />
+                        <span>-{sig} dBm</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: '15px 20px', color: 'var(--text-secondary)' }}>{ping}s AGO</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

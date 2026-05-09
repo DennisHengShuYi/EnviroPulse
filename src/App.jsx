@@ -11,7 +11,6 @@ import City3DView from './components/City3DView';
 
 // Pages
 import AnalyticsPage from './pages/AnalyticsPage';
-import AlertsPage from './pages/AlertsPage';
 import SensorsPage from './pages/SensorsPage';
 import ReportsPage from './pages/ReportsPage';
 
@@ -35,45 +34,64 @@ function App() {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activePage, setActivePage] = useState('dashboard');
-  const [selectedDistrict, setSelectedDistrict] = useState('klcc');
+  const [selectedDistrict, setSelectedDistrict] = useState(null);
+  const [homeDistrictId, setHomeDistrictId] = useState(null);
   const [userCoords, setUserCoords] = useState(null);
   const [viewMode, setViewMode] = useState('3d');
   const [showAlerts, setShowAlerts] = useState(false);
 
-  // Initial Fetch and Geolocation
+  const handleLocateMe = (districtList) => {
+    console.log('[GPS_SYNC] LocateMe triggered...');
+    const listToUse = (districtList && districtList.length > 0) ? districtList : districts;
+    
+    if (!navigator.geolocation) {
+      console.error("Geolocation not supported");
+      setSelectedDistrict('klcc');
+      return;
+    }
+
+    if (listToUse.length === 0) {
+      console.warn("Districts list not ready, retrying with KLCC default");
+      setSelectedDistrict('klcc');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        console.log(`[GPS_SYNC] Real GPS: ${latitude}, ${longitude}`);
+        setUserCoords({ lat: latitude, lng: longitude });
+        
+        let nearest = listToUse[0];
+        let minDist = Infinity;
+
+        listToUse.forEach(d => {
+          const dist = getDistance(latitude, longitude, d.lat, d.lng);
+          if (dist < minDist) {
+            minDist = dist;
+            nearest = d;
+          }
+        });
+
+        console.log(`[GPS_SYNC] Auto-selecting nearest: ${nearest.name}`);
+        setHomeDistrictId(nearest.id);
+        setSelectedDistrict('user_gps'); // Force hyper-local mode for real-time user GPS
+      },
+      (error) => {
+        console.warn("Geolocation failed or denied:", error);
+        setSelectedDistrict('klcc');
+      },
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+    );
+  };
+
   useEffect(() => {
     const init = async () => {
       try {
-        const res = await fetch('http://localhost:3001/api/districts');
+        const res = await fetch('/api/districts');
         const list = await res.json();
         setDistricts(list);
-
-        // Geolocation logic
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              const { latitude, longitude } = position.coords;
-              setUserCoords({ lat: latitude, lng: longitude });
-              let nearest = list[0];
-              let minDist = Infinity;
-
-              list.forEach(d => {
-                const dist = getDistance(latitude, longitude, d.lat, d.lng);
-                if (dist < minDist) {
-                  minDist = dist;
-                  nearest = d;
-                }
-              });
-
-              console.log(`Detected location near: ${nearest.name}`);
-              setSelectedDistrict(nearest.id);
-            },
-            (error) => {
-              console.warn("Geolocation denied or failed, defaulting to KLCC.");
-              setSelectedDistrict('klcc');
-            }
-          );
-        }
+        handleLocateMe(list);
       } catch (e) { console.error(e); }
     };
     init();
@@ -83,27 +101,40 @@ function App() {
 
   // Periodic Data Fetching
   useEffect(() => {
+    if (!selectedDistrict) return;
     const fetchData = async () => {
       try {
+        let query = `?id=${selectedDistrict}`;
+        if (selectedDistrict === 'user_gps' && userCoords) {
+          query = `?lat=${userCoords.lat}&lng=${userCoords.lng}`;
+        }
+
         const [dataRes, trendRes, alertRes, allDistRes] = await Promise.all([
-          fetch(`http://localhost:3001/api/sensors?id=${selectedDistrict}`),
-          fetch(`http://localhost:3001/api/trends?id=${selectedDistrict}`),
-          fetch(`http://localhost:3001/api/alerts?id=${selectedDistrict}`),
-          fetch(`http://localhost:3001/api/analytics/comparison`) // Nationwide live data
+          fetch(`/api/sensors${query}`),
+          fetch(`/api/trends${query}`),
+          fetch(`/api/alerts${query}`),
+          fetch(`/api/analytics/comparison`)
         ]);
+
+        const parseJson = async (res) => {
+          const ct = res.headers.get("content-type");
+          if (ct && ct.includes("application/json")) return res.json();
+          return null;
+        };
         
         const [dataJson, trendJson, alertJson, allDistJson] = await Promise.all([
-          dataRes.json(),
-          trendRes.json(),
-          alertRes.json(),
-          allDistRes.json()
+          parseJson(dataRes),
+          parseJson(trendRes),
+          parseJson(alertRes),
+          parseJson(allDistRes)
         ]);
         
-        setData(dataJson);
-        setTrends(trendJson);
-        setAlerts(alertJson);
-        setAllDistrictsData(allDistJson);
-        setLoading(false);
+        if (dataJson) setData(dataJson);
+        if (trendJson) setTrends(trendJson);
+        if (alertJson) setAlerts(alertJson);
+        if (allDistJson) setAllDistrictsData(allDistJson);
+        
+        if (dataJson) setLoading(false);
       } catch (error) {
         console.error('Fetch error:', error);
       }
@@ -155,7 +186,12 @@ function App() {
           {viewMode === '2d' ? (
             <MapHero onSelectDistrict={setSelectedDistrict} selectedId={selectedDistrict} userCoords={userCoords} />
           ) : (
-            <City3DView data={data} allDistricts={allDistrictsData} />
+            <City3DView 
+              data={data} 
+              allDistricts={allDistrictsData} 
+              userCoords={userCoords} 
+              homeDistrictId={homeDistrictId}
+            />
           )}
         </div>
       </div>
@@ -178,7 +214,6 @@ function App() {
           data={data}
         />
       );
-      case 'alerts': return <AlertsPage />;
       case 'sensors': return <SensorsPage districts={districts} />;
       case 'reports': return <ReportsPage data={data} districts={districts} />;
       default: return <div>Page Not Found</div>;
@@ -194,6 +229,7 @@ function App() {
           districtName={selectedDistrict} 
           districts={districts} 
           onSelectDistrict={setSelectedDistrict}
+          onLocateMe={() => handleLocateMe()}
           alertCount={alerts.length}
           onToggleAlerts={() => setShowAlerts(!showAlerts)}
           showAlerts={showAlerts}

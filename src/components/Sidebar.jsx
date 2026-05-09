@@ -2,11 +2,8 @@ import React from 'react';
 import { 
   LayoutDashboard, 
   BarChart2, 
-  Bell, 
   Activity, 
   FileText, 
-  Settings, 
-  HelpCircle, 
   User 
 } from 'lucide-react';
 
@@ -14,7 +11,6 @@ const Sidebar = ({ activePage, setActivePage }) => {
   const menuItems = [
     { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
     { id: 'analytics', label: 'ANALYTICS', icon: BarChart2 },
-    { id: 'alerts', label: 'ALERTS', icon: Bell },
     { id: 'sensors', label: 'SENSORS', icon: Activity },
     { id: 'reports', label: 'REPORTS', icon: FileText },
   ];

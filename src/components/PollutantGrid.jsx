@@ -48,7 +48,7 @@ const PollutantGrid = ({ pollutants }) => {
   const config = [
     { label: 'PM2.5', value: pollutants.pm25, unit: 'µg/m³', limit: '15', color: 'var(--accent-salmon)', accentClass: 'salmon' },
     { label: 'PM10', value: pollutants.pm10, unit: 'µg/m³', limit: '45', color: 'var(--accent-gold)', accentClass: 'gold' },
-    { label: 'NO₂', value: pollutants.no2, unit: 'ppb', limit: '21', color: 'var(--accent-cyan)', accentClass: 'cyan' },
+    { label: 'NO₂', value: pollutants.no2?.value || pollutants.no2, unit: 'ppb', limit: '21', color: pollutants.no2?.status === 'CRITICAL' ? 'var(--accent-red)' : 'var(--accent-cyan)', accentClass: pollutants.no2?.status === 'CRITICAL' ? 'red' : 'cyan' },
     { label: 'SO₂', value: pollutants.so2, unit: 'ppb', limit: '15', color: 'var(--accent-red)', accentClass: 'red' },
     { label: 'CO', value: pollutants.co, unit: 'mg/m³', limit: '4', color: '#fff', accentClass: '' },
     { label: 'O₃', value: pollutants.o3, unit: 'ppb', limit: '51', color: '#b19cd9', accentClass: '' },

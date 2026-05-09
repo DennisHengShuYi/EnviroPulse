@@ -53,17 +53,24 @@ const MapHero = ({ onSelectDistrict, selectedId, userCoords }) => {
   const [mapZoom, setMapZoom] = useState(12);
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/districts')
+    fetch('/api/districts')
       .then(res => res.json())
       .then(data => {
         setDistricts(data);
-        const selected = data.find(d => d.id === selectedId);
-        if (selected) {
-          setMapCenter([selected.lat, selected.lng]);
-          setMapZoom(13);
+        
+        if (selectedId === 'user_gps' && userCoords) {
+          console.log('[MapHero] Centering on USER_GPS:', userCoords);
+          setMapCenter([userCoords.lat, userCoords.lng]);
+          setMapZoom(15);
+        } else {
+          const selected = data.find(d => d.id === selectedId);
+          if (selected) {
+            setMapCenter([selected.lat, selected.lng]);
+            setMapZoom(13);
+          }
         }
       });
-  }, [selectedId]);
+  }, [selectedId, userCoords]);
 
   const getDistrictColor = (type) => {
     const colors = {
@@ -163,15 +170,7 @@ const MapHero = ({ onSelectDistrict, selectedId, userCoords }) => {
           </Marker>
         )}
 
-        {/* Animated Polylines (Data Flow simulation) */}
-        {districts.filter(d => d.id !== 'klcc').map(d => (
-          <Circle 
-            key={`flow-${d.id}`}
-            center={[d.lat + (mapCenter[0] - d.lat) * 0.5, d.lng + (mapCenter[1] - d.lng) * 0.5]}
-            radius={100}
-            pathOptions={{ color: '#00f0ff', fillOpacity: 0.5 }}
-          />
-        ))}
+        {/* User Marker is handled below */}
       </MapContainer>
 
       {/* Floating UI Overlays */}

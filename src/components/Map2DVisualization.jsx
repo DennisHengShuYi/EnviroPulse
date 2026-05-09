@@ -45,7 +45,7 @@ const Map2DVisualization = ({ onSelectDistrict }) => {
   const center = [3.139, 101.6869]; // Kuala Lumpur
 
   React.useEffect(() => {
-    fetch('http://localhost:3001/api/districts')
+    fetch('/api/districts')
       .then(res => res.json())
       .then(data => setDistricts(data))
       .catch(err => console.error('Districts fetch failed', err));
@@ -93,12 +93,6 @@ const Map2DVisualization = ({ onSelectDistrict }) => {
             </Popup>
           </Marker>
         ))}
-        
-        <Circle 
-          center={center} 
-          radius={5000} 
-          pathOptions={{ color: '#00f0ff', fillColor: '#00f0ff', fillOpacity: 0.05 }} 
-        />
       </MapContainer>
 
       {/* High-tech Overlay */}
@@ -129,19 +123,6 @@ const Map2DVisualization = ({ onSelectDistrict }) => {
         LAT: 3.139 | LON: 101.686
       </div>
       
-      {/* Scanning effect overlay */}
-      <div style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        background: 'linear-gradient(rgba(0, 240, 255, 0.05) 50%, transparent 50.5%)',
-        backgroundSize: '100% 4px',
-        pointerEvents: 'none',
-        zIndex: 1001,
-        opacity: 0.3
-      }}></div>
     </div>
   );
 };
