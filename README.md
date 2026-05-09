@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # UMDT (Urban Monitoring Dashboard Terminal)
 
 UMDT is a high-performance, real-time environmental monitoring dashboard designed for urban centers. It provides live data visualization of Air Quality Index (AQI), Heat Index, and various pollutants across multiple districts.
@@ -76,3 +77,6 @@ npm run dev
 - **Intelligence**: ilmu.ai (ilmu-glm-5.1)
 - **Simulation**: HTML5 Canvas (Atmospheric Particles)
 - **Charts**: Recharts
+=======
+# EnviroPulse
+>>>>>>> 9373789ffb45c353007b5e164e74b95ec948e87f
