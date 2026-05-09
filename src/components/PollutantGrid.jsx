@@ -16,6 +16,8 @@ const Sparkline = ({ color }) => {
 };
 
 const PollutantCard = ({ label, value, unit, limit, color, accentClass }) => {
+  const pct = Math.min(100, Math.round((parseFloat(value) / parseFloat(limit)) * 100));
+  
   return (
     <div className="widget" style={{ padding: '8px 12px', borderLeft: `2px solid ${color}`, minHeight: 'auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -32,10 +34,10 @@ const PollutantCard = ({ label, value, unit, limit, color, accentClass }) => {
       <div style={{ marginTop: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.5rem', color: 'var(--text-secondary)', marginBottom: '2px' }}>
           <span>LIM: {limit}</span>
-          <span>84%</span>
+          <span>{pct}%</span>
         </div>
         <div style={{ height: '2px', background: 'rgba(255,255,255,0.05)', borderRadius: '1px', overflow: 'hidden' }}>
-          <div style={{ width: '84%', height: '100%', background: color, opacity: 0.6 }}></div>
+          <div style={{ width: `${pct}%`, height: '100%', background: color, opacity: 0.6 }}></div>
         </div>
       </div>
     </div>

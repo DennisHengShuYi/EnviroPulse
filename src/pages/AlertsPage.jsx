@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, ShieldAlert, Settings, Clock, CheckCircle2, Save, Activity, Trash2 } from 'lucide-react';
 
-const AlertsPage = () => {
+const AlertsPage = ({ selectedDistrictId }) => {
   const [config, setConfig] = useState({
     AQI_CRITICAL: 100,
     HEAT_INDEX_MAX: 40.0,
@@ -14,6 +14,8 @@ const AlertsPage = () => {
   const [saveStatus, setSaveStatus] = useState(null);
 
   useEffect(() => {
+    const districtQuery = `?id=${selectedDistrictId || 'klcc'}`;
+    
     // 1. Fetch Config
     fetch('/api/config/thresholds')
       .then(res => res.json())
@@ -23,18 +25,17 @@ const AlertsPage = () => {
       });
 
     // 2. Fetch Alerts
-    fetch('/api/alerts')
-      .then(res => res.json())
-      .then(data => setAlerts(data));
-
-    const interval = setInterval(() => {
-      fetch('/api/alerts')
+    const fetchAlerts = () => {
+      fetch(`/api/alerts${districtQuery}`)
         .then(res => res.json())
         .then(data => setAlerts(data));
-    }, 10000);
+    };
+
+    fetchAlerts();
+    const interval = setInterval(fetchAlerts, 10000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedDistrictId]);
 
   const handleUpdate = async () => {
     setSaving(true);

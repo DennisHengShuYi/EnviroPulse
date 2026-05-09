@@ -40,6 +40,7 @@ function App() {
   const [userCoords, setUserCoords] = useState(null);
   const [viewMode, setViewMode] = useState('3d');
   const [showAlerts, setShowAlerts] = useState(false);
+  const [isLive, setIsLive] = useState(true);
 
   const handleLocateMe = (districtList) => {
     console.log('[GPS_SYNC] LocateMe triggered...');
@@ -110,41 +111,57 @@ function App() {
           query = `?lat=${userCoords.lat}&lng=${userCoords.lng}`;
         }
 
-        const [dataRes, trendRes, alertRes, allDistRes] = await Promise.all([
+        const [dataRes, trendRes, alertRes] = await Promise.all([
           fetch(`/api/sensors${query}`),
           fetch(`/api/trends${query}`),
-          fetch(`/api/alerts${query}`),
-          fetch(`/api/analytics/comparison`)
+          fetch(`/api/alerts${query}`)
         ]);
 
         const parseJson = async (res) => {
           const ct = res.headers.get("content-type");
-          if (ct && ct.includes("application/json")) return res.json();
+          if (ct && ct.includes("application/json")) {
+            setIsLive(true);
+            return res.json();
+          }
+          setIsLive(false);
           return null;
         };
         
-        const [dataJson, trendJson, alertJson, allDistJson] = await Promise.all([
+        const [dataJson, trendJson, alertJson] = await Promise.all([
           parseJson(dataRes),
           parseJson(trendRes),
-          parseJson(alertRes),
-          parseJson(allDistRes)
+          parseJson(alertRes)
         ]);
         
         if (dataJson) setData(dataJson);
         if (trendJson) setTrends(trendJson);
         if (alertJson) setAlerts(alertJson);
-        if (allDistJson) setAllDistrictsData(allDistJson);
         
         if (dataJson) setLoading(false);
       } catch (error) {
         console.error('Fetch error:', error);
+        setIsLive(false);
       }
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 8000); // 8s for nationwide sync
+    const interval = setInterval(fetchData, 8000); 
     return () => clearInterval(interval);
   }, [selectedDistrict]);
+
+  // Separate interval for heavy comparison data
+  useEffect(() => {
+    const fetchComparison = async () => {
+      try {
+        const res = await fetch('/api/analytics/comparison');
+        const json = await res.json();
+        if (json) setAllDistrictsData(json);
+      } catch (e) { console.error('Comparison fetch error:', e); }
+    };
+    fetchComparison();
+    const interval = setInterval(fetchComparison, 180000); // 3 min
+    return () => clearInterval(interval);
+  }, []);
 
   if (loading || !data) {
     return (
@@ -216,8 +233,8 @@ function App() {
         />
       );
       case 'sensors': return <SensorsPage districts={districts} />;
-      case 'alerts': return <AlertsPage />;
-      case 'reports': return <ReportsPage data={data} districts={districts} />;
+      case 'alerts': return <AlertsPage selectedDistrictId={selectedDistrict} />;
+      case 'reports': return <ReportsPage data={data} districts={districts} headerDistrict={selectedDistrict} />;
       default: return <div>Page Not Found</div>;
     }
   };
@@ -235,9 +252,10 @@ function App() {
           alertCount={alerts.length}
           onToggleAlerts={() => setShowAlerts(!showAlerts)}
           showAlerts={showAlerts}
+          isLive={isLive}
         />
         
-        {showAlerts && <AlertBanner alerts={alerts} onDismiss={() => setShowAlerts(false)} />}
+        {showAlerts && <AlertBanner alerts={alerts} onDismiss={() => setShowAlerts(false)} onNavigate={() => setActivePage('alerts')} />}
         
         {renderPage()}
       </main>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Clock, ShieldCheck, ChevronDown, Bell, ShieldAlert, Crosshair } from 'lucide-react';
 
-const Header = ({ districtName, districts, onSelectDistrict, onLocateMe, alertCount, onToggleAlerts, showAlerts }) => {
+const Header = ({ districtName, districts, onSelectDistrict, onLocateMe, alertCount, onToggleAlerts, showAlerts, isLive }) => {
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -24,9 +24,9 @@ const Header = ({ districtName, districts, onSelectDistrict, onLocateMe, alertCo
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div className="marker-pulse" style={{ width: 8, height: 8, borderRadius: '50%', background: '#00f0ff' }}></div>
+          <div className="marker-pulse" style={{ width: 8, height: 8, borderRadius: '50%', background: isLive ? '#00f0ff' : '#ffb800' }}></div>
           <span style={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '1px' }}>
-            STATUS: <span style={{ color: '#00ff82' }}>LIVE_STABLE</span>
+            STATUS: <span style={{ color: isLive ? '#00ff82' : '#ffb800' }}>{isLive ? 'LIVE_STABLE' : 'FALLBACK_MODE'}</span>
           </span>
         </div>
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { ShieldAlert, ArrowRight, X } from 'lucide-react';
 
-const AlertBanner = ({ alerts, onDismiss }) => {
+const AlertBanner = ({ alerts, onDismiss, onNavigate }) => {
   if (!alerts || alerts.length === 0) return null;
 
   return (
@@ -17,19 +17,22 @@ const AlertBanner = ({ alerts, onDismiss }) => {
       </div>
       
       <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-        <button style={{ 
-          background: 'var(--accent-red)', 
-          color: '#fff', 
-          border: 'none', 
-          padding: '4px 12px', 
-          borderRadius: '2px', 
-          fontSize: '0.7rem', 
-          fontWeight: 800,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '5px'
-        }}>
+        <button 
+          onClick={onNavigate}
+          style={{ 
+            background: 'var(--accent-red)', 
+            color: '#fff', 
+            border: 'none', 
+            padding: '4px 12px', 
+            borderRadius: '2px', 
+            fontSize: '0.7rem', 
+            fontWeight: 800,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px'
+          }}
+        >
           VIEW PROTOCOLS <ArrowRight size={12} />
         </button>
         <X size={18} style={{ cursor: 'pointer', opacity: 0.6 }} onClick={onDismiss} />

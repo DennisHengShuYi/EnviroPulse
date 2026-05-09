@@ -10,11 +10,11 @@ import {
   BarChart, Bar, Cell, LineChart, Line, Legend
 } from 'recharts';
 
-const ReportsPage = ({ districts, data }) => {
+const ReportsPage = ({ districts, data, headerDistrict }) => {
   const [generating, setGenerating] = useState(false);
   const [reportReady, setReportReady] = useState(false);
   const [period, setPeriod] = useState('Last 7 Days');
-  const [selectedDistrict, setSelectedDistrict] = useState('klcc');
+  const [selectedDistrict, setSelectedDistrict] = useState(headerDistrict || 'klcc');
   const [stats, setStats] = useState(null);
   const [esgAdvisory, setEsgAdvisory] = useState(null);
 
@@ -250,12 +250,15 @@ const ReportsPage = ({ districts, data }) => {
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>OVERALL_GRADE</div>
-                    <div style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--accent-gold)', lineHeight: 1 }}>
-                      {stats ? (stats.pm25Compliance > 80 ? 'A' : stats.pm25Compliance > 60 ? 'B+' : 'C') : '...'}
-                    </div>
                     {(() => {
                       const score = stats ? Math.round(stats.pm25Compliance * 0.4 + stats.doeCompliance * 0.35 + stats.heatSafeDays * 0.25) : 0;
-                      return <div style={{fontSize:'0.8rem',fontWeight:800}}>{score}/100</div>;
+                      const grade = score >= 85 ? 'A' : score >= 75 ? 'B+' : score >= 65 ? 'B' : score >= 55 ? 'C+' : 'C';
+                      return (
+                        <>
+                          <div style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--accent-gold)', lineHeight: 1 }}>{grade}</div>
+                          <div style={{ fontSize: '0.8rem', fontWeight: 800 }}>{score}/100</div>
+                        </>
+                      );
                     })()}
                   </div>
                 </div>
