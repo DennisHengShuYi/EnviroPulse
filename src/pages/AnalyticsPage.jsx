@@ -156,31 +156,16 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <button onClick={onBack} style={{ background: 'transparent', border: '1px solid var(--accent-cyan)', color: 'var(--accent-cyan)', padding: '5px 15px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.7rem', fontWeight: 800 }}>
-            <ChevronLeft size={14} /> BACK_TO_TERMINAL
-          </button>
+
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-cyan)', marginBottom: '4px' }}>
               <TrendingUp size={16} />
               <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '2px' }}>PREDICTIVE_INTELLIGENCE_ENGINE</span>
             </div>
-            <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>LOCATION: {selectedDistrict.name.toUpperCase()} | SCOPE: 48H_MULTI_ROLE_PREDICTION</span>
+            <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>LOCATION: {selectedDistrict.name.toUpperCase()} | SCOPE: 24H_MULTI_ROLE_PREDICTION</span>
           </div>
         </div>
-        {/* PDF export — shows which role tab will be captured */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', textAlign: 'right', lineHeight: '1.6' }}>
-            EXPORT_ROLE: <span style={{ color: roleLabel === 'CONSTRUCTION' ? 'var(--accent-gold)' : roleLabel === 'GOVERNMENT' ? 'var(--accent-cyan)' : '#fff', fontWeight: 900 }}>{roleLabel}</span>
-          </div>
-          <button
-            id="btn-export-pdf"
-            onClick={handleExportPDF}
-            disabled={exporting}
-            style={{ background: 'var(--accent-cyan)', color: '#000', border: 'none', padding: '8px 18px', fontWeight: 900, fontSize: '0.65rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', opacity: exporting ? 0.6 : 1, letterSpacing: '0.5px' }}
-          >
-            <Download size={14} /> {exporting ? 'EXPORTING...' : 'EXPORT_PDF'}
-          </button>
-        </div>
+
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '20px' }}>
@@ -243,7 +228,7 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <Zap size={20} style={{ color: roleColors[activeRole] }} />
-              <h2 style={{ fontSize: '0.85rem', fontWeight: 900, margin: 0, letterSpacing: '1px' }}>AI_PREDICTIVE_ENGINE — 48H MULTI-ROLE INTELLIGENCE</h2>
+              <h2 style={{ fontSize: '0.85rem', fontWeight: 900, margin: 0, letterSpacing: '1px' }}>AI_PREDICTIVE_ENGINE — 24H MULTI-ROLE INTELLIGENCE</h2>
             </div>
             <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)', padding: '3px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)' }}>
               {['construction', 'government', 'esgFirm'].map(role => (
@@ -277,7 +262,7 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
                 {/* Forecast Narrative */}
                 <div style={{ background: 'rgba(255,255,255,0.03)', padding: '18px', borderRadius: '8px', borderLeft: `4px solid ${roleColors[activeRole]}` }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <span style={{ fontSize: '0.6rem', fontWeight: 900, color: roleColors[activeRole], letterSpacing: '1px' }}>48H_FORECAST_NARRATIVE</span>
+                    <span style={{ fontSize: '0.6rem', fontWeight: 900, color: roleColors[activeRole], letterSpacing: '1px' }}>24H_FORECAST_NARRATIVE</span>
                     <span className={`badge ${currentPred.riskLevel === 'LOW' ? 'badge-success' : currentPred.riskLevel === 'MODERATE' ? '' : 'badge-danger'}`}
                       style={{ position: 'static', padding: '3px 10px', fontSize: '0.6rem', background: currentPred.riskLevel === 'MODERATE' ? 'rgba(255,184,0,0.2)' : undefined, color: currentPred.riskLevel === 'MODERATE' ? '#ffb800' : undefined, border: currentPred.riskLevel === 'MODERATE' ? '1px solid #ffb800' : undefined }}>
                       {currentPred.riskLevel}_RISK
@@ -308,7 +293,7 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
 
                 {/* Hourly Outlook */}
                 <div style={{ background: 'rgba(255,255,255,0.03)', padding: '18px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <div style={{ fontSize: '0.6rem', fontWeight: 900, color: 'var(--text-secondary)', marginBottom: '14px', letterSpacing: '1px' }}>48H_HOURLY_OUTLOOK</div>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 900, color: 'var(--text-secondary)', marginBottom: '14px', letterSpacing: '1px' }}>24H_HOURLY_OUTLOOK</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {(currentPred.hourlyOutlook || []).map((h, i) => {
                       const riskColor = h.risk === 'HIGH' ? '#ff4d4d' : h.risk === 'MODERATE' ? '#ffb800' : '#00ffcc';
