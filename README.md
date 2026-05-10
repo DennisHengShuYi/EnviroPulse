@@ -1,6 +1,6 @@
-# UMDT (Urban Monitoring Dashboard Terminal)
+# EnviroPulse
 
-UMDT is a high-performance, real-time environmental monitoring dashboard designed for urban centers. It provides live data visualization of Air Quality Index (AQI), Heat Index, and various pollutants across multiple districts.
+EnviroPulse is a high-performance, real-time environmental monitoring dashboard designed for districts. It provides live data visualization of Air Quality Index (AQI), Heat Index, and various pollutants across multiple districts.
 
 ## 🚀 Getting Started
 
