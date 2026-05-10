@@ -58,7 +58,7 @@ const TrendChart = ({ data }) => {
         </div>
       </div>
 
-      <div style={{ height: '220px', width: '100%' }}>
+      <div style={{ height: '220px', width: '100%', minWidth: 0, minHeight: 0 }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
             <defs>

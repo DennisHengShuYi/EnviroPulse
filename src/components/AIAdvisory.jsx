@@ -12,11 +12,16 @@ const AIAdvisory = ({ data }) => {
     if (!data) return;
     setLoading(true);
     setError(null);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s safety timeout
+    
     try {
       const response = await fetch('/api/advisor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sensorData: data })
+        body: JSON.stringify({ sensorData: data }),
+        signal: controller.signal
       });
       
       const contentType = response.headers.get("content-type");
@@ -26,12 +31,19 @@ const AIAdvisory = ({ data }) => {
         setAdvisory(result);
       } else {
         const text = await response.text();
-        throw new Error(response.status === 502 ? 'GATEWAY_TIMEOUT' : 'SERVER_ERROR');
+        throw new Error(response.status === 502 || response.status === 504 ? 'GATEWAY_TIMEOUT' : 'SERVER_ERROR');
       }
     } catch (err) {
       console.error('Advisor fetch error:', err);
-      setError(err.message);
+      if (err.name === 'AbortError') {
+        setError('REQUEST_TIMEOUT');
+      } else if (err.message === 'Failed to fetch') {
+        setError('CONNECTION_FAILED');
+      } else {
+        setError(err.message);
+      }
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };

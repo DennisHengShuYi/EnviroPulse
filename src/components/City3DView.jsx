@@ -45,7 +45,7 @@ const City3DView = ({ data, allDistricts, onSelectDistrict, userCoords, homeDist
           'features': allDistrictsList.flatMap(d => 
             Array.from({ length: 25 }).map(() => ({
               'type': 'Feature',
-              'properties': { 'temp': d.temp },
+              'properties': { 'temp': d.temp ?? 31 },
               'geometry': {
                 'type': 'Point',
                 'coordinates': [d.lng + (Math.random() * 0.4 - 0.2), d.lat + (Math.random() * 0.4 - 0.2)]
@@ -91,7 +91,7 @@ const City3DView = ({ data, allDistricts, onSelectDistrict, userCoords, homeDist
           'features': allDistrictsList.flatMap(d => 
             Array.from({ length: 25 }).map(() => ({
               'type': 'Feature',
-              'properties': { 'aqi': d.aqi },
+              'properties': { 'aqi': d.aqi ?? 50 },
               'geometry': {
                 'type': 'Point',
                 'coordinates': [d.lng + (Math.random() * 0.5 - 0.25), d.lat + (Math.random() * 0.5 - 0.25)]

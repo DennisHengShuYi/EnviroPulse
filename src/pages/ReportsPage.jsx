@@ -24,7 +24,7 @@ const ReportsPage = ({ districts, data, headerDistrict }) => {
     setEsgAdvisory(null);
     const fetchStats = async () => {
       try {
-        const res = await fetch(`/api/analytics/esg-stats?id=${selectedDistrict}`);
+        const res = await fetch(`/api/analytics/esg-stats?id=${selectedDistrict}&period=${encodeURIComponent(period)}`);
         const json = await res.json();
         setStats(json);
       } catch (err) {
@@ -32,7 +32,7 @@ const ReportsPage = ({ districts, data, headerDistrict }) => {
       }
     };
     fetchStats();
-  }, [selectedDistrict]);
+  }, [selectedDistrict, period]);
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -40,7 +40,7 @@ const ReportsPage = ({ districts, data, headerDistrict }) => {
     
     try {
       // 1. Ensure we have latest stats
-      const statsRes = await fetch(`/api/analytics/esg-stats?id=${selectedDistrict}`);
+      const statsRes = await fetch(`/api/analytics/esg-stats?id=${selectedDistrict}&period=${encodeURIComponent(period)}`);
       const currentStats = await statsRes.json();
       setStats(currentStats);
 

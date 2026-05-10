@@ -50,6 +50,10 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data }) => {
     : (districts?.find(d => d.id === selectedDistrictId) || districts?.[0] || { name: 'KUALA LUMPUR', id: 'klcc' });
 
   useEffect(() => {
+    // Wait for the parent component to fetch and provide the updated data for this district
+    if (!data) return;
+    if (selectedDistrictId !== 'user_gps' && data.id !== selectedDistrictId) return;
+
     const fetchAnalytics = async () => {
       setLoading(true);
       try {
@@ -88,7 +92,7 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data }) => {
     };
 
     fetchAnalytics();
-  }, [selectedDistrictId]);
+  }, [selectedDistrictId, data?.id]);
 
   const roleColors = {
     construction: 'var(--accent-gold)',
@@ -134,7 +138,7 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data }) => {
             <h2 style={{ fontSize: '0.8rem', fontWeight: 900, margin: 0 }}>PATTERN_ANALYSIS_HISTORICAL</h2>
           </div>
           <div style={{ height: '300px', minHeight: 0, overflow: 'hidden' }}>
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="99%" height="99%">
               <AreaChart data={history}>
                 <defs>
                   <linearGradient id="colorAqi" x1="0" y1="0" x2="0" y2="1">
@@ -294,7 +298,7 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data }) => {
             <h2 style={{ fontSize: '0.8rem', fontWeight: 900, margin: 0 }}>NATIONWIDE_COMPARISON (AQI)</h2>
           </div>
           <div style={{ height: '300px', minHeight: 0, overflow: 'hidden' }}>
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="99%" height="99%">
               <BarChart data={comparison.slice(0, 10)} layout="vertical">
                 <XAxis type="number" hide />
                 <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#fff', fontSize: 10 }} width={100} />
