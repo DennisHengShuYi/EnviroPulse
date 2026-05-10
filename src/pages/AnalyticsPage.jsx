@@ -9,7 +9,7 @@ import {
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data }) => {
+const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistrictsData }) => {
   const reportRef = React.useRef();
   const [history, setHistory] = useState([]);
   const [comparison, setComparison] = useState([]);
@@ -18,6 +18,7 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data }) => {
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [activeRole, setActiveRole] = useState('construction');
+  const [histMetric, setHistMetric] = useState('aqi');
 
   const handleExportPDF = async () => {
     if (!reportRef.current) return;
@@ -35,9 +36,9 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data }) => {
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
+      const roleLabel = activeRole === 'esgFirm' ? 'ESG_FIRM' : activeRole.toUpperCase();
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`ENVIROPULSE_AUDIT_${selectedDistrict.name.toUpperCase()}_${new Date().toISOString().split('T')[0]}.pdf`);
+      pdf.save(`ENVIROPULSE_AUDIT_${selectedDistrict.name.toUpperCase()}_${roleLabel}_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (err) {
       console.error('PDF Export Error:', err);
     } finally {
@@ -48,6 +49,13 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data }) => {
   const selectedDistrict = selectedDistrictId === 'user_gps' 
     ? { id: 'user_gps', name: data?.name || 'LOCAL_STATION' }
     : (districts?.find(d => d.id === selectedDistrictId) || districts?.[0] || { name: 'KUALA LUMPUR', id: 'klcc' });
+
+  // Sync comparison data from parent prop (avoids duplicate API call)
+  useEffect(() => {
+    if (allDistrictsData && allDistrictsData.length > 0) {
+      setComparison(allDistrictsData);
+    }
+  }, [allDistrictsData]);
 
   useEffect(() => {
     // Wait for the parent component to fetch and provide the updated data for this district
@@ -62,27 +70,28 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data }) => {
           query = `?lat=${data.lat}&lng=${data.lng}`;
         }
 
-        const [histRes, compRes, anomRes, predRes] = await Promise.all([
+        // Fetch historical + anomalies (no comparison — sourced from parent prop)
+        const [histRes, anomRes] = await Promise.all([
           fetch(`/api/analytics/historical${query}`),
-          fetch(`/api/analytics/comparison`),
-          fetch(`/api/analytics/anomalies${query}`),
-          fetch(`/api/predict`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sensorData: data, history: [] })
-          })
+          fetch(`/api/analytics/anomalies${query}`)
         ]);
 
-        const [histData, compData, anomData, predData] = await Promise.all([
+        const [histData, anomData] = await Promise.all([
           histRes.json(),
-          compRes.json(),
-          anomRes.json(),
-          predRes.json()
+          anomRes.json()
         ]);
 
-        setHistory(Array.isArray(histData) ? histData : []);
-        setComparison(Array.isArray(compData) ? compData : []);
+        const safeHist = Array.isArray(histData) ? histData : [];
+        setHistory(safeHist);
         setAnomalies(Array.isArray(anomData) ? anomData : []);
+
+        // Pass real historical trend to AI prediction for better context
+        const predRes = await fetch(`/api/predict`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sensorData: data, history: safeHist })
+        });
+        const predData = await predRes.json();
         setPrediction(predData);
       } catch (err) {
         console.error('Analytics fetch error:', err);
@@ -92,6 +101,29 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data }) => {
     };
 
     fetchAnalytics();
+  }, [selectedDistrictId, data?.id]);
+
+  // Anomaly polling — re-check every 60 s so breaches after page-open are caught
+  useEffect(() => {
+    if (!data) return;
+    if (selectedDistrictId !== 'user_gps' && data.id !== selectedDistrictId) return;
+
+    const pollAnomalies = async () => {
+      try {
+        let query = `?id=${selectedDistrictId}`;
+        if (selectedDistrictId === 'user_gps' && data) {
+          query = `?lat=${data.lat}&lng=${data.lng}`;
+        }
+        const res = await fetch(`/api/analytics/anomalies${query}`);
+        const json = await res.json();
+        if (Array.isArray(json)) setAnomalies(json);
+      } catch (err) {
+        console.error('Anomaly poll error:', err);
+      }
+    };
+
+    const interval = setInterval(pollAnomalies, 60000); // every 60 s
+    return () => clearInterval(interval);
   }, [selectedDistrictId, data?.id]);
 
   const roleColors = {
@@ -111,6 +143,14 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data }) => {
     );
   }
 
+  const histMetrics = [
+    { id: 'aqi',  label: 'AQI',    color: '#00f0ff' },
+    { id: 'temp', label: 'TEMP',   color: '#ff3e3e' },
+    { id: 'pm25', label: 'PM2.5',  color: '#ff9f9f' },
+  ];
+  const activeHistMetric = histMetrics.find(m => m.id === histMetric);
+  const roleLabel = activeRole === 'esgFirm' ? 'ESG_FIRM' : activeRole.toUpperCase();
+
   return (
     <div className="analytics-container" ref={reportRef} style={{ height: 'calc(100vh - 80px)', overflowY: 'auto', padding: '2rem', background: '#000', color: '#fff' }}>
       {/* Header */}
@@ -127,33 +167,72 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data }) => {
             <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>LOCATION: {selectedDistrict.name.toUpperCase()} | SCOPE: 48H_MULTI_ROLE_PREDICTION</span>
           </div>
         </div>
+        {/* PDF export — shows which role tab will be captured */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', textAlign: 'right', lineHeight: '1.6' }}>
+            EXPORT_ROLE: <span style={{ color: roleLabel === 'CONSTRUCTION' ? 'var(--accent-gold)' : roleLabel === 'GOVERNMENT' ? 'var(--accent-cyan)' : '#fff', fontWeight: 900 }}>{roleLabel}</span>
+          </div>
+          <button
+            id="btn-export-pdf"
+            onClick={handleExportPDF}
+            disabled={exporting}
+            style={{ background: 'var(--accent-cyan)', color: '#000', border: 'none', padding: '8px 18px', fontWeight: 900, fontSize: '0.65rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', opacity: exporting ? 0.6 : 1, letterSpacing: '0.5px' }}
+          >
+            <Download size={14} /> {exporting ? 'EXPORTING...' : 'EXPORT_PDF'}
+          </button>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '20px' }}>
         
         {/* Pattern Analysis: 7-Day Trend */}
         <div className="widget" style={{ gridColumn: 'span 12', padding: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-            <TrendingUp size={18} className="cyan" />
-            <h2 style={{ fontSize: '0.8rem', fontWeight: 900, margin: 0 }}>PATTERN_ANALYSIS_HISTORICAL</h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <TrendingUp size={18} className="cyan" />
+              <h2 style={{ fontSize: '0.8rem', fontWeight: 900, margin: 0 }}>PATTERN_ANALYSIS_HISTORICAL</h2>
+            </div>
+            {/* Metric toggle for historical chart */}
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {histMetrics.map(m => (
+                <button
+                  key={m.id}
+                  onClick={() => setHistMetric(m.id)}
+                  style={{
+                    background: histMetric === m.id ? `${m.color}22` : 'transparent',
+                    border: `1px solid ${histMetric === m.id ? m.color : 'rgba(255,255,255,0.1)'}`,
+                    color: histMetric === m.id ? m.color : 'var(--text-secondary)',
+                    padding: '4px 12px',
+                    fontSize: '0.58rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    borderRadius: '3px',
+                    transition: 'all 0.2s ease',
+                    letterSpacing: '0.5px'
+                  }}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
           </div>
           <div style={{ height: '300px', minHeight: 0, overflow: 'hidden' }}>
             <ResponsiveContainer width="99%" height="99%">
               <AreaChart data={history}>
                 <defs>
-                  <linearGradient id="colorAqi" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#00f0ff" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#00f0ff" stopOpacity={0}/>
+                  <linearGradient id="colorHistMetric" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={activeHistMetric.color} stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor={activeHistMetric.color} stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis dataKey="date" stroke="var(--text-secondary)" fontSize={10} axisLine={false} tickLine={false} dy={10} />
                 <YAxis stroke="var(--text-secondary)" fontSize={10} axisLine={false} tickLine={false} />
                 <Tooltip 
-                  contentStyle={{ background: '#050505', border: '1px solid var(--accent-cyan)', fontSize: '12px' }}
-                  itemStyle={{ color: 'var(--accent-cyan)' }}
+                  contentStyle={{ background: '#050505', border: `1px solid ${activeHistMetric.color}`, fontSize: '12px' }}
+                  itemStyle={{ color: activeHistMetric.color }}
                 />
-                <Area type="monotone" dataKey="aqi" stroke="#00f0ff" fillOpacity={1} fill="url(#colorAqi)" strokeWidth={3} />
+                <Area type="monotone" dataKey={histMetric} stroke={activeHistMetric.color} fillOpacity={1} fill="url(#colorHistMetric)" strokeWidth={3} />
               </AreaChart>
             </ResponsiveContainer>
           </div>

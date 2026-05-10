@@ -230,6 +230,7 @@ function App() {
           selectedDistrictId={selectedDistrict}
           districts={districts}
           data={data}
+          allDistrictsData={allDistrictsData}
         />
       );
       case 'sensors': return <SensorsPage districts={districts} />;
