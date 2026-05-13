@@ -1210,17 +1210,17 @@ const fnv1a = (str) => {
 
 // In-memory append-only audit chain per node
 const auditChains = {}; // nodeId -> [{ ts, pm25, aqi, heat, hash, prevHash }]
+const nodeBreachCounts = {}; // tracking consecutive multi-readout breaches per zone
 
-const appendAuditEntry = (nodeId, pm25, aqi, heat) => {
+const appendAuditEntry = (nodeId, pm25, aqi, heat, escalationTag = null) => {
   if (!auditChains[nodeId]) auditChains[nodeId] = [];
   const chain = auditChains[nodeId];
   const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
   const prevHash = chain.length > 0 ? chain[chain.length - 1].hash : '0000000000000000';
-  const raw = `${nodeId}|${ts}|${pm25}|${aqi}|${heat}|${prevHash}`;
+  const raw = `${nodeId}|${ts}|${pm25}|${aqi}|${heat}|${prevHash}|${escalationTag || 'NONE'}`;
   const hash = fnv1a(raw);
-  const entry = { ts, pm25, aqi, heat, hash, prevHash };
+  const entry = { ts, pm25, aqi, heat, hash, prevHash, escalationTag };
   chain.push(entry);
-  // Keep only last 200 entries
   if (chain.length > 200) chain.shift();
   return entry;
 };
@@ -1232,6 +1232,11 @@ app.post('/api/compliance/verify', async (req, res) => {
   }
 
   try {
+    // Autonomous adaptation: Tighten permissible variance from 20% down to 10% after 3 consecutive breaches
+    const consecutiveBreaches = nodeBreachCounts[districtId] || 0;
+    const effectiveThreshold = consecutiveBreaches >= 3 ? 10 : threshold;
+    const escalationTag = consecutiveBreaches >= 3 ? 'HIGH_SCRUTINY_ESCALATION' : null;
+
     const sensorData = await getSensorData(districtId);
     const sensorPm25 = parseFloat(sensorData.metrics.pm25.value);
     const sensorAqi = sensorData.metrics.aqi.value;
@@ -1239,12 +1244,16 @@ app.post('/api/compliance/verify', async (req, res) => {
 
     const delta = parseFloat((sensorPm25 - reportedPm25).toFixed(2));
     const variance = parseFloat((Math.abs(delta / Math.max(reportedPm25, 0.1)) * 100).toFixed(1));
-    const flagged = variance > threshold;
+    const flagged = variance > effectiveThreshold;
+
+    if (flagged) {
+      nodeBreachCounts[districtId] = consecutiveBreaches + 1;
+    } else {
+      nodeBreachCounts[districtId] = 0; // auto-recovery when data normalizes
+    }
 
     const ts = new Date().toISOString();
-    const hashInput = `${districtId}|${submissionDate}|${sensorPm25}|${sensorAqi}|${ts}`;
-
-    const auditEntry = appendAuditEntry(districtId, sensorPm25, sensorAqi, sensorHeat);
+    const auditEntry = appendAuditEntry(districtId, sensorPm25, sensorAqi, sensorHeat, escalationTag);
 
     res.json({
       submissionId: `VRF-${Date.now()}`,
@@ -1260,7 +1269,9 @@ app.post('/api/compliance/verify', async (req, res) => {
       status: flagged ? 'DISCREPANCY_DETECTED' : 'VERIFIED',
       timestamp: ts,
       hash: auditEntry.hash,
-      thresholdUsed: threshold,
+      thresholdUsed: effectiveThreshold,
+      consecutiveBreaches: nodeBreachCounts[districtId],
+      escalationTag,
       sensorNode: sensorData.systemStatus?.activeNode || districtId,
     });
   } catch (err) {

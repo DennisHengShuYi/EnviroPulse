@@ -9,14 +9,20 @@ import {
   Tooltip, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   BarChart, Bar, Cell, LineChart, Line, Legend
 } from 'recharts';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+
 
 const ReportsPage = ({ districts, data, headerDistrict }) => {
   const [generating, setGenerating] = useState(false);
   const [reportReady, setReportReady] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
   const [period, setPeriod] = useState('Last 7 Days');
   const [selectedDistrict, setSelectedDistrict] = useState(headerDistrict || 'klcc');
   const [stats, setStats] = useState(null);
   const [esgAdvisory, setEsgAdvisory] = useState(null);
+  const reportContentRef = React.useRef(null);
+
 
   // Fetch real stats when district changes
   useEffect(() => {
@@ -85,73 +91,95 @@ const ReportsPage = ({ districts, data, headerDistrict }) => {
     document.body.removeChild(link);
   };
 
-  const handlePrintPDF = () => {
-    const reportEl = document.querySelector('.printable-area');
-    if (!reportEl) { window.print(); return; }
+  const handlePrintPDF = async () => {
+    if (!reportContentRef.current) {
+      window.print();
+      return;
+    }
+    setGeneratingPdf(true);
+    
+    // Allow React state a brief moment to apply explicit padding and pure black styling for native canvas rendering
+    await new Promise(r => setTimeout(r, 150));
 
-    const printWindow = window.open('', '_blank', 'width=900,height=700');
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>UMDT Environmental Report — ${selectedDistrict} / ${period}</title>
-          <style>
-            @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800;900&display=swap');
-            @page { size: A4 portrait; margin: 1.2cm; }
-            * { box-sizing: border-box; }
-            body {
-              margin: 0; padding: 0;
-              font-family: 'JetBrains Mono', monospace;
-              background: #fff; color: #000;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
-            }
-            /* Hide the config panel (left column), show only report content */
-            .no-print { display: none !important; }
-            /* Make the 2-col grid single column */
-            .report-main-grid {
-              display: block !important;
-              width: 100% !important;
-            }
-            .widget {
-              background: #fff !important;
-              color: #000 !important;
-              border: 1px solid #ccc !important;
-              border-radius: 4px;
-              padding: 16px !important;
-              margin-bottom: 18px !important;
-              width: 100% !important;
-              display: block !important;
-              break-inside: avoid;
-              page-break-inside: avoid;
-            }
-            table { width: 100% !important; border-collapse: collapse; }
-            th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #eee; font-size: 0.75rem; }
-            th { font-weight: 900; color: #333; }
-            h1,h2 { color: #000; }
-            .cyan, [class~="cyan"] { color: #0077aa !important; font-weight: bold; }
-            .gold, [class~="gold"] { color: #996600 !important; font-weight: bold; }
-            .red,  [class~="red"]  { color: #cc0000 !important; font-weight: bold; }
-            /* Grid sections → stack vertically */
-            div[style*="grid-template-columns"] {
-              display: block !important;
-            }
-            /* Recharts SVG — keep visible but sized */
-            svg { max-width: 100%; height: auto; }
-          </style>
-        </head>
-        <body>
-          ${reportEl.innerHTML}
-          <script>
-            window.onload = function() {
-              window.print();
-              setTimeout(function() { window.close(); }, 1000);
-            };
-          <\/script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
+    try {
+      const element = reportContentRef.current;
+      const canvas = await html2canvas(element, {
+        backgroundColor: '#000000',
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        allowTaint: true
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      
+      // Calculate real FNV-1a hash of the dataset to stamp directly on every PDF page
+      const rawDataStr = `${selectedDistrict}|${stats?.currentPm25 || 0}|${stats?.currentAqi || 0}|${stats?.currentHeatIndex || 0}|${stats?.totalDaysAnalyzed || 30}`;
+      let h = 0x811c9dc5;
+      for (let i = 0; i < rawDataStr.length; i++) {
+        h ^= rawDataStr.charCodeAt(i);
+        h = Math.imul(h, 0x01000193) >>> 0;
+      }
+      const hashStr = h.toString(16).padStart(8, '0');
+      const timestampStr = new Date().toISOString().replace('T', ' ').slice(0, 19);
+
+      const drawHeaderFooter = (page) => {
+        pdf.setFont('courier', 'bold');
+        pdf.setFontSize(8);
+        pdf.setTextColor(0, 240, 255); // Cyan brand
+        pdf.text(`PATENT UI 2020000785 | ENVIROPULSE NODE: ${selectedDistrict.toUpperCase()}`, 10, 8);
+        pdf.setTextColor(150, 150, 150);
+        pdf.text(`TIMESTAMP: ${timestampStr}`, pdfWidth - 10, 8, { align: 'right' });
+        
+        // Footer section
+        pdf.setFontSize(7);
+        pdf.setTextColor(255, 184, 0); // Gold alert accent
+        pdf.text(`DATASET FNV-1a HASH: #${hashStr}`, 10, pageHeight - 11);
+        pdf.setTextColor(120, 120, 120);
+        pdf.text(`CITATIONS: Bursa MSWG 2023 | OSH Act 2024 | DOE EQA 1974`, 10, pageHeight - 6);
+        pdf.text(`PAGE ${page}`, pdfWidth - 10, pageHeight - 6, { align: 'right' });
+      };
+
+      // Set vertical page splitting coordinates
+      // Leave space for 12mm top header and 16mm bottom footer zones
+      const printableHeight = pageHeight - 28;
+      const imgWidthOnPdf = pdfWidth - 20; // 10mm side margins
+      const imgHeightOnPdf = (canvas.height * imgWidthOnPdf) / canvas.width;
+      
+      let heightLeft = imgHeightOnPdf;
+      let position = 12; // Start below the top margin
+      let pageNum = 1;
+
+      pdf.addImage(imgData, 'PNG', 10, position, imgWidthOnPdf, imgHeightOnPdf);
+      drawHeaderFooter(pageNum);
+      heightLeft -= printableHeight;
+
+      while (heightLeft > 0) {
+        position -= printableHeight;
+        pdf.addPage();
+        pageNum++;
+        pdf.addImage(imgData, 'PNG', 10, position + 12, imgWidthOnPdf, imgHeightOnPdf);
+        
+        // Overlay solid black shapes over headers/footers to mask overflowing continuous graphic blocks
+        pdf.setFillColor(0, 0, 0);
+        pdf.rect(0, 0, pdfWidth, 11, 'F');
+        pdf.rect(0, pageHeight - 15, pdfWidth, 15, 'F');
+        
+        drawHeaderFooter(pageNum);
+        heightLeft -= printableHeight;
+      }
+
+      pdf.save(`ENVIROPULSE_COMPLIANCE_REPORT_${selectedDistrict.toUpperCase()}_${timestampStr.split(' ')[0]}.pdf`);
+    } catch (err) {
+      console.error('PDF Export Error:', err);
+      alert('Failed to synthesize AI PDF layout. Initializing legacy system print driver.');
+      window.print();
+    } finally {
+      setGeneratingPdf(false);
+    }
   };
 
   return (
@@ -173,9 +201,19 @@ const ReportsPage = ({ districts, data, headerDistrict }) => {
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <button 
             onClick={handlePrintPDF}
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '8px 15px', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}
+            disabled={generatingPdf || !reportReady}
+            style={{ background: generatingPdf ? 'rgba(0,240,255,0.1)' : 'rgba(255,255,255,0.05)', border: `1px solid ${generatingPdf ? 'var(--accent-cyan)' : 'rgba(255,255,255,0.1)'}`, color: generatingPdf ? 'var(--accent-cyan)' : '#fff', padding: '8px 15px', fontSize: '0.65rem', fontWeight: 800, cursor: generatingPdf || !reportReady ? 'not-allowed' : 'pointer', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px', opacity: !reportReady ? 0.5 : 1 }}
           >
-            <Download size={14} /> PDF
+            {generatingPdf ? (
+              <>
+                <div className="animate-spin" style={{ width: 10, height: 10, border: '1px solid var(--accent-cyan)', borderTopColor: 'transparent', borderRadius: '50%' }} />
+                SYNTHESIZING_PDF...
+              </>
+            ) : (
+              <>
+                <Download size={14} /> PDF
+              </>
+            )}
           </button>
           <button 
             onClick={handleExportCSV}
@@ -250,7 +288,8 @@ const ReportsPage = ({ districts, data, headerDistrict }) => {
           )}
 
           {reportReady && (
-            <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
+            <div className="animate-in" ref={reportContentRef} style={{ display: 'flex', flexDirection: 'column', gap: '25px', background: '#000', padding: generatingPdf ? '20px' : '0' }}>
+
               
               {/* SECTION 2: EXECUTIVE SUMMARY CARD */}
               <div className="widget" style={{ padding: '30px', borderLeft: '4px solid var(--accent-gold)' }}>
@@ -416,6 +455,40 @@ const ReportsPage = ({ districts, data, headerDistrict }) => {
                             <span style={{ fontSize: '0.6rem', fontWeight: 900, color: item.ok ? '#00ff82' : 'var(--accent-gold)' }}>{item.current}</span>
                           </div>
                         ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* NCAAP Row 5 — Urban Heat Island Mitigation */}
+                  <div style={{ marginTop: '15px', padding: '14px', background: 'rgba(255,255,255,0.03)', borderRadius: '5px', border: '1px solid rgba(0,255,130,0.12)' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr 1.5fr', gap: '12px', alignItems: 'center', fontSize: '0.7rem' }}>
+                      <div>
+                        <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', marginBottom: '3px', letterSpacing: '0.5px' }}>NCAAP MITIGATION TARGET</div>
+                        <div style={{ fontWeight: 800 }}>Urban Heat Island Reduction</div>
+                        <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>Sec. 4.3 — Thermal Comfort & Outdoor Heat Exposure</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', marginBottom: '3px' }}>INDICATOR</div>
+                        <div style={{ fontWeight: 800 }}>Heat Index Days &gt; 38°C / quarter</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', marginBottom: '3px' }}>THIS PERIOD</div>
+                        <div style={{ fontWeight: 900, fontSize: '1.1rem', color: (() => { const days = Math.round((1 - (stats?.heatSafeDays || 100) / 100) * (stats?.totalDaysAnalyzed || 30)); return days > 5 ? '#ff3e3e' : '#00ff82'; })() }}>
+                          {Math.round((1 - (stats?.heatSafeDays || 100) / 100) * (stats?.totalDaysAnalyzed || 30))} days
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', marginBottom: '3px' }}>NCAAP STATUS</div>
+                        {(() => {
+                          const exceedDays = Math.round((1 - (stats?.heatSafeDays || 100) / 100) * (stats?.totalDaysAnalyzed || 30));
+                          const QUARTERLY_BASELINE = 5;
+                          const ok = exceedDays <= QUARTERLY_BASELINE;
+                          return (
+                            <div style={{ fontWeight: 900, color: ok ? '#00ff82' : '#ff3e3e', fontSize: '0.7rem' }}>
+                              {ok ? '✓ WITHIN' : '⚠ EXCEEDS'} baseline ({QUARTERLY_BASELINE}-day threshold)
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>

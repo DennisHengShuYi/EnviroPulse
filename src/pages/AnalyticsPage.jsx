@@ -129,7 +129,9 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
   const roleColors = {
     construction: 'var(--accent-gold)',
     government: 'var(--accent-cyan)',
-    esgFirm: '#fff'
+    esgFirm: '#fff',
+    doeAuditor: '#ff7a45',
+    esgReportingOfficer: '#c084fc',
   };
 
   const currentPred = prediction ? prediction[activeRole] : null;
@@ -149,7 +151,7 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
     { id: 'pm25', label: 'PM2.5',  color: '#ff9f9f' },
   ];
   const activeHistMetric = histMetrics.find(m => m.id === histMetric);
-  const roleLabel = activeRole === 'esgFirm' ? 'ESG_FIRM' : activeRole.toUpperCase();
+  const roleLabel = activeRole === 'esgFirm' ? 'ESG_FIRM' : activeRole === 'doeAuditor' ? 'DOE_AUDITOR' : activeRole === 'esgReportingOfficer' ? 'ESG_OFFICER' : activeRole.toUpperCase();
 
   return (
     <div className="analytics-container" ref={reportRef} style={{ height: 'calc(100vh - 80px)', overflowY: 'auto', padding: '2rem', background: '#000', color: '#fff' }}>
@@ -230,14 +232,20 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
               <Zap size={20} style={{ color: roleColors[activeRole] }} />
               <h2 style={{ fontSize: '0.85rem', fontWeight: 900, margin: 0, letterSpacing: '1px' }}>AI_PREDICTIVE_ENGINE — 24H MULTI-ROLE INTELLIGENCE</h2>
             </div>
-            <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)', padding: '3px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)' }}>
-              {['construction', 'government', 'esgFirm'].map(role => (
+            <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)', padding: '3px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)', flexWrap: 'wrap' }}>
+              {[
+                { id: 'construction', label: 'CONSTRUCTION' },
+                { id: 'government', label: 'GOVERNMENT' },
+                { id: 'esgFirm', label: 'ESG_FIRM' },
+                { id: 'doeAuditor', label: 'DOE_AUDITOR' },
+                { id: 'esgReportingOfficer', label: 'ESG_OFFICER' },
+              ].map(({ id, label }) => (
                 <button
-                  key={role}
-                  onClick={() => setActiveRole(role)}
+                  key={id}
+                  onClick={() => setActiveRole(id)}
                   style={{
-                    background: activeRole === role ? roleColors[role] : 'transparent',
-                    color: activeRole === role ? '#000' : '#888',
+                    background: activeRole === id ? roleColors[id] : 'transparent',
+                    color: activeRole === id ? (id === 'esgFirm' ? '#000' : '#000') : '#888',
                     border: 'none',
                     fontSize: '0.6rem',
                     fontWeight: 900,
@@ -245,10 +253,11 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
                     cursor: 'pointer',
                     borderRadius: '4px',
                     transition: 'all 0.2s',
-                    letterSpacing: '0.5px'
+                    letterSpacing: '0.5px',
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  {role === 'esgFirm' ? 'ESG_FIRM' : role.toUpperCase()}
+                  {label}
                 </button>
               ))}
             </div>

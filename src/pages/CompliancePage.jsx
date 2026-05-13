@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, AlertTriangle, Upload, CheckCircle2, XCircle, Clock, Hash, Building2, MapPin, FileSearch } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, Upload, CheckCircle2, XCircle, Clock, Hash, Building2, MapPin, FileSearch, Download, ExternalLink, FileText, CheckSquare, Square } from 'lucide-react';
+import jsPDF from 'jspdf';
 
 const THRESHOLD_PCT = 20; // configurable discrepancy threshold
 
@@ -28,10 +29,10 @@ const DEMO_SUBMISSIONS = [
   },
   {
     id: 'SUB-003',
-    company: 'PasiGudang Chem Ltd',
-    zone: 'Pasir Gudang Port Zone',
-    nodeId: 'pasirgudang',
-    nodeName: 'PASIRGUDANG_NODE_1',
+    company: 'Klang Chemical Works Sdn Bhd',
+    zone: 'Klang North Industrial Corridor',
+    nodeId: 'klang',
+    nodeName: 'KLANG_NODE_4 (NORTH_CORRIDOR)',
     date: '2025-04-11',
     reportedPm25: 18,
     reportedAqi: 60,
@@ -70,6 +71,14 @@ const CompliancePage = ({ districts, data }) => {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ company: '', zone: '', nodeId: '', date: '', reportedPm25: '', reportedAqi: '' });
   const [threshold, setThreshold] = useState(THRESHOLD_PCT);
+  const [mode, setMode] = useState('AUDITOR');
+  const [selectedCompanyId, setSelectedCompanyId] = useState('SUB-001');
+  const [checklist, setChecklist] = useState([
+    { id: 1, text: 'Re-calibrate industrial exhaust sensor array stack', done: false },
+    { id: 2, text: 'Submit localized wind vector dispersion logs to district node', done: true },
+    { id: 3, text: 'Schedule secondary calibration audit with DOE officer', done: false }
+  ]);
+
 
   useEffect(() => {
     setSubmissions(DEMO_SUBMISSIONS);
@@ -158,6 +167,86 @@ const CompliancePage = ({ districts, data }) => {
     setForm({ company: '', zone: '', nodeId: '', date: '', reportedPm25: '', reportedAqi: '' });
   };
 
+  const handleExportEvidence = () => {
+    const lines = [
+      "EVIDENCE PACKAGE — DOE SUBMISSION READY",
+      "Format: EQA 1974 Section 22 Compliance Evidence",
+      "Requesting Verification From: Jabatan Alam Sekitar Malaysia",
+      "Node Operator: EnviroPulse (Patent UI 2020000785)",
+      "=================================================================\n"
+    ];
+    auditLog.forEach(e => {
+      lines.push(`[${e.ts}] ${e.company} | ${e.nodeId} | RPT: ${e.reportedPm25} | SEN: ${e.sensorPm25} | ${e.status} | #${e.hash}`);
+    });
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `DOE_EVIDENCE_PACKAGE_${Date.now()}.txt`;
+    a.click();
+  };
+
+  const handleReferToDoe = (sub) => {
+    const res = results[sub.id];
+    const lines = [
+      "JABATAN ALAM SEKITAR MALAYSIA — FORMAL COMPLIANCE REFERRAL",
+      `Date: ${new Date().toISOString().split('T')[0]}`,
+      `Subject Company: ${sub.company}`,
+      `Industrial Zone: ${sub.zone}`,
+      `Monitoring Node: ${sub.nodeName}`,
+      "-------------------------------------------------------------",
+      `Reported Value: ${sub.reportedPm25} µg/m³ (${sub.reportedStatus})`,
+      `Sensor Recorded: ${res?.sensorPm25 || 'N/A'} µg/m³`,
+      `Discrepancy Delta: +${res?.delta || 'N/A'} µg/m³ (${res?.variance || 'N/A'}% variance)`,
+      `Audit Hash Chain: #${res?.hash || 'N/A'}`,
+      "Status: AUTOMATED ESCALATION FILED VIA ENVIROPULSE NETWORK"
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `DOE_REFERRAL_${sub.id}.txt`;
+    a.click();
+  };
+
+  const handleGenerateBursaReport = (sub) => {
+    const res = results[sub.id];
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    pdf.setFont('courier', 'bold');
+    pdf.setFontSize(14);
+    pdf.setTextColor(0, 240, 255);
+    pdf.text("BURSA MALAYSIA SUSTAINABILITY DISCLOSURE", 15, 20);
+    
+    pdf.setFontSize(10);
+    pdf.setTextColor(200, 200, 200);
+    pdf.text(`PATENT UI 2020000785 | ENVIROPULSE COMPANY MODE`, 15, 28);
+    pdf.text(`Company: ${sub.company}`, 15, 40);
+    pdf.text(`Zone: ${sub.zone}`, 15, 47);
+    pdf.text(`Assigned Node: ${sub.nodeName}`, 15, 54);
+    pdf.text(`Submission Date: ${sub.date}`, 15, 61);
+    
+    pdf.setDrawColor(50, 50, 50);
+    pdf.line(15, 66, 195, 66);
+    
+    pdf.setTextColor(255, 255, 255);
+    pdf.text(`Reported PM2.5: ${sub.reportedPm25} ug/m3`, 15, 78);
+    pdf.text(`Sensor Recorded: ${res?.sensorPm25 || 47} ug/m3`, 15, 86);
+    
+    const isFlagged = res?.flagged || sub.reportedPm25 < 15;
+    pdf.setTextColor(isFlagged ? 255 : 0, isFlagged ? 62 : 255, isFlagged ? 62 : 130);
+    pdf.text(`Verification Status: ${isFlagged ? 'DISCREPANCY DETECTED - REVIEW MANDATORY' : 'VERIFIED COMPLIANT'}`, 15, 98);
+    
+    pdf.setFontSize(8);
+    pdf.setTextColor(120, 120, 120);
+    pdf.text(`FNV-1a DATASET HASH: #${res?.hash || '811c9dc5'}`, 15, 120);
+    pdf.text(`CITATIONS: Bursa MSWG 2023 | OSH Act 2024 | DOE EQA 1974`, 15, 127);
+    pdf.text(`Timestamp: ${new Date().toISOString()}`, 15, 134);
+    
+    pdf.save(`BURSA_REPORT_${sub.company.replace(/\s+/g, '_')}.pdf`);
+  };
+
+  const toggleChecklist = (id) => {
+    setChecklist(prev => prev.map(c => c.id === id ? { ...c, done: !c.done } : c));
+  };
+
   const inputStyle = { width: '100%', background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '8px 10px', fontSize: '0.7rem', borderRadius: '3px', fontFamily: 'inherit' };
   const labelStyle = { fontSize: '0.55rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px', fontWeight: 800, letterSpacing: '1px' };
 
@@ -197,7 +286,26 @@ const CompliancePage = ({ districts, data }) => {
           </div>
         </div>
 
-        {/* Submission Form */}
+        {/* VIEW MODE SWITCHER */}
+        <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.1)', gap: '10px' }}>
+          <button
+            onClick={() => setMode('AUDITOR')}
+            style={{ background: mode === 'AUDITOR' ? 'rgba(0,240,255,0.1)' : 'transparent', color: mode === 'AUDITOR' ? 'var(--accent-cyan)' : 'var(--text-secondary)', border: 'none', borderBottom: mode === 'AUDITOR' ? '2px solid var(--accent-cyan)' : '2px solid transparent', padding: '12px 20px', fontWeight: 900, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', letterSpacing: '1px' }}
+          >
+            <ShieldCheck size={16} /> REGULATOR AUDITOR MODE (OVERVIEW)
+          </button>
+          <button
+            onClick={() => setMode('COMPANY')}
+            style={{ background: mode === 'COMPANY' ? 'rgba(255,184,0,0.1)' : 'transparent', color: mode === 'COMPANY' ? 'var(--accent-gold)' : 'var(--text-secondary)', border: 'none', borderBottom: mode === 'COMPANY' ? '2px solid var(--accent-gold)' : '2px solid transparent', padding: '12px 20px', fontWeight: 900, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', letterSpacing: '1px' }}
+          >
+            <Building2 size={16} /> MSME COMPANY PORTAL (SELF-CHECK)
+          </button>
+        </div>
+
+        {mode === 'AUDITOR' && (
+          <>
+            {/* Submission Form */}
+
         {showForm && (
           <div className="widget animate-in" style={{ padding: '25px', borderLeft: '4px solid var(--accent-cyan)' }}>
             <div style={{ fontSize: '0.7rem', fontWeight: 900, marginBottom: '20px' }}>COMPANY_COMPLIANCE_SUBMISSION_FORM</div>
@@ -273,7 +381,7 @@ const CompliancePage = ({ districts, data }) => {
                     <td style={{ padding: '14px 16px' }}>
                       {res ? <StatusBadge status={res.status} /> : <StatusBadge status="PENDING" />}
                     </td>
-                    <td style={{ padding: '14px 16px' }}>
+                    <td style={{ padding: '14px 16px', display: 'flex', gap: '6px' }}>
                       <button
                         onClick={() => handleVerify(sub)}
                         disabled={isVerifying}
@@ -281,6 +389,15 @@ const CompliancePage = ({ districts, data }) => {
                       >
                         {isVerifying ? <><div className="animate-spin" style={{ width: 8, height: 8, border: '1px solid var(--accent-cyan)', borderTopColor: 'transparent', borderRadius: '50%' }} /> VERIFYING</> : <><ShieldCheck size={12} /> VERIFY</>}
                       </button>
+                      {flagged && (
+                        <button
+                          onClick={() => handleReferToDoe(sub)}
+                          style={{ background: 'rgba(255,62,62,0.1)', color: '#ff3e3e', border: '1px solid #ff3e3e', padding: '5px 10px', fontSize: '0.55rem', fontWeight: 900, cursor: 'pointer', borderRadius: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                          title="Generate pre-filled DOE EQA 1974 referral package"
+                        >
+                          <ExternalLink size={10} /> REFER TO DOE
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
@@ -325,8 +442,16 @@ const CompliancePage = ({ districts, data }) => {
                       </div>
                     </div>
                     <div style={{ padding: '12px', background: 'rgba(255,62,62,0.05)', borderRadius: '4px', border: '1px solid rgba(255,62,62,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ fontWeight: 900, fontSize: '0.7rem', color: '#ff3e3e' }}>
-                        STATUS: ⚠ DISCREPANCY FLAGGED — Delta: {res.delta} µg/m³ ({res.variance}% variance)
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ fontWeight: 900, fontSize: '0.7rem', color: '#ff3e3e' }}>
+                          STATUS: ⚠ DISCREPANCY FLAGGED — Delta: {res.delta} µg/m³ ({res.variance}% variance)
+                        </div>
+                        <button
+                          onClick={() => handleReferToDoe(sub)}
+                          style={{ background: 'rgba(255,62,62,0.15)', color: '#ff3e3e', border: '1px solid #ff3e3e', padding: '3px 8px', fontSize: '0.55rem', fontWeight: 900, cursor: 'pointer', borderRadius: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                        >
+                          <ExternalLink size={10} /> REFER TO DOE
+                        </button>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.6rem', color: 'var(--text-secondary)' }}>
                         <Hash size={10} />
@@ -347,7 +472,17 @@ const CompliancePage = ({ districts, data }) => {
               <Hash size={16} style={{ color: 'var(--accent-gold)' }} />
               <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>TAMPER-EVIDENT_AUDIT_LOG</span>
             </div>
-            <span style={{ fontSize: '0.55rem', color: 'var(--text-secondary)' }}>READ-ONLY · APPEND-ONLY · Patent UI 2020000785</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+              <span style={{ fontSize: '0.55rem', color: 'var(--text-secondary)' }}>READ-ONLY · APPEND-ONLY · Patent UI 2020000785</span>
+              {auditLog.length > 0 && (
+                <button
+                  onClick={handleExportEvidence}
+                  style={{ background: 'var(--accent-gold)', color: '#000', border: 'none', padding: '4px 10px', fontSize: '0.55rem', fontWeight: 900, cursor: 'pointer', borderRadius: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <Download size={10} /> EXPORT EVIDENCE PACKAGE
+                </button>
+              )}
+            </div>
           </div>
           <div style={{ padding: '15px 20px', fontFamily: 'JetBrains Mono, monospace', fontSize: '0.68rem', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
             {auditLog.length === 0 ? (
@@ -365,6 +500,81 @@ const CompliancePage = ({ districts, data }) => {
             ))}
           </div>
         </div>
+          </>
+        )}
+
+        {mode === 'COMPANY' && (() => {
+          const selSub = submissions.find(s => s.id === selectedCompanyId) || submissions[0] || DEMO_SUBMISSIONS[0];
+          const r = results[selSub.id];
+          return (
+            <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div className="widget" style={{ padding: '20px', background: 'rgba(255,184,0,0.03)', borderLeft: '4px solid var(--accent-gold)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                  <div>
+                    <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>ACTIVE LOGGED-IN MSME ENTITY</span>
+                    <select
+                      value={selectedCompanyId}
+                      onChange={e => setSelectedCompanyId(e.target.value)}
+                      style={{ background: '#0a0a0a', border: '1px solid rgba(255,184,0,0.3)', color: 'var(--accent-gold)', padding: '6px 12px', fontSize: '0.85rem', fontWeight: 900, borderRadius: '3px' }}
+                    >
+                      {submissions.map(s => <option key={s.id} value={s.id}>{s.company} ({s.zone})</option>)}
+                    </select>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', display: 'block' }}>ESTIMATED MONTHLY SCORE</span>
+                    <span style={{ fontSize: '1.4rem', fontWeight: 900, color: r?.flagged ? '#ffb800' : '#00ff82' }}>{r?.flagged ? '72%' : '94%'}</span>
+                  </div>
+                </div>
+
+                <div style={{ padding: '15px', background: r?.flagged ? 'rgba(255,62,62,0.08)' : 'rgba(0,255,130,0.08)', borderRadius: '4px', border: `1px solid ${r?.flagged ? 'rgba(255,62,62,0.2)' : 'rgba(0,255,130,0.2)'}`, marginBottom: '20px' }}>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 900, color: r?.flagged ? '#ff3e3e' : '#00ff82', marginBottom: '6px' }}>PLAIN-LANGUAGE COMPLIANCE PREVIEW</div>
+                  <p style={{ margin: 0, fontSize: '0.75rem', lineHeight: 1.6 }}>
+                    Your reported PM2.5 was <b>{selSub.reportedPm25} µg/m³</b>. Our district node sensor recorded <b>{r?.sensorPm25 || 47} µg/m³</b> on the same day. 
+                    {r?.flagged ? (
+                      <span style={{ color: '#ff3e3e', fontWeight: 800 }}> This discrepancy exceeds the permitted variance threshold and WILL BE FLAGGED by automated regulatory verification engines upon submission.</span>
+                    ) : (
+                      <span style={{ color: '#00ff82', fontWeight: 800 }}> Data closely aligns with background ambient distributions. Verification successful. Ready for Bursa repository export.</span>
+                    )}
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>
+                    Assigned Verification Array: <b style={{ color: '#fff' }}>{selSub.nodeName}</b>
+                  </div>
+                  <button
+                    onClick={() => handleGenerateBursaReport(selSub)}
+                    style={{ background: 'var(--accent-gold)', color: '#000', border: 'none', padding: '10px 20px', fontWeight: 900, fontSize: '0.75rem', cursor: 'pointer', borderRadius: '3px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                  >
+                    <FileText size={14} /> GENERATE MY BURSA REPORT
+                  </button>
+                </div>
+              </div>
+
+              {/* Resolution Checklist */}
+              <div className="widget" style={{ padding: '20px' }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 900, marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckSquare size={16} className="gold" />
+                  PRE-SUBMISSION RESOLUTION CHECKLIST
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {checklist.map(item => (
+                    <div
+                      key={item.id}
+                      onClick={() => toggleChecklist(item.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', background: item.done ? 'rgba(255,255,255,0.02)' : 'rgba(255,184,0,0.05)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '4px', cursor: 'pointer', opacity: item.done ? 0.6 : 1 }}
+                    >
+                      {item.done ? <CheckSquare size={14} style={{ color: '#00ff82' }} /> : <Square size={14} style={{ color: 'var(--accent-gold)' }} />}
+                      <span style={{ fontSize: '0.72rem', textDecoration: item.done ? 'line-through' : 'none', color: item.done ? 'var(--text-secondary)' : '#fff', fontWeight: item.done ? 400 : 800 }}>
+                        {item.text}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
       </div>
     </div>
