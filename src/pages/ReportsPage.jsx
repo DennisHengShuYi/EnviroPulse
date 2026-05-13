@@ -165,9 +165,12 @@ const ReportsPage = ({ districts, data, headerDistrict }) => {
             <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '2px' }}>ENVIRONMENTAL_PERFORMANCE_REPORT</span>
           </div>
           <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900 }}>{selectedDistrict.toUpperCase()} | {period.toUpperCase()}</h1>
+          <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+            Verified by: <span style={{ color: 'var(--accent-cyan)' }}>EnviroPulse Node Network</span> | Patent UI 2020000785
+          </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <button 
             onClick={handlePrintPDF}
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '8px 15px', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}
@@ -179,6 +182,16 @@ const ReportsPage = ({ districts, data, headerDistrict }) => {
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '8px 15px', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}
           >
             <TableIcon size={14} /> CSV
+          </button>
+          <button 
+            onClick={() => {
+              const ts = new Date().toISOString();
+              alert(`SUBMIT_TO_BURSA — SIMULATION\n\nPackage: ${selectedDistrict.toUpperCase()} ESG Report\nPeriod: ${period}\nPM2.5 Compliance: ${stats?.pm25Compliance || '—'}%\nDOE API: ${stats?.doeCompliance || '—'}%\n\nVerified by: EnviroPulse Node Network\nPatent UI 2020000785\nTimestamp: ${ts}\n\n[SIMULATED] Submission metadata header generated. In production, this packages the AI PDF with DOE verification hash and submits to Bursa ESG portal.`);
+            }}
+            disabled={!reportReady}
+            style={{ background: reportReady ? 'var(--accent-gold)' : 'rgba(255,184,0,0.1)', color: reportReady ? '#000' : '#666', border: `1px solid ${reportReady ? 'var(--accent-gold)' : 'rgba(255,184,0,0.2)'}`, padding: '8px 18px', fontSize: '0.65rem', fontWeight: 900, cursor: reportReady ? 'pointer' : 'not-allowed', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px', letterSpacing: '0.5px' }}
+          >
+            <Share2 size={14} /> SUBMIT_TO_BURSA
           </button>
         </div>
       </div>
@@ -305,28 +318,109 @@ const ReportsPage = ({ districts, data, headerDistrict }) => {
                 </div>
               </div>
 
-              {/* SECTION 4: WHO COMPLIANCE TABLE */}
+              {/* SECTION 4: REGULATORY COMPLIANCE TABLE */}
               <div className="widget" style={{ padding: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
                   <ShieldCheck size={18} className="cyan" />
-                  <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>POLLUTANT_COMPLIANCE_WHO_AIR_QUALITY_GUIDELINES_2021</span>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>REGULATORY_COMPLIANCE_MATRIX — MULTI-FRAMEWORK</span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', padding: '20px' }}>
-                  <div className="widget" style={{ padding: '20px', background: 'rgba(0,240,255,0.05)' }}>
-                    <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>WHO PM2.5 COMPLIANCE</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--accent-cyan)' }}>{stats?.pm25Compliance}%</div>
+
+                {/* WHO + DOE */}
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 900, color: 'var(--text-secondary)', marginBottom: '10px', letterSpacing: '1px' }}>WHO AQG 2021 + MALAYSIA DOE API</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
+                    <div className="widget" style={{ padding: '15px', background: 'rgba(0,240,255,0.05)' }}>
+                      <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>WHO PM2.5 COMPLIANCE</div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--accent-cyan)' }}>{stats?.pm25Compliance}%</div>
+                      <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', marginTop: '3px' }}>AQG 2021: 15 µg/m³ annual limit</div>
+                    </div>
+                    <div className="widget" style={{ padding: '15px', background: 'rgba(255,184,0,0.05)' }}>
+                      <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>MALAYSIA DOE API COMPLIANCE</div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--accent-gold)' }}>{stats?.doeCompliance}%</div>
+                      <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', marginTop: '3px' }}>EQA 1974 — API &lt; 100 threshold</div>
+                    </div>
+                    <div className="widget" style={{ padding: '15px', background: 'rgba(0,255,130,0.05)' }}>
+                      <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>HEAT SAFETY UPTIME</div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#00ff82' }}>{stats?.heatSafeDays}%</div>
+                      <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', marginTop: '3px' }}>OSH (Amendment) Act 2024 · Heat: &lt;38°C</div>
+                    </div>
                   </div>
-                  <div className="widget" style={{ padding: '20px', background: 'rgba(255,184,0,0.05)' }}>
-                    <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>MALAYSIA DOE COMPLIANCE</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--accent-gold)' }}>{stats?.doeCompliance}%</div>
+                </div>
+
+                {/* Bursa Malaysia */}
+                <div style={{ marginBottom: '20px', padding: '18px', background: 'rgba(255,184,0,0.04)', borderRadius: '6px', border: '1px solid rgba(255,184,0,0.15)' }}>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--accent-gold)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Globe size={14} /> BURSA_MALAYSIA_SUSTAINABILITY_REPORTING_FRAMEWORK (MSWG 2023)
                   </div>
-                  <div className="widget" style={{ padding: '20px', background: 'rgba(0,255,130,0.05)' }}>
-                    <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>HEAT SAFETY UPTIME</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#00ff82' }}>{stats?.heatSafeDays}%</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', fontSize: '0.72rem' }}>
+                    <div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.58rem', marginBottom: '4px' }}>PRINCIPAL DISCLOSURE</div>
+                      <div style={{ fontWeight: 800 }}>Environmental Management — Air Quality</div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.6rem' }}>Bursa Sustainability Reporting Guide Ed. 3.0, Section 3.2</div>
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.58rem', marginBottom: '4px' }}>ESG INDICATOR</div>
+                      <div style={{ fontWeight: 800 }}>E1 — Air Emissions (Particulate)</div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.6rem' }}>PM2.5: {stats?.currentPm25} µg/m³ | AQI: {stats?.currentAqi} (DOE API)</div>
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.58rem', marginBottom: '4px' }}>REPORTING STATUS</div>
+                      <div style={{ fontWeight: 900, color: stats?.pm25Compliance > 70 ? '#00ff82' : 'var(--accent-gold)' }}>
+                        {stats?.pm25Compliance > 70 ? '✓ COMPLIANT' : '⚠ REVIEW REQUIRED'}
+                      </div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.6rem' }}>TCFD Physical Risk Disclosure applicable</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* OSH Amendment Act 2024 */}
+                <div style={{ marginBottom: '20px', padding: '18px', background: 'rgba(0,240,255,0.04)', borderRadius: '6px', border: '1px solid rgba(0,240,255,0.12)' }}>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--accent-cyan)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Activity size={14} /> OSH_(AMENDMENT)_ACT_2024 — HEAT_INDEX_COMPLIANCE_COLUMN
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', fontSize: '0.7rem' }}>
+                    <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.58rem' }}>RECORDED HEAT INDEX</div><div style={{ fontWeight: 900, fontSize: '1rem' }}>{stats?.currentHeatIndex}°C</div></div>
+                    <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.58rem' }}>SAFE THRESHOLD</div><div style={{ fontWeight: 900, fontSize: '1rem', color: '#00ff82' }}>38.0°C</div></div>
+                    <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.58rem' }}>HEAT SAFE DAYS</div><div style={{ fontWeight: 900, fontSize: '1rem', color: stats?.heatSafeDays > 70 ? '#00ff82' : 'var(--accent-gold)' }}>{stats?.heatSafeDays}%</div></div>
+                    <div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.58rem' }}>OSH STATUS</div>
+                      <div style={{ fontWeight: 900, color: parseFloat(stats?.currentHeatIndex) > 38 ? '#ff3e3e' : '#00ff82' }}>
+                        {parseFloat(stats?.currentHeatIndex) > 38 ? '⚠ BREACH — REST CYCLE MANDATORY' : '✓ WITHIN LIMIT'}
+                      </div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.55rem', marginTop: '2px' }}>DOSH Malaysia OSHA Act 514 applicable</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* NCAAP 2025-2040 */}
+                <div style={{ padding: '18px', background: 'rgba(0,255,130,0.03)', borderRadius: '6px', border: '1px solid rgba(0,255,130,0.1)' }}>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#00ff82', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <TrendingUp size={14} /> NCAAP_2025–2040 — NATIONAL_CLIMATE_ACTION_PLAN_ALIGNMENT
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', fontSize: '0.7rem' }}>
+                    <div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.58rem', marginBottom: '6px' }}>TARGET CONTRIBUTION</div>
+                      <div style={{ fontWeight: 800, marginBottom: '4px' }}>Target 3.2 — Urban Air Quality Monitoring</div>
+                      <div style={{ color: 'var(--text-secondary)', lineHeight: '1.5' }}>District readings from <b>{selectedDistrict.toUpperCase()}</b> contribute toward Malaysia's national PM2.5 inventory under the National Clean Air Action Plan 2025–2040 monitoring baseline. EnviroPulse node data feeds the NCAAP district-level compliance registry.</div>
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.58rem', marginBottom: '6px' }}>NCAAP KPI CONTRIBUTION</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {[
+                          { kpi: 'PM2.5 Reduction to 15 µg/m³ by 2030', current: `${stats?.currentPm25} µg/m³`, ok: parseFloat(stats?.currentPm25) <= 15 },
+                          { kpi: 'Industrial Zone Monitoring (100% Coverage)', current: 'ACTIVE NODE', ok: true },
+                          { kpi: 'Real-time DOE Reporting', current: 'LIVE FEED', ok: true },
+                        ].map((item, i) => (
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: 'rgba(255,255,255,0.03)', borderRadius: '4px' }}>
+                            <span style={{ fontSize: '0.65rem' }}>{item.kpi}</span>
+                            <span style={{ fontSize: '0.6rem', fontWeight: 900, color: item.ok ? '#00ff82' : 'var(--accent-gold)' }}>{item.current}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-
 
 
               {/* SECTION 6: TREND CHARTS */}

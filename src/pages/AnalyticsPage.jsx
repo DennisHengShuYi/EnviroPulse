@@ -407,6 +407,131 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
           </div>
         </div>
 
+        {/* ── PREDICTIVE COMPLIANCE SCORING ── */}
+        {(() => {
+          const lastVal = history.length > 0 ? (history[history.length - 1]?.pm25 || 15) : 15;
+          const firstVal = history.length > 1 ? (history[0]?.pm25 || 15) : lastVal;
+          const WHO_LIMIT = 15;
+          const dailyDelta = history.length > 1 ? (lastVal - firstVal) / history.length : 0;
+          const proj30 = lastVal + dailyDelta * 30;
+          const daysToBreachRaw = dailyDelta > 0 ? Math.ceil((WHO_LIMIT - lastVal) / dailyDelta) : null;
+          const daysToBreachCapped = (daysToBreachRaw !== null && daysToBreachRaw > 0 && daysToBreachRaw < 90) ? daysToBreachRaw : null;
+
+          const currentPm25 = data ? parseFloat(data.metrics?.pm25?.value || 15) : lastVal;
+          const districtRisk = currentPm25 > 35 ? 'CRITICAL' : currentPm25 > 15 ? 'ELEVATED' : 'LOW';
+          const riskColor = districtRisk === 'CRITICAL' ? '#ff4d4d' : districtRisk === 'ELEVATED' ? '#ffb800' : '#00ffcc';
+
+          const projData = Array.from({ length: 6 }, (_, i) => {
+            const day = Math.round((i / 5) * 30);
+            return { day: `D+${day}`, pm25: parseFloat((lastVal + dailyDelta * day).toFixed(2)), limit: WHO_LIMIT };
+          });
+
+          const comparisonWithRisk = (comparison || []).slice(0, 8).map(d => {
+            const risk = d.aqi > 150 ? 'CRITICAL' : d.aqi > 100 ? 'ELEVATED' : 'LOW';
+            const trend = d.aqi > 80 ? '↑' : d.aqi > 50 ? '→' : '↓';
+            return { ...d, risk, trend };
+          });
+
+          return (
+            <>
+              <div className="widget" style={{ gridColumn: 'span 12', padding: '20px', borderLeft: `4px solid ${riskColor}`, background: `rgba(${districtRisk === 'CRITICAL' ? '255,77,77' : districtRisk === 'ELEVATED' ? '255,184,0' : '0,255,204'},0.04)` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Thermometer size={18} style={{ color: riskColor }} />
+                    <h2 style={{ fontSize: '0.8rem', fontWeight: 900, margin: 0 }}>PREDICTIVE_COMPLIANCE_SCORING — 30-DAY FORWARD PROJECTION</h2>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)' }}>DISTRICT_RISK</div>
+                      <div style={{ fontSize: '1.4rem', fontWeight: 900, color: riskColor, lineHeight: 1 }}>{districtRisk}</div>
+                    </div>
+                    <div style={{ width: '1px', height: '40px', background: 'rgba(255,255,255,0.1)' }} />
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)' }}>CURRENT_PM2.5</div>
+                      <div style={{ fontSize: '1.4rem', fontWeight: 900, lineHeight: 1 }}>{currentPm25.toFixed(1)} <span style={{ fontSize: '0.7rem' }}>µg/m³</span></div>
+                    </div>
+                    <div style={{ width: '1px', height: '40px', background: 'rgba(255,255,255,0.1)' }} />
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)' }}>WHO_LIMIT</div>
+                      <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#00ffcc', lineHeight: 1 }}>15 <span style={{ fontSize: '0.7rem' }}>µg/m³</span></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
+                  <div style={{ height: '160px' }}>
+                    <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 800 }}>PM2.5_TRAJECTORY — 30-DAY FORWARD MODEL (WHO 15 µg/m³ limit shown)</div>
+                    <ResponsiveContainer width="99%" height="90%">
+                      <LineChart data={projData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                        <XAxis dataKey="day" stroke="#666" fontSize={9} axisLine={false} tickLine={false} />
+                        <YAxis stroke="#666" fontSize={9} axisLine={false} tickLine={false} domain={[0, Math.max(WHO_LIMIT * 1.5, proj30 * 1.1)]} />
+                        <Tooltip contentStyle={{ background: '#050505', border: `1px solid ${riskColor}`, fontSize: '11px' }} />
+                        <Line type="monotone" dataKey="pm25" stroke={riskColor} strokeWidth={2} dot={{ r: 3, fill: riskColor }} name="Projected PM2.5" />
+                        <Line type="monotone" dataKey="limit" stroke="#00ffcc" strokeWidth={1} strokeDasharray="4 4" dot={false} name="WHO Limit (15)" />
+                        <Legend iconSize={8} wrapperStyle={{ fontSize: '0.6rem' }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {daysToBreachCapped !== null ? (
+                      <div style={{ padding: '12px', background: 'rgba(255,77,77,0.08)', borderRadius: '6px', border: '1px solid rgba(255,77,77,0.2)' }}>
+                        <div style={{ fontSize: '0.6rem', color: '#ff4d4d', fontWeight: 900, marginBottom: '5px' }}>⚠ BREACH_FORECAST</div>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 900 }}>At current trajectory, this district will breach WHO PM2.5 limits in <span style={{ color: '#ff4d4d' }}>~{daysToBreachCapped} days</span></div>
+                      </div>
+                    ) : (
+                      <div style={{ padding: '12px', background: 'rgba(0,255,204,0.06)', borderRadius: '6px', border: '1px solid rgba(0,255,204,0.15)' }}>
+                        <div style={{ fontSize: '0.6rem', color: '#00ffcc', fontWeight: 900, marginBottom: '5px' }}>✓ TRAJECTORY_STABLE</div>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 900 }}>No WHO PM2.5 breach projected within 30-day window</div>
+                      </div>
+                    )}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <div style={{ padding: '10px', background: 'rgba(255,255,255,0.03)', borderRadius: '5px' }}>
+                        <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', marginBottom: '3px' }}>D+30 PROJECTION</div>
+                        <div style={{ fontSize: '1rem', fontWeight: 900, color: proj30 > WHO_LIMIT ? '#ff4d4d' : '#00ffcc' }}>{proj30.toFixed(1)} µg/m³</div>
+                      </div>
+                      <div style={{ padding: '10px', background: 'rgba(255,255,255,0.03)', borderRadius: '5px' }}>
+                        <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', marginBottom: '3px' }}>DAILY_TREND</div>
+                        <div style={{ fontSize: '1rem', fontWeight: 900, color: dailyDelta > 0 ? '#ff4d4d' : '#00ffcc' }}>
+                          {dailyDelta > 0 ? '↑' : dailyDelta < 0 ? '↓' : '→'} {Math.abs(dailyDelta).toFixed(3)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {comparisonWithRisk.length > 0 && (
+                <div className="widget" style={{ gridColumn: 'span 12', padding: '20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                    <Wind size={18} className="cyan" />
+                    <h2 style={{ fontSize: '0.8rem', fontWeight: 900, margin: 0 }}>COMPLIANCE_RISK_SCORES — DIRECTIONAL (LOW / ELEVATED / CRITICAL)</h2>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+                    {comparisonWithRisk.map((d, i) => {
+                      const c = d.risk === 'CRITICAL' ? '#ff4d4d' : d.risk === 'ELEVATED' ? '#ffb800' : '#00ffcc';
+                      return (
+                        <div key={i} style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '6px', border: `1px solid rgba(${d.risk === 'CRITICAL' ? '255,77,77' : d.risk === 'ELEVATED' ? '255,184,0' : '0,255,204'},0.15)` }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                            <span style={{ fontSize: '0.62rem', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80%' }}>{d.name}</span>
+                            <span style={{ color: c }}>{d.trend}</span>
+                          </div>
+                          <span style={{ fontSize: '0.55rem', fontWeight: 900, color: c, padding: '2px 6px', background: `rgba(${d.risk === 'CRITICAL' ? '255,77,77' : d.risk === 'ELEVATED' ? '255,184,0' : '0,255,204'},0.1)`, borderRadius: '3px', display: 'inline-block', marginBottom: '6px' }}>{d.risk}</span>
+                          <div style={{ fontSize: '0.75rem', fontWeight: 900 }}>AQI: <span style={{ color: c }}>{d.aqi}</span></div>
+                          <div style={{ marginTop: '6px', height: '3px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${Math.min((d.aqi / 200) * 100, 100)}%`, background: c, borderRadius: '2px' }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        })()}
+
       </div>
     </div>
   );

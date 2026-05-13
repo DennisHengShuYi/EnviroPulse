@@ -14,6 +14,7 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import SensorsPage from './pages/SensorsPage';
 import ReportsPage from './pages/ReportsPage';
 import AlertsPage from './pages/AlertsPage';
+import CompliancePage from './pages/CompliancePage';
 
 // Helper to calculate distance between two coordinates
 const getDistance = (lat1, lon1, lat2, lon2) => {
@@ -236,6 +237,7 @@ function App() {
       case 'sensors': return <SensorsPage districts={districts} />;
       case 'alerts': return <AlertsPage selectedDistrictId={selectedDistrict} />;
       case 'reports': return <ReportsPage data={data} districts={districts} headerDistrict={selectedDistrict} />;
+      case 'compliance': return <CompliancePage districts={districts} data={data} />;
       default: return <div>Page Not Found</div>;
     }
   };
