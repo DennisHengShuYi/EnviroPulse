@@ -478,14 +478,19 @@ const ReportsPage = ({ districts, data, headerDistrict }) => {
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', marginBottom: '3px' }}>NCAAP STATUS</div>
+                        <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', marginBottom: '3px' }}>NCAAP STATUS & TRAJECTORY</div>
                         {(() => {
                           const exceedDays = Math.round((1 - (stats?.heatSafeDays || 100) / 100) * (stats?.totalDaysAnalyzed || 30));
                           const QUARTERLY_BASELINE = 5;
                           const ok = exceedDays <= QUARTERLY_BASELINE;
                           return (
-                            <div style={{ fontWeight: 900, color: ok ? '#00ff82' : '#ff3e3e', fontSize: '0.7rem' }}>
-                              {ok ? '✓ WITHIN' : '⚠ EXCEEDS'} baseline ({QUARTERLY_BASELINE}-day threshold)
+                            <div>
+                              <div style={{ fontWeight: 900, color: ok ? '#00ff82' : '#ff3e3e', fontSize: '0.7rem' }}>
+                                {ok ? '✓ WITHIN' : '⚠ EXCEEDS'} baseline ({QUARTERLY_BASELINE}-day threshold)
+                              </div>
+                              <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                <b>2030 Milestone Trajectory:</b> {ok ? 'Aligned with interim &lt;15 days/yr UHI limit' : 'Requires targeted local canopy expansion'}
+                              </div>
                             </div>
                           );
                         })()}
@@ -518,19 +523,20 @@ const ReportsPage = ({ districts, data, headerDistrict }) => {
                 </div>
 
                 <div className="widget" style={{ padding: '20px', height: '350px' }}>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 900, marginBottom: '20px' }}>ESG_KPI_TRAJECTORY</div>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 900, marginBottom: '20px', display: 'flex', justifyContent: 'space-between' }}>
+                    <span>HISTORICAL_PM2.5_COMPLIANCE_TREND</span>
+                    <span style={{ fontSize: '0.55rem', color: 'var(--accent-cyan)' }}>OPEN-METEO API VERIFIED</span>
+                  </div>
                   <ResponsiveContainer width="100%" height="80%">
-                    <AreaChart data={[
-                      { day: 'W1', value: Math.max(10, (stats?.pm25Compliance || 50) - 27) },
-                      { day: 'W2', value: Math.max(10, (stats?.pm25Compliance || 50) - 16) },
-                      { day: 'W3', value: Math.max(10, (stats?.pm25Compliance || 50) - 7) },
-                      { day: 'W4', value: stats?.pm25Compliance || 72 },
+                    <LineChart data={stats?.trend || [
+                      { day: 'D1', pm25: 12.1 }, { day: 'D2', pm25: 14.5 }, { day: 'D3', pm25: 18.2 }, { day: 'D4', pm25: 15.0 }
                     ]}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                       <XAxis dataKey="day" stroke="#888" fontSize={10} axisLine={false} tickLine={false} />
-                      <Tooltip contentStyle={{ background: '#000', border: '1px solid var(--accent-cyan)' }} />
-                      <Area type="monotone" dataKey="value" stroke="var(--accent-cyan)" fill="var(--accent-cyan)" fillOpacity={0.1} />
-                    </AreaChart>
+                      <YAxis stroke="#888" fontSize={10} axisLine={false} tickLine={false} />
+                      <Tooltip contentStyle={{ background: '#000', border: '1px solid var(--accent-cyan)' }} formatter={(value) => [`${value} µg/m³`, 'PM2.5 Max Load']} />
+                      <Line type="monotone" dataKey="pm25" stroke="var(--accent-cyan)" strokeWidth={2} dot={{ r: 2, fill: 'var(--accent-cyan)' }} name="PM2.5 Load" />
+                    </LineChart>
                   </ResponsiveContainer>
                 </div>
               </div>
@@ -571,20 +577,36 @@ const ReportsPage = ({ districts, data, headerDistrict }) => {
 
                 <div className="widget" style={{ padding: '20px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-                    <Heart size={18} className="red" />
-                    <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>HEALTH_IMPACT_ASSESSMENT</span>
+                    <ShieldCheck size={18} className="gold" />
+                    <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>OSH_AMENDMENT_ACT_2024 — WORKER_SAFETY_STATEMENT</span>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                    <div style={{ padding: '15px', background: 'rgba(255,62,62,0.03)', borderRadius: '4px', fontSize: '0.75rem', lineHeight: '1.6' }}>
-                      {esgAdvisory?.healthImpact || `Based on ${stats?.totalDaysAnalyzed}-day analysis: Current PM2.5 at ${stats?.currentPm25} µg/m³ (${stats?.pm25Compliance < 50 ? 'exceeding' : 'within'} WHO guidelines). Heat index recorded at ${stats?.currentHeatIndex}°C — ${stats?.heatSafeDays > 70 ? 'low' : 'elevated'} physiological heat stress risk for outdoor populations.`}
-                    </div>
-                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px' }}>
-                      <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', marginBottom: '10px' }}>VULNERABLE_GROUP_RISK_INDEX</div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                        {['Elderly', 'Children', 'Outdoor Workers', 'Pregnant Women'].map(tag => (
-                          <span key={tag} style={{ fontSize: '0.55rem', background: 'rgba(255,62,62,0.1)', color: 'var(--accent-red)', padding: '3px 8px', borderRadius: '2px', fontWeight: 800 }}>{tag.toUpperCase()}</span>
-                        ))}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ padding: '12px', background: 'rgba(255,184,0,0.05)', borderRadius: '4px', borderLeft: '3px solid var(--accent-gold)' }}>
+                      <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>DOSH THERMAL EXPOSURE ASSESSMENT</div>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 800 }}>
+                        Recorded Heat Index: <span style={{ color: parseFloat(stats?.currentHeatIndex) > 38 ? '#ff3e3e' : '#00ff82' }}>{stats?.currentHeatIndex}°C</span> vs DOSH Limit: <span style={{ color: '#00ff82' }}>38.0°C</span>
                       </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                      <div style={{ padding: '10px', background: 'rgba(255,255,255,0.02)', borderRadius: '3px' }}>
+                        <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)' }}>RESTRICTION DAYS</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--accent-gold)' }}>
+                          {Math.round((1 - (stats?.heatSafeDays || 100) / 100) * (stats?.totalDaysAnalyzed || 30))} Days
+                        </div>
+                        <div style={{ fontSize: '0.5rem', color: 'var(--text-secondary)' }}>Outdoor labor adjustments required</div>
+                      </div>
+                      <div style={{ padding: '10px', background: 'rgba(255,255,255,0.02)', borderRadius: '3px' }}>
+                        <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)' }}>RECOMMENDED REST CYCLE</div>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 900, color: parseFloat(stats?.currentHeatIndex) > 38 ? '#ff3e3e' : '#00ff82', marginTop: '4px' }}>
+                          {parseFloat(stats?.currentHeatIndex) > 38 ? '45m Work / 15m Rest' : 'Continuous Operation'}
+                        </div>
+                        <div style={{ fontSize: '0.5rem', color: 'var(--text-secondary)' }}>Per hour during peak irradiance</div>
+                      </div>
+                    </div>
+
+                    <div style={{ padding: '10px', background: 'rgba(255,255,255,0.02)', borderRadius: '3px', fontSize: '0.65rem', lineHeight: '1.5', color: 'var(--text-secondary)' }}>
+                      <b>Compliance Note:</b> Direct applicability for construction contractors and plantation concessionaires under DOSH Malaysia guidelines. Failure to implement thermal work-rest rotations during flagged hours constitutes an actionable OSH non-compliance.
                     </div>
                   </div>
                 </div>

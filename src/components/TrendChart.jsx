@@ -1,50 +1,78 @@
 import React, { useState } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
 const TrendChart = ({ data }) => {
-  const [activeMetric, setActiveMetric] = useState('aqi');
+  const [activeMetric, setActiveMetric] = useState('pm25');
 
   const metrics = [
-    { id: 'aqi', label: 'AQI', color: '#00f0ff' },
+    { id: 'pm25', label: 'PM2.5 CONC.', color: '#00f0ff' },
+    { id: 'aqi', label: 'DOE API', color: '#00f0ff' },
     { id: 'heat', label: 'HEAT INDEX', color: '#ff3e3e' },
-    { id: 'pm25', label: 'PM2.5', color: '#ff9f9f' },
   ];
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
+      const val = payload[0].value;
+      const isExceeding = activeMetric === 'pm25' && val > 15;
       return (
         <div style={{ 
-          background: 'rgba(10, 10, 10, 0.95)', 
-          border: '1px solid rgba(255,255,255,0.1)', 
+          background: 'rgba(7, 7, 7, 0.95)', 
+          border: isExceeding ? '1px solid #ff3e3e' : '1px solid rgba(255,255,255,0.1)', 
           padding: '10px',
           fontSize: '0.7rem',
-          backdropFilter: 'blur(5px)'
+          backdropFilter: 'blur(5px)',
+          borderRadius: '4px'
         }}>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '5px' }}>{label}</p>
-          <p style={{ color: metrics.find(m => m.id === activeMetric).color, fontWeight: 700 }}>
-            {activeMetric.toUpperCase()}: {payload[0].value.toFixed(1)}
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '5px', fontWeight: 800 }}>{label}</p>
+          <p style={{ color: isExceeding ? '#ff3e3e' : metrics.find(m => m.id === activeMetric).color, fontWeight: 900, fontFamily: 'monospace', fontSize: '0.8rem' }}>
+            {activeMetric.toUpperCase()}: {val.toFixed(1)} {activeMetric === 'pm25' ? 'µg/m³' : ''}
           </p>
+          {isExceeding && (
+            <span style={{ fontSize: '0.55rem', color: '#ff3e3e', fontWeight: 800, display: 'block', marginTop: '4px' }}>
+              ⚠️ EXCEEDS WHO LIMIT (15 µg/m³)
+            </span>
+          )}
         </div>
       );
     }
     return null;
   };
 
+  // Compute offset where y = 15 falls in the dataset range
+  const getGradientOffset = () => {
+    if (activeMetric !== 'pm25' || !data || !data.length) return 0;
+    const vals = data.map(i => i.pm25 || 0);
+    const dataMax = Math.max(...vals);
+    const dataMin = Math.min(...vals);
+    if (dataMax <= 15) return 0; 
+    if (dataMin >= 15) return 1; 
+    return (dataMax - 15) / (dataMax - dataMin);
+  };
+
+  const offset = getGradientOffset();
+
   return (
-    <div className="trend-area">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
-        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-secondary)', letterSpacing: '1px' }}>24H_TREND_ANALYSIS</span>
-        <div style={{ display: 'flex', gap: '8px' }}>
+    <div className="trend-area" style={{ background: '#070707', border: '1px solid rgba(255,255,255,0.05)', padding: '15px', borderRadius: '4px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <span style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--text-secondary)', letterSpacing: '1px' }}>COMPLIANCE_TREND_MONITOR</span>
+          {activeMetric === 'pm25' && (
+            <span style={{ fontSize: '0.55rem', color: '#ff3e3e', fontWeight: 800 }}>
+              WHO AQG Exceedance Audit View Active
+            </span>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: '6px' }}>
           {metrics.map(m => (
             <button
               key={m.id}
               onClick={() => setActiveMetric(m.id)}
               style={{
-                background: activeMetric === m.id ? 'rgba(0, 240, 255, 0.1)' : 'transparent',
+                background: activeMetric === m.id ? 'rgba(0, 240, 255, 0.15)' : 'transparent',
                 border: activeMetric === m.id ? '1px solid var(--accent-cyan)' : '1px solid rgba(255,255,255,0.05)',
                 color: activeMetric === m.id ? 'var(--accent-cyan)' : 'var(--text-secondary)',
-                padding: '4px 12px',
-                fontSize: '0.6rem',
+                padding: '4px 10px',
+                fontSize: '0.55rem',
                 fontWeight: 800,
                 cursor: 'pointer',
                 borderRadius: '2px',
@@ -60,19 +88,38 @@ const TrendChart = ({ data }) => {
 
       <div style={{ height: '220px', width: '100%', minWidth: 0, minHeight: 0 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+          <AreaChart data={data} margin={{ top: 15, right: 10, left: 10, bottom: 10 }}>
             <defs>
               <linearGradient id="colorMetric" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={metrics.find(m => m.id === activeMetric).color} stopOpacity={0.3}/>
-                <stop offset="95%" stopColor={metrics.find(m => m.id === activeMetric).color} stopOpacity={0}/>
+                {activeMetric === 'pm25' ? (
+                  <>
+                    <stop offset="0%" stopColor="#ff3e3e" stopOpacity={0.6}/>
+                    <stop offset={`${offset * 100}%`} stopColor="#ff3e3e" stopOpacity={0.15}/>
+                    <stop offset={`${offset * 100}%`} stopColor="#00f0ff" stopOpacity={0.3}/>
+                    <stop offset="100%" stopColor="#00f0ff" stopOpacity={0}/>
+                  </>
+                ) : (
+                  <>
+                    <stop offset="5%" stopColor={metrics.find(m => m.id === activeMetric).color} stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor={metrics.find(m => m.id === activeMetric).color} stopOpacity={0}/>
+                  </>
+                )}
               </linearGradient>
+              {activeMetric === 'pm25' && (
+                <linearGradient id="strokeMetric" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#ff3e3e" />
+                  <stop offset={`${offset * 100}%`} stopColor="#ff3e3e" />
+                  <stop offset={`${offset * 100}%`} stopColor="#00f0ff" />
+                  <stop offset="100%" stopColor="#00f0ff" />
+                </linearGradient>
+              )}
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
             <XAxis 
               dataKey="time" 
               axisLine={false} 
               tickLine={false} 
-              tick={{ fill: 'var(--text-secondary)', fontSize: 9 }}
+              tick={{ fill: 'var(--text-secondary)', fontSize: 9, fontWeight: 700 }}
               interval={2}
               dy={10}
             />
@@ -81,13 +128,29 @@ const TrendChart = ({ data }) => {
               domain={['auto', 'auto']}
             />
             <Tooltip content={<CustomTooltip />} />
+            {activeMetric === 'pm25' && (
+              <ReferenceLine 
+                y={15} 
+                stroke="#ff3e3e" 
+                strokeDasharray="4 4" 
+                strokeWidth={1.5}
+                label={{ 
+                  value: "WHO LIMIT: 15 µg/m³", 
+                  fill: "#ff3e3e", 
+                  fontSize: 8, 
+                  fontWeight: 900,
+                  position: 'insideTopLeft',
+                  dy: -5
+                }} 
+              />
+            )}
             <Area 
               type="monotone" 
               dataKey={activeMetric} 
-              stroke={metrics.find(m => m.id === activeMetric).color} 
+              stroke={activeMetric === 'pm25' ? "url(#strokeMetric)" : metrics.find(m => m.id === activeMetric).color} 
               fillOpacity={1} 
               fill="url(#colorMetric)" 
-              strokeWidth={2}
+              strokeWidth={2.5}
             />
           </AreaChart>
         </ResponsiveContainer>

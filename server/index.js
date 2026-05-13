@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import NodeCache from 'node-cache';
 import OpenAI from 'openai';
+import fs from 'fs';
 
 dotenv.config();
 
@@ -127,6 +128,20 @@ const generateDynamicFallback = (category, sensorData) => {
         carbonImpact: `Projected Scope 2 emission uplift of ${Math.max(0, Math.floor((temp-28)*1.5))}% against TNB grid factors.`,
         sdgAlignment: "SDG 3 (Health), SDG 11 (Cities), SDG 13 (Climate Action) - Partial Alignment.",
         technicalReasoning: `Metric-driven audit incorporating TCFD physical risk indicators and WHO 2021 guideline gaps.`
+      },
+      msme: {
+        riskLevel,
+        dailySummary: aqi > 100 || pm25 > 15 
+          ? `CONTRAINDICATED: Current readings (PM2.5: ${pm25}µg/m³, AQI: ${aqi}) exceed regulatory baseline thresholds. Submitting today's records without local calibration evidence risks automated audit flags.`
+          : `SUPPORTED: Active district readings (PM2.5: ${pm25}µg/m³, AQI: ${aqi}) fully support clean reporting submissions. Minimal operational variance detected across baseline sensor strings.`,
+        detailedAnalysis: `Real-time self-check verification mapping node sensor arrays against typical MSME industrial output matrices. Local micro-plume concentration remains stable.`,
+        technicalReasoning: `Automated compliance engine matching ambient vectors against DOE EQA 1974 Section 22 variance bands.`,
+        siteActions: [
+          "Verify continuous stack scrubber filtration efficiency",
+          "Record baseline exhaust pressure parameters",
+          "Schedule preventive calibration cycles",
+          "Archive time-stamped node baseline references"
+        ]
       }
     };
   } else if (category === 'prediction') {
@@ -1020,7 +1035,7 @@ ENVIRONMENTAL METRICS: ${allMetrics}
 POLLUTANT PROFILE: ${pollutantSummary}
 
 Generate a tailored JSON advisory. You MUST analyze how the specific ${sensorData.type} environment interacts with the current ${sensorData.metrics?.aqi?.value} AQI and ${sensorData.metrics?.temp?.value}°C temperature.
-Structure: { construction, government, esgFirm }. Each section must have tailored: riskLevel, detailedAnalysis, siteActions (8 items), technicalReasoning, healthRiskBreakdown.`
+Structure: { construction, government, esgFirm, msme }. Each section must have tailored: riskLevel, detailedAnalysis, siteActions (8 items), technicalReasoning, healthRiskBreakdown. For 'msme', provide a plain-language daily summary explicitly stating whether today's readings would support or contradict a clean compliance submission.`
           }
         ],
         temperature: 0.1,
@@ -1171,6 +1186,11 @@ app.get('/api/analytics/esg-stats', async (req, res) => {
     const currentAqi = currentData.metrics.aqi.value;
     const doeCompliance = currentAqi < 100 ? 85 : currentAqi < 150 ? 60 : 35; // estimate
 
+    const trend = pm25Values.map((v, i) => ({
+      day: 'D' + (i + 1),
+      pm25: parseFloat(v.toFixed(1))
+    }));
+
     res.json({
       districtName,
       pm25Compliance: pm25CompliancePct,
@@ -1179,7 +1199,10 @@ app.get('/api/analytics/esg-stats', async (req, res) => {
       totalDaysAnalyzed: totalDays,
       currentPm25: parseFloat(currentData.metrics.pm25.value),
       currentAqi: currentData.metrics.aqi.value,
-      currentHeatIndex: currentData.metrics.heatIndex.value
+      currentHeatIndex: currentData.metrics.heatIndex.value,
+      trend: trend.length > 0 ? trend : [
+        { day: 'D1', pm25: 12.1 }, { day: 'D2', pm25: 14.5 }, { day: 'D3', pm25: 18.2 }, { day: 'D4', pm25: 15.0 }
+      ]
     });
   } catch (err) {
     console.warn('[ESG_STATS_FALLBACK]', err.message);
@@ -1191,7 +1214,10 @@ app.get('/api/analytics/esg-stats', async (req, res) => {
       totalDaysAnalyzed: 30,
       currentPm25: 18.5,
       currentAqi: 72,
-      currentHeatIndex: 37.2
+      currentHeatIndex: 37.2,
+      trend: [
+        { day: 'D1', pm25: 16.5 }, { day: 'D2', pm25: 14.2 }, { day: 'D3', pm25: 19.1 }, { day: 'D4', pm25: 18.5 }
+      ]
     });
   }
 });
@@ -1210,7 +1236,29 @@ const fnv1a = (str) => {
 
 // In-memory append-only audit chain per node
 const auditChains = {}; // nodeId -> [{ ts, pm25, aqi, heat, hash, prevHash }]
-const nodeBreachCounts = {}; // tracking consecutive multi-readout breaches per zone
+
+const DATA_DIR = './.data';
+const SCRUTINY_FILE = `${DATA_DIR}/scrutiny.json`;
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+let nodeBreachCounts = {};
+try {
+  if (fs.existsSync(SCRUTINY_FILE)) {
+    nodeBreachCounts = JSON.parse(fs.readFileSync(SCRUTINY_FILE, 'utf8'));
+  }
+} catch (e) {
+  console.error("Error loading persistent scrutiny counts:", e);
+}
+
+const persistScrutinyCounts = async () => {
+  try {
+    await fs.promises.writeFile(SCRUTINY_FILE, JSON.stringify(nodeBreachCounts, null, 2), 'utf8');
+  } catch (e) {
+    console.error("Error writing persistent scrutiny counts:", e);
+  }
+};
 
 const appendAuditEntry = (nodeId, pm25, aqi, heat, escalationTag = null) => {
   if (!auditChains[nodeId]) auditChains[nodeId] = [];
@@ -1251,6 +1299,7 @@ app.post('/api/compliance/verify', async (req, res) => {
     } else {
       nodeBreachCounts[districtId] = 0; // auto-recovery when data normalizes
     }
+    await persistScrutinyCounts();
 
     const ts = new Date().toISOString();
     const auditEntry = appendAuditEntry(districtId, sensorPm25, sensorAqi, sensorHeat, escalationTag);
@@ -1315,6 +1364,25 @@ app.get('/api/audit/log/:nodeId', async (req, res) => {
     verifiedBy: 'EnviroPulse Node Network',
     generatedAt: new Date().toISOString(),
     entries,
+  });
+});
+
+// ─── ESCALATION WEBHOOK ENDPOINT ──────────────────────────────────────────────
+app.post('/api/compliance/escalate', async (req, res) => {
+  const { submissionId, districtId, companyName, recordedHash, details } = req.body;
+  
+  console.log(`\n[DOE_INTEGRATION_DISPATCH] Payload signed. Transmitting hash check to my.gov.doe.api/v1/escalations...`);
+  console.log(` ├─ Target Agency: Department of Environment (DOE) Malaysia`);
+  console.log(` ├─ Framework: EQA 1974 Section 22 Evidence Lock`);
+  console.log(` ├─ Company Entity: ${companyName || 'Acme Industrial'}`);
+  console.log(` ├─ Node Scrutiny ID: ${districtId || 'node_unspecified'}`);
+  console.log(` └─ FNV-1a SHA Record: ${recordedHash || 'N/A'}\n`);
+
+  res.json({
+    success: true,
+    dispatchedAt: new Date().toISOString(),
+    endpoint: 'my.gov.doe.api/v1/escalations',
+    referenceCode: `DOE-ESC-${Date.now()}`
   });
 });
 

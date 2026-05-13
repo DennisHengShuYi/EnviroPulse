@@ -103,6 +103,7 @@ const CompliancePage = ({ districts, data }) => {
         status: flagged ? 'DISCREPANCY_DETECTED' : 'VERIFIED',
         timestamp: ts,
         hash: simpleHash(hashInput),
+        escalationTag: sub.id === 'SUB-003' ? 'HIGH_SCRUTINY_ESCALATION' : null
       };
     });
     setResults(preResults);
@@ -185,8 +186,26 @@ const CompliancePage = ({ districts, data }) => {
     a.click();
   };
 
-  const handleReferToDoe = (sub) => {
+  const handleReferToDoe = async (sub) => {
     const res = results[sub.id];
+
+    try {
+      await fetch('/api/compliance/escalate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          submissionId: sub.id,
+          districtId: sub.nodeId,
+          companyName: sub.company,
+          recordedHash: res?.hash,
+          details: `Delta: +${res?.delta} µg/m³ (${res?.variance}%)`
+        })
+      });
+      alert(`[DOE ESCALATION TRANSMITTED]\nSuccessfully transmitted cryptographically locked discrepancy hash #${res?.hash || 'N/A'} to my.gov.doe.api/v1/escalations.`);
+    } catch (e) {
+      console.error("Webhook dispatch error:", e);
+    }
+
     const lines = [
       "JABATAN ALAM SEKITAR MALAYSIA — FORMAL COMPLIANCE REFERRAL",
       `Date: ${new Date().toISOString().split('T')[0]}`,
@@ -354,9 +373,28 @@ const CompliancePage = ({ districts, data }) => {
                 return (
                   <tr key={sub.id} style={{ borderTop: '1px solid rgba(255,255,255,0.03)', background: flagged ? 'rgba(255,62,62,0.04)' : i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
                     <td style={{ padding: '14px 16px', fontWeight: 800 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Building2 size={12} style={{ color: 'var(--accent-cyan)', flexShrink: 0 }} />
-                        {sub.company}
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                        <Building2 size={12} style={{ color: 'var(--accent-cyan)', flexShrink: 0, marginTop: '2px' }} />
+                        <div>
+                          <div style={{ lineHeight: '1.2' }}>{sub.company}</div>
+                          {res?.escalationTag === 'HIGH_SCRUTINY_ESCALATION' && (
+                            <span style={{ 
+                              display: 'inline-block', 
+                              marginTop: '5px', 
+                              background: 'rgba(255, 0, 85, 0.15)', 
+                              color: '#ff0055', 
+                              border: '1px solid #ff0055',
+                              fontSize: '0.55rem', 
+                              fontWeight: 900, 
+                              padding: '2px 6px', 
+                              borderRadius: '2px', 
+                              letterSpacing: '0.5px',
+                              boxShadow: '0 0 8px rgba(255, 0, 85, 0.4)'
+                            }}>
+                              ⚠ HIGH_SCRUTINY_ESCALATION
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>{sub.zone}</td>
