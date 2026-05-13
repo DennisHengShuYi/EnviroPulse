@@ -36,7 +36,7 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      const roleLabel = activeRole === 'esgFirm' ? 'ESG_FIRM' : activeRole.toUpperCase();
+      const roleLabel = activeRole === 'esgFirm' ? 'ESG_FIRM' : activeRole === 'doeAuditor' ? 'DOE_AUDITOR' : activeRole === 'msme' ? 'MSME_COMPLIANCE' : activeRole.toUpperCase();
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`ENVIROPULSE_AUDIT_${selectedDistrict.name.toUpperCase()}_${roleLabel}_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (err) {
@@ -129,9 +129,9 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
   const roleColors = {
     construction: 'var(--accent-gold)',
     government: 'var(--accent-cyan)',
+    msme: '#00ff88',
     esgFirm: '#fff',
     doeAuditor: '#ff7a45',
-    esgReportingOfficer: '#c084fc',
   };
 
   const currentPred = prediction ? prediction[activeRole] : null;
@@ -151,7 +151,7 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
     { id: 'pm25', label: 'PM2.5',  color: '#ff9f9f' },
   ];
   const activeHistMetric = histMetrics.find(m => m.id === histMetric);
-  const roleLabel = activeRole === 'esgFirm' ? 'ESG_FIRM' : activeRole === 'doeAuditor' ? 'DOE_AUDITOR' : activeRole === 'esgReportingOfficer' ? 'ESG_OFFICER' : activeRole.toUpperCase();
+  const roleLabel = activeRole === 'esgFirm' ? 'ESG_FIRM' : activeRole === 'doeAuditor' ? 'DOE_AUDITOR' : activeRole === 'msme' ? 'MSME_COMPLIANCE' : activeRole.toUpperCase();
 
   return (
     <div className="analytics-container" ref={reportRef} style={{ height: 'calc(100vh - 80px)', overflowY: 'auto', padding: '2rem', background: '#000', color: '#fff' }}>
@@ -227,41 +227,89 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
 
         {/* Predictive Engine — Full Detail Panel */}
         <div className="widget" style={{ gridColumn: 'span 12', padding: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Zap size={20} style={{ color: roleColors[activeRole] }} />
-              <h2 style={{ fontSize: '0.85rem', fontWeight: 900, margin: 0, letterSpacing: '1px' }}>AI_PREDICTIVE_ENGINE — 24H MULTI-ROLE INTELLIGENCE</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Zap size={20} style={{ color: roleColors[activeRole] }} />
+                <h2 style={{ fontSize: '0.85rem', fontWeight: 900, margin: 0, letterSpacing: '1px' }}>AI_PREDICTIVE_ENGINE — 24H MULTI-ROLE INTELLIGENCE</h2>
+              </div>
+              {prediction?.isFallback && (
+                <span className="badge" style={{ position: 'static', background: 'rgba(255, 184, 0, 0.15)', color: 'var(--accent-gold)', border: '1px solid var(--accent-gold)', fontSize: '0.55rem', padding: '2px 8px', letterSpacing: '0.5px', borderRadius: '4px', fontWeight: 800 }}>
+                  FALLBACK_MODE (HARDCODED)
+                </span>
+              )}
             </div>
-            <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)', padding: '3px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)', flexWrap: 'wrap' }}>
-              {[
-                { id: 'construction', label: 'CONSTRUCTION' },
-                { id: 'government', label: 'GOVERNMENT' },
-                { id: 'esgFirm', label: 'ESG_FIRM' },
-                { id: 'doeAuditor', label: 'DOE_AUDITOR' },
-                { id: 'esgReportingOfficer', label: 'ESG_OFFICER' },
-              ].map(({ id, label }) => (
-                <button
-                  key={id}
-                  onClick={() => setActiveRole(id)}
-                  style={{
-                    background: activeRole === id ? roleColors[id] : 'transparent',
-                    color: activeRole === id ? (id === 'esgFirm' ? '#000' : '#000') : '#888',
-                    border: 'none',
-                    fontSize: '0.6rem',
-                    fontWeight: 900,
-                    padding: '6px 14px',
-                    cursor: 'pointer',
-                    borderRadius: '4px',
-                    transition: 'all 0.2s',
-                    letterSpacing: '0.5px',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
+            
+            {/* Two-line tabs container to guarantee DOE Auditor and ESG Officer tabs are on the second line */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)', padding: '3px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                {[
+                  { id: 'construction', label: 'CONSTRUCTION' },
+                  { id: 'government', label: 'GOVERNMENT' },
+                  { id: 'msme', label: 'MSME_COMPLIANCE' }
+                ].map(({ id, label }) => (
+                  <button
+                    key={id}
+                    onClick={() => setActiveRole(id)}
+                    style={{
+                      flex: 1,
+                      background: activeRole === id ? roleColors[id] : 'transparent',
+                      color: activeRole === id ? '#000' : '#888',
+                      border: 'none',
+                      fontSize: '0.6rem',
+                      fontWeight: 900,
+                      padding: '6px 14px',
+                      cursor: 'pointer',
+                      borderRadius: '4px',
+                      transition: 'all 0.2s',
+                      letterSpacing: '0.5px',
+                      whiteSpace: 'nowrap',
+                      textAlign: 'center'
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)', padding: '3px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                {[
+                  { id: 'esgFirm', label: 'ESG_FIRM' },
+                  { id: 'doeAuditor', label: 'DOE_AUDITOR' }
+                ].map(({ id, label }) => (
+                  <button
+                    key={id}
+                    onClick={() => setActiveRole(id)}
+                    style={{
+                      flex: 1,
+                      background: activeRole === id ? roleColors[id] : 'transparent',
+                      color: activeRole === id ? '#000' : '#888',
+                      border: 'none',
+                      fontSize: '0.6rem',
+                      fontWeight: 900,
+                      padding: '6px 14px',
+                      cursor: 'pointer',
+                      borderRadius: '4px',
+                      transition: 'all 0.2s',
+                      letterSpacing: '0.5px',
+                      whiteSpace: 'nowrap',
+                      textAlign: 'center'
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
+
+          {prediction?.isFallback && (
+            <div style={{ background: 'rgba(255, 184, 0, 0.08)', border: '1px solid var(--accent-gold)', padding: '10px 14px', borderRadius: '6px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '0.9rem' }}>⚠️</span>
+              <div style={{ fontSize: '0.62rem', color: 'var(--accent-gold)', lineHeight: '1.4' }}>
+                <strong style={{ fontWeight: 900 }}>OFFLINE FALLBACK STATE:</strong> The predictive intelligence data displayed below is pre-compiled hardcoded baseline content rendered due to a live inference engine timeout.
+              </div>
+            </div>
+          )}
 
           {currentPred ? (
             <div style={{ animation: 'fadeIn 0.3s ease' }}>

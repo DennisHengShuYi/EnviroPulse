@@ -73,59 +73,116 @@ const CompliancePage = ({ districts, data }) => {
   const [threshold, setThreshold] = useState(THRESHOLD_PCT);
   const [mode, setMode] = useState('AUDITOR');
   const [selectedCompanyId, setSelectedCompanyId] = useState('SUB-001');
-  const [checklist, setChecklist] = useState([
-    { id: 1, text: 'Re-calibrate industrial exhaust sensor array stack', done: false },
-    { id: 2, text: 'Submit localized wind vector dispersion logs to district node', done: true },
-    { id: 3, text: 'Schedule secondary calibration audit with DOE officer', done: false }
-  ]);
+  const [completedItems, setCompletedItems] = useState({ 'SUB-001-2': true, 'SUB-002-1': true });
 
+  const getDynamicChecklist = (subId, res) => {
+    const isClean = !res?.flagged;
+    if (subId === 'SUB-001') {
+      return [
+        { id: 1, text: `Audit Cheras Industrial zone particulate scrubber efficiency against sensor gap (+${res?.delta || 35} µg/m³)` },
+        { id: 2, text: 'Submit secondary calibration logs for PM2.5 stack exhaust sensors' },
+        { id: 3, text: isClean ? 'Maintain standard baseline continuous parameter transmission' : 'Schedule mandatory automated reconciliation review with DOE compliance portal' }
+      ];
+    } else if (subId === 'SUB-002') {
+      return [
+        { id: 1, text: 'Verify localized flow vectors across Shah Alam Industrial Park boundary arrays' },
+        { id: 2, text: 'Perform quarterly optical integrity sweep on continuous PM2.5 monitoring head' },
+        { id: 3, text: 'Export pre-validated immutable payload to GreenOps corporate compliance officer' }
+      ];
+    } else {
+      return [
+        { id: 1, text: 'Inspect North Corridor perimeter chemical leak detectors and ambient baseline scrubbers' },
+        { id: 2, text: `Investigate high-scrutiny threshold variance (${res?.variance || 100}% above baseline)` },
+        { id: 3, text: 'Re-align continuous particulate stream transmission intervals with local municipal receivers' }
+      ];
+    }
+  };
+
+  const toggleChecklist = (id) => {
+    const key = `${selectedCompanyId}-${id}`;
+    setCompletedItems(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   useEffect(() => {
     setSubmissions(DEMO_SUBMISSIONS);
-    // Pre-generate results for demo submissions
-    const preResults = {};
-    DEMO_SUBMISSIONS.forEach(sub => {
-      const seed = sub.nodeId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-      const sensorPm25 = 30 + (seed % 30); // simulated sensor reading
-      const sensorAqi = 80 + (seed % 60);
-      const delta = sensorPm25 - sub.reportedPm25;
-      const variance = Math.abs(delta / sub.reportedPm25) * 100;
-      const flagged = variance > threshold;
-      const ts = new Date(sub.date + 'T08:42:00').toISOString();
-      const hashInput = `${sub.nodeId}|${sub.date}|${sensorPm25}|${sensorAqi}|${ts}`;
-      preResults[sub.id] = {
-        submissionId: sub.id,
-        sensorPm25: parseFloat(sensorPm25.toFixed(1)),
-        sensorAqi,
-        delta: parseFloat(delta.toFixed(1)),
-        variance: parseFloat(variance.toFixed(1)),
-        flagged,
-        status: flagged ? 'DISCREPANCY_DETECTED' : 'VERIFIED',
-        timestamp: ts,
-        hash: simpleHash(hashInput),
-        escalationTag: sub.id === 'SUB-003' ? 'HIGH_SCRUTINY_ESCALATION' : null
-      };
-    });
-    setResults(preResults);
+    
+    const fetchBatchRealData = async () => {
+      const liveResults = {};
+      const liveLogs = [];
+      
+      for (const sub of DEMO_SUBMISSIONS) {
+        try {
+          const res = await fetch(`/api/compliance/verify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              districtId: sub.nodeId,
+              submissionDate: sub.date,
+              reportedPm25: sub.reportedPm25,
+              reportedAqi: sub.reportedAqi,
+              threshold,
+            }),
+          }).then(r => {
+            if (!r.ok) throw new Error("API error");
+            return r.json();
+          });
+          
+          if (sub.id === 'SUB-003' && res.flagged) {
+            res.escalationTag = 'HIGH_SCRUTINY_ESCALATION';
+          }
+          
+          liveResults[sub.id] = res;
+          liveLogs.push({
+            ts: res.timestamp?.replace('T', ' ').slice(0, 19) || new Date().toISOString().replace('T', ' ').slice(0, 19),
+            nodeId: sub.nodeName,
+            company: sub.company,
+            reportedPm25: sub.reportedPm25,
+            sensorPm25: res.sensorPm25,
+            status: res.status,
+            hash: res.hash,
+          });
+        } catch (e) {
+          const targetNode = data?.find(d => d.id === sub.nodeId);
+          const sensorPm25 = targetNode?.metrics?.pm25?.value !== undefined ? parseFloat(targetNode.metrics.pm25.value) : (sub.id === 'SUB-002' ? 12.0 : 47.0);
+          const sensorAqi = targetNode?.metrics?.aqi?.value !== undefined ? parseInt(targetNode.metrics.aqi.value) : 85;
+          const delta = parseFloat((sensorPm25 - sub.reportedPm25).toFixed(1));
+          const variance = parseFloat((Math.abs(delta / sub.reportedPm25) * 100).toFixed(1));
+          const flagged = variance > threshold;
+          const ts = new Date().toISOString();
+          const hashInput = `${sub.nodeId}|${sub.date}|${sensorPm25}|${sensorAqi}|${ts}`;
+          const fallbackObj = {
+            submissionId: sub.id,
+            sensorPm25,
+            sensorAqi,
+            delta,
+            variance,
+            flagged,
+            status: flagged ? 'DISCREPANCY_DETECTED' : 'VERIFIED',
+            timestamp: ts,
+            hash: simpleHash(hashInput),
+            escalationTag: sub.id === 'SUB-003' ? 'HIGH_SCRUTINY_ESCALATION' : null
+          };
+          liveResults[sub.id] = fallbackObj;
+          liveLogs.push({
+            ts: ts.replace('T', ' ').slice(0, 19),
+            nodeId: sub.nodeName,
+            company: sub.company,
+            reportedPm25: sub.reportedPm25,
+            sensorPm25,
+            status: fallbackObj.status,
+            hash: fallbackObj.hash,
+          });
+        }
+      }
+      setResults(liveResults);
+      setAuditLog(liveLogs);
+    };
 
-    const logs = DEMO_SUBMISSIONS.map(sub => {
-      const r = preResults[sub.id];
-      return {
-        ts: new Date(sub.date + 'T08:42:17').toISOString().replace('T', ' ').slice(0, 19),
-        nodeId: sub.nodeName,
-        company: sub.company,
-        reportedPm25: sub.reportedPm25,
-        sensorPm25: r.sensorPm25,
-        status: r.status,
-        hash: r.hash,
-      };
-    });
-    setAuditLog(logs);
-  }, [threshold]);
+    fetchBatchRealData();
+  }, [threshold, data]);
 
   const handleVerify = async (sub) => {
     setVerifying(sub.id);
-    await new Promise(r => setTimeout(r, 1200));
     const res = await fetch(`/api/compliance/verify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -136,10 +193,13 @@ const CompliancePage = ({ districts, data }) => {
         reportedAqi: sub.reportedAqi,
         threshold,
       }),
-    }).then(r => r.json()).catch(() => {
-      const seed = sub.nodeId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-      const sensorPm25 = parseFloat((30 + (seed % 30)).toFixed(1));
-      const sensorAqi = 80 + (seed % 60);
+    }).then(r => {
+      if (!r.ok) throw new Error("API error");
+      return r.json();
+    }).catch(() => {
+      const targetNode = data?.find(d => d.id === sub.nodeId);
+      const sensorPm25 = targetNode?.metrics?.pm25?.value !== undefined ? parseFloat(targetNode.metrics.pm25.value) : (sub.id === 'SUB-002' ? 12.0 : 47.0);
+      const sensorAqi = targetNode?.metrics?.aqi?.value !== undefined ? parseInt(targetNode.metrics.aqi.value) : 85;
       const delta = parseFloat((sensorPm25 - sub.reportedPm25).toFixed(1));
       const variance = parseFloat((Math.abs(delta / sub.reportedPm25) * 100).toFixed(1));
       const flagged = variance > threshold;
@@ -201,7 +261,7 @@ const CompliancePage = ({ districts, data }) => {
           details: `Delta: +${res?.delta} µg/m³ (${res?.variance}%)`
         })
       });
-      alert(`[DOE ESCALATION TRANSMITTED]\nSuccessfully transmitted cryptographically locked discrepancy hash #${res?.hash || 'N/A'} to my.gov.doe.api/v1/escalations.`);
+      alert(`[DEMO SIMULATION: INTEGRATION WEBHOOK TRIGGERED]\n\nDispatched cryptographically signed discrepancy package to agency webhook mock endpoint:\n👉 https://my.gov.doe.api/v1/escalations\n\nSHA Hash Lock: #${res?.hash || 'N/A'}\nStatus: Transmitted successfully. Downloading certified offline referral copy...`);
     } catch (e) {
       console.error("Webhook dispatch error:", e);
     }
@@ -262,9 +322,6 @@ const CompliancePage = ({ districts, data }) => {
     pdf.save(`BURSA_REPORT_${sub.company.replace(/\s+/g, '_')}.pdf`);
   };
 
-  const toggleChecklist = (id) => {
-    setChecklist(prev => prev.map(c => c.id === id ? { ...c, done: !c.done } : c));
-  };
 
   const inputStyle = { width: '100%', background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '8px 10px', fontSize: '0.7rem', borderRadius: '3px', fontFamily: 'inherit' };
   const labelStyle = { fontSize: '0.55rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px', fontWeight: 800, letterSpacing: '1px' };
@@ -560,7 +617,9 @@ const CompliancePage = ({ districts, data }) => {
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <span style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', display: 'block' }}>ESTIMATED MONTHLY SCORE</span>
-                    <span style={{ fontSize: '1.4rem', fontWeight: 900, color: r?.flagged ? '#ffb800' : '#00ff82' }}>{r?.flagged ? '72%' : '94%'}</span>
+                    <span style={{ fontSize: '1.4rem', fontWeight: 900, color: r?.flagged ? '#ffb800' : '#00ff82' }}>
+                      {r?.variance !== undefined ? `${Math.max(15, Math.round(100 - (r.variance * 0.35)))}%` : (r?.flagged ? '72%' : '94%')}
+                    </span>
                   </div>
                 </div>
 
@@ -596,18 +655,21 @@ const CompliancePage = ({ districts, data }) => {
                   PRE-SUBMISSION RESOLUTION CHECKLIST
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {checklist.map(item => (
-                    <div
-                      key={item.id}
-                      onClick={() => toggleChecklist(item.id)}
-                      style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', background: item.done ? 'rgba(255,255,255,0.02)' : 'rgba(255,184,0,0.05)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '4px', cursor: 'pointer', opacity: item.done ? 0.6 : 1 }}
-                    >
-                      {item.done ? <CheckSquare size={14} style={{ color: '#00ff82' }} /> : <Square size={14} style={{ color: 'var(--accent-gold)' }} />}
-                      <span style={{ fontSize: '0.72rem', textDecoration: item.done ? 'line-through' : 'none', color: item.done ? 'var(--text-secondary)' : '#fff', fontWeight: item.done ? 400 : 800 }}>
-                        {item.text}
-                      </span>
-                    </div>
-                  ))}
+                  {getDynamicChecklist(selSub.id, r).map(item => {
+                    const isDone = completedItems[`${selectedCompanyId}-${item.id}`];
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => toggleChecklist(item.id)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', background: isDone ? 'rgba(255,255,255,0.02)' : 'rgba(255,184,0,0.05)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '4px', cursor: 'pointer', opacity: isDone ? 0.6 : 1 }}
+                      >
+                        {isDone ? <CheckSquare size={14} style={{ color: '#00ff82' }} /> : <Square size={14} style={{ color: 'var(--accent-gold)' }} />}
+                        <span style={{ fontSize: '0.72rem', textDecoration: isDone ? 'line-through' : 'none', color: isDone ? 'var(--text-secondary)' : '#fff', fontWeight: isDone ? 400 : 800 }}>
+                          {item.text}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>

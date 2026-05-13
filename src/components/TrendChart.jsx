@@ -53,7 +53,7 @@ const TrendChart = ({ data }) => {
 
   return (
     <div className="trend-area" style={{ background: '#070707', border: '1px solid rgba(255,255,255,0.05)', padding: '15px', borderRadius: '4px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <span style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--text-secondary)', letterSpacing: '1px' }}>COMPLIANCE_TREND_MONITOR</span>
           {activeMetric === 'pm25' && (
@@ -62,7 +62,7 @@ const TrendChart = ({ data }) => {
             </span>
           )}
         </div>
-        <div style={{ display: 'flex', gap: '6px' }}>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
           {metrics.map(m => (
             <button
               key={m.id}
