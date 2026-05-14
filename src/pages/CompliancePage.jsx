@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ShieldCheck, AlertTriangle, Upload, CheckCircle2, XCircle, Clock, Hash, Building2, MapPin, FileSearch, Download, ExternalLink, FileText, CheckSquare, Square } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ShieldCheck, AlertTriangle, Upload, Hash, Building2, MapPin, FileSearch, Download, ExternalLink, FileText, CheckSquare, Square } from 'lucide-react';
 import jsPDF from 'jspdf';
 
 const THRESHOLD_PCT = 20; // configurable discrepancy threshold
@@ -11,7 +11,7 @@ const DEMO_SUBMISSIONS = [
     zone: 'Cheras Industrial',
     nodeId: 'kajang',
     nodeName: 'CHERAS_NODE_7 (via KAJANG)',
-    date: '2025-04-12',
+    date: new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0],
     reportedPm25: 12,
     reportedAqi: 45,
     reportedStatus: 'GOOD',
@@ -22,7 +22,7 @@ const DEMO_SUBMISSIONS = [
     zone: 'Shah Alam Industrial Park',
     nodeId: 'shahalam',
     nodeName: 'SHAHALAM_NODE_2',
-    date: '2025-04-10',
+    date: new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0],
     reportedPm25: 10,
     reportedAqi: 40,
     reportedStatus: 'GOOD',
@@ -33,7 +33,7 @@ const DEMO_SUBMISSIONS = [
     zone: 'Klang North Industrial Corridor',
     nodeId: 'klang',
     nodeName: 'KLANG_NODE_4 (NORTH_CORRIDOR)',
-    date: '2025-04-11',
+    date: new Date(Date.now() - 4 * 86400000).toISOString().split('T')[0],
     reportedPm25: 18,
     reportedAqi: 60,
     reportedStatus: 'MODERATE',
@@ -57,8 +57,22 @@ const StatusBadge = ({ status }) => {
   };
   const s = colors[status] || colors.PENDING;
   return (
-    <span style={{ fontSize: '0.6rem', fontWeight: 900, padding: '3px 10px', borderRadius: '3px', background: s.bg, color: s.color, border: `1px solid ${s.border}`, letterSpacing: '1px' }}>
-      {status === 'DISCREPANCY_DETECTED' ? '⚠ ' : status === 'VERIFIED' ? '✓ ' : '○ '}{status}
+    <span style={{ 
+      display: 'inline-flex', 
+      alignItems: 'center', 
+      gap: '4px', 
+      fontSize: '0.6rem', 
+      fontWeight: 900, 
+      padding: '4px 8px', 
+      borderRadius: '3px', 
+      background: s.bg, 
+      color: s.color, 
+      border: `1px solid ${s.border}`, 
+      letterSpacing: '0.5px',
+      whiteSpace: 'nowrap',
+      width: 'fit-content'
+    }}>
+      {status === 'DISCREPANCY_DETECTED' ? '⚠' : status === 'VERIFIED' ? '✓' : '○'} <span>{status}</span>
     </span>
   );
 };
@@ -73,29 +87,35 @@ const CompliancePage = ({ districts, data }) => {
   const [threshold, setThreshold] = useState(THRESHOLD_PCT);
   const [mode, setMode] = useState('AUDITOR');
   const [selectedCompanyId, setSelectedCompanyId] = useState('SUB-001');
-  const [completedItems, setCompletedItems] = useState({ 'SUB-001-2': true, 'SUB-002-1': true });
+  const [completedItems, setCompletedItems] = useState({});
+  const [toast, setToast] = useState(null);
 
-  const getDynamicChecklist = (subId, res) => {
-    const isClean = !res?.flagged;
-    if (subId === 'SUB-001') {
-      return [
-        { id: 1, text: `Audit Cheras Industrial zone particulate scrubber efficiency against sensor gap (+${res?.delta || 35} µg/m³)` },
-        { id: 2, text: 'Submit secondary calibration logs for PM2.5 stack exhaust sensors' },
-        { id: 3, text: isClean ? 'Maintain standard baseline continuous parameter transmission' : 'Schedule mandatory automated reconciliation review with DOE compliance portal' }
-      ];
-    } else if (subId === 'SUB-002') {
-      return [
-        { id: 1, text: 'Verify localized flow vectors across Shah Alam Industrial Park boundary arrays' },
-        { id: 2, text: 'Perform quarterly optical integrity sweep on continuous PM2.5 monitoring head' },
-        { id: 3, text: 'Export pre-validated immutable payload to GreenOps corporate compliance officer' }
-      ];
-    } else {
-      return [
-        { id: 1, text: 'Inspect North Corridor perimeter chemical leak detectors and ambient baseline scrubbers' },
-        { id: 2, text: `Investigate high-scrutiny threshold variance (${res?.variance || 100}% above baseline)` },
-        { id: 3, text: 'Re-align continuous particulate stream transmission intervals with local municipal receivers' }
-      ];
-    }
+  const getDynamicChecklist = (sub, res) => {
+    const flagged = res?.flagged;
+    const variance = res?.variance || 0;
+    const zone = sub.zone || 'your zone';
+    const delta = res?.delta || 0;
+
+    return [
+      {
+        id: 1,
+        text: flagged
+          ? `Audit ${zone} particulate monitoring equipment — sensor recorded +${delta} µg/m³ above your submission`
+          : `Confirm continuous PM2.5 monitoring equipment calibration for ${zone} is up to date`
+      },
+      {
+        id: 2,
+        text: flagged
+          ? `Submit secondary calibration logs and stack exhaust sensor records to resolve ${variance}% variance`
+          : `Export pre-validated immutable sensor payload to your corporate compliance officer`
+      },
+      {
+        id: 3,
+        text: flagged
+          ? `File mandatory reconciliation request via DOE EQA 1974 Section 22 portal before next submission window`
+          : `Maintain standard baseline — data aligned with ambient distributions, ready for Bursa repository export`
+      }
+    ];
   };
 
   const toggleChecklist = (id) => {
@@ -104,6 +124,7 @@ const CompliancePage = ({ districts, data }) => {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSubmissions(DEMO_SUBMISSIONS);
     
     const fetchBatchRealData = async () => {
@@ -127,7 +148,7 @@ const CompliancePage = ({ districts, data }) => {
             return r.json();
           });
           
-          if (sub.id === 'SUB-003' && res.flagged) {
+          if (res.flagged && res.variance > 80) {
             res.escalationTag = 'HIGH_SCRUTINY_ESCALATION';
           }
           
@@ -141,9 +162,15 @@ const CompliancePage = ({ districts, data }) => {
             status: res.status,
             hash: res.hash,
           });
-        } catch (e) {
+        } catch {
           const targetNode = data?.find(d => d.id === sub.nodeId);
-          const sensorPm25 = targetNode?.metrics?.pm25?.value !== undefined ? parseFloat(targetNode.metrics.pm25.value) : (sub.id === 'SUB-002' ? 12.0 : 47.0);
+          const sensorPm25 = targetNode?.metrics?.pm25?.value !== undefined ? parseFloat(targetNode.metrics.pm25.value) : null;
+          
+          if (sensorPm25 === null) {
+            liveResults[sub.id] = { status: 'PENDING', error: 'Sensor data unavailable for this node' };
+            continue;
+          }
+          
           const sensorAqi = targetNode?.metrics?.aqi?.value !== undefined ? parseInt(targetNode.metrics.aqi.value) : 85;
           const delta = parseFloat((sensorPm25 - sub.reportedPm25).toFixed(1));
           const variance = parseFloat((Math.abs(delta / sub.reportedPm25) * 100).toFixed(1));
@@ -160,7 +187,7 @@ const CompliancePage = ({ districts, data }) => {
             status: flagged ? 'DISCREPANCY_DETECTED' : 'VERIFIED',
             timestamp: ts,
             hash: simpleHash(hashInput),
-            escalationTag: sub.id === 'SUB-003' ? 'HIGH_SCRUTINY_ESCALATION' : null
+            escalationTag: (flagged && variance > 80) ? 'HIGH_SCRUTINY_ESCALATION' : null
           };
           liveResults[sub.id] = fallbackObj;
           liveLogs.push({
@@ -183,30 +210,44 @@ const CompliancePage = ({ districts, data }) => {
 
   const handleVerify = async (sub) => {
     setVerifying(sub.id);
-    const res = await fetch(`/api/compliance/verify`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        districtId: sub.nodeId,
-        submissionDate: sub.date,
-        reportedPm25: sub.reportedPm25,
-        reportedAqi: sub.reportedAqi,
-        threshold,
-      }),
-    }).then(r => {
+    let res;
+    try {
+      const r = await fetch(`/api/compliance/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          districtId: sub.nodeId,
+          submissionDate: sub.date,
+          reportedPm25: sub.reportedPm25,
+          reportedAqi: sub.reportedAqi,
+          threshold,
+        }),
+      });
       if (!r.ok) throw new Error("API error");
-      return r.json();
-    }).catch(() => {
+      res = await r.json();
+    } catch {
       const targetNode = data?.find(d => d.id === sub.nodeId);
-      const sensorPm25 = targetNode?.metrics?.pm25?.value !== undefined ? parseFloat(targetNode.metrics.pm25.value) : (sub.id === 'SUB-002' ? 12.0 : 47.0);
+      const sensorPm25 = targetNode?.metrics?.pm25?.value !== undefined ? parseFloat(targetNode.metrics.pm25.value) : null;
+      
+      if (sensorPm25 === null) {
+        setResults(prev => ({ ...prev, [sub.id]: { status: 'PENDING', error: 'Sensor data unavailable for this node' } }));
+        setVerifying(null);
+        return;
+      }
+      
       const sensorAqi = targetNode?.metrics?.aqi?.value !== undefined ? parseInt(targetNode.metrics.aqi.value) : 85;
       const delta = parseFloat((sensorPm25 - sub.reportedPm25).toFixed(1));
       const variance = parseFloat((Math.abs(delta / sub.reportedPm25) * 100).toFixed(1));
       const flagged = variance > threshold;
       const ts = new Date().toISOString();
       const hash = simpleHash(`${sub.nodeId}|${sub.date}|${sensorPm25}|${sensorAqi}|${ts}`);
-      return { sensorPm25, sensorAqi, delta, variance, flagged, status: flagged ? 'DISCREPANCY_DETECTED' : 'VERIFIED', timestamp: ts, hash, submissionId: sub.id };
-    });
+      res = { sensorPm25, sensorAqi, delta, variance, flagged, status: flagged ? 'DISCREPANCY_DETECTED' : 'VERIFIED', timestamp: ts, hash, submissionId: sub.id };
+    }
+
+    if (res.flagged && res.variance > 80) {
+      res.escalationTag = 'HIGH_SCRUTINY_ESCALATION';
+    }
+
     setResults(prev => ({ ...prev, [sub.id]: res }));
     setAuditLog(prev => [{
       ts: new Date().toISOString().replace('T', ' ').slice(0, 19),
@@ -226,24 +267,39 @@ const CompliancePage = ({ districts, data }) => {
     setSubmissions(prev => [newSub, ...prev]);
     setShowForm(false);
     setForm({ company: '', zone: '', nodeId: '', date: '', reportedPm25: '', reportedAqi: '' });
+    handleVerify(newSub);
   };
 
   const handleExportEvidence = () => {
-    const lines = [
-      "EVIDENCE PACKAGE — DOE SUBMISSION READY",
-      "Format: EQA 1974 Section 22 Compliance Evidence",
-      "Requesting Verification From: Jabatan Alam Sekitar Malaysia",
-      "Node Operator: EnviroPulse (Patent UI 2020000785)",
-      "=================================================================\n"
-    ];
-    auditLog.forEach(e => {
-      lines.push(`[${e.ts}] ${e.company} | ${e.nodeId} | RPT: ${e.reportedPm25} | SEN: ${e.sensorPm25} | ${e.status} | #${e.hash}`);
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    pdf.setFillColor(255, 255, 255);
+    pdf.rect(0, 0, 210, 297, 'F');
+
+    pdf.setFont('courier', 'bold');
+    pdf.setFontSize(13);
+    pdf.setTextColor(10, 40, 80);
+    pdf.text('EVIDENCE PACKAGE — DOE EQA 1974 SECTION 22', 15, 20);
+
+    pdf.setFontSize(8);
+    pdf.setTextColor(80, 80, 80);
+    pdf.text('Format: Compliance Evidence Package', 15, 28);
+    pdf.text('Node Operator: EnviroPulse (Patent UI 2020000785)', 15, 33);
+    pdf.text(`Exported: ${new Date().toISOString()}`, 15, 38);
+
+    pdf.setDrawColor(200, 200, 200);
+    pdf.line(15, 42, 195, 42);
+
+    let y = 50;
+    auditLog.forEach((e) => {
+      if (y > 270) { pdf.addPage(); y = 20; }
+      pdf.setTextColor(e.status === 'DISCREPANCY_DETECTED' ? 180 : 30, 30, e.status === 'DISCREPANCY_DETECTED' ? 30 : 30);
+      pdf.setFontSize(7.5);
+      pdf.text(`[${e.ts}] ${e.company}`, 15, y);
+      pdf.text(`Node: ${e.nodeId} | Reported: ${e.reportedPm25} | Sensor: ${e.sensorPm25} | ${e.status} | #${e.hash}`, 15, y + 5);
+      y += 14;
     });
-    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `DOE_EVIDENCE_PACKAGE_${Date.now()}.txt`;
-    a.click();
+
+    pdf.save(`DOE_EVIDENCE_PACKAGE_${Date.now()}.pdf`);
   };
 
   const handleReferToDoe = async (sub) => {
@@ -261,10 +317,15 @@ const CompliancePage = ({ districts, data }) => {
           details: `Delta: +${res?.delta} µg/m³ (${res?.variance}%)`
         })
       });
-      alert(`[DEMO SIMULATION: INTEGRATION WEBHOOK TRIGGERED]\n\nDispatched cryptographically signed discrepancy package to agency webhook mock endpoint:\n👉 https://my.gov.doe.api/v1/escalations\n\nSHA Hash Lock: #${res?.hash || 'N/A'}\nStatus: Transmitted successfully. Downloading certified offline referral copy...`);
     } catch (e) {
       console.error("Webhook dispatch error:", e);
     }
+
+    setToast({
+      type: 'success',
+      message: `Discrepancy package for ${sub.company} queued for DOE EQA portal submission. Offline referral copy downloaded. Hash: #${res?.hash || 'N/A'}`
+    });
+    setTimeout(() => setToast(null), 5000);
 
     const lines = [
       "JABATAN ALAM SEKITAR MALAYSIA — FORMAL COMPLIANCE REFERRAL",
@@ -288,14 +349,21 @@ const CompliancePage = ({ districts, data }) => {
 
   const handleGenerateBursaReport = (sub) => {
     const res = results[sub.id];
+    if (!res) {
+      alert('Please run VERIFY on this submission first before generating the report.');
+      return;
+    }
     const pdf = new jsPDF('p', 'mm', 'a4');
+    pdf.setFillColor(255, 255, 255);
+    pdf.rect(0, 0, 210, 297, 'F');
+
     pdf.setFont('courier', 'bold');
     pdf.setFontSize(14);
-    pdf.setTextColor(0, 240, 255);
+    pdf.setTextColor(10, 40, 80);
     pdf.text("BURSA MALAYSIA SUSTAINABILITY DISCLOSURE", 15, 20);
     
     pdf.setFontSize(10);
-    pdf.setTextColor(200, 200, 200);
+    pdf.setTextColor(60, 60, 60);
     pdf.text(`PATENT UI 2020000785 | ENVIROPULSE COMPANY MODE`, 15, 28);
     pdf.text(`Company: ${sub.company}`, 15, 40);
     pdf.text(`Zone: ${sub.zone}`, 15, 47);
@@ -305,17 +373,17 @@ const CompliancePage = ({ districts, data }) => {
     pdf.setDrawColor(50, 50, 50);
     pdf.line(15, 66, 195, 66);
     
-    pdf.setTextColor(255, 255, 255);
+    pdf.setTextColor(30, 30, 30);
     pdf.text(`Reported PM2.5: ${sub.reportedPm25} ug/m3`, 15, 78);
-    pdf.text(`Sensor Recorded: ${res?.sensorPm25 || 47} ug/m3`, 15, 86);
+    pdf.text(`Sensor Recorded: ${res.sensorPm25} ug/m3`, 15, 86);
     
-    const isFlagged = res?.flagged || sub.reportedPm25 < 15;
-    pdf.setTextColor(isFlagged ? 255 : 0, isFlagged ? 62 : 255, isFlagged ? 62 : 130);
+    const isFlagged = res.flagged;
+    pdf.setTextColor(isFlagged ? 180 : 0, isFlagged ? 0 : 130, isFlagged ? 0 : 60);
     pdf.text(`Verification Status: ${isFlagged ? 'DISCREPANCY DETECTED - REVIEW MANDATORY' : 'VERIFIED COMPLIANT'}`, 15, 98);
     
     pdf.setFontSize(8);
-    pdf.setTextColor(120, 120, 120);
-    pdf.text(`FNV-1a DATASET HASH: #${res?.hash || '811c9dc5'}`, 15, 120);
+    pdf.setTextColor(100, 100, 100);
+    pdf.text(`FNV-1a DATASET HASH: #${res.hash || '811c9dc5'}`, 15, 120);
     pdf.text(`CITATIONS: Bursa MSWG 2023 | OSH Act 2024 | DOE EQA 1974`, 15, 127);
     pdf.text(`Timestamp: ${new Date().toISOString()}`, 15, 134);
     
@@ -465,13 +533,13 @@ const CompliancePage = ({ districts, data }) => {
                     <td style={{ padding: '14px 16px', fontWeight: 800, color: 'var(--accent-cyan)' }}>{sub.reportedPm25} µg/m³</td>
                     <td style={{ padding: '14px 16px', fontWeight: 800 }}>{sub.reportedAqi}</td>
                     <td style={{ padding: '14px 16px', fontWeight: 800, color: res ? (flagged ? '#ff3e3e' : '#00ff82') : 'var(--text-secondary)' }}>
-                      {res ? `${res.sensorPm25} µg/m³` : '—'}
+                      {res ? (res.sensorPm25 !== undefined ? `${res.sensorPm25} µg/m³` : '—') : '—'}
                     </td>
                     <td style={{ padding: '14px 16px', fontWeight: 900, color: res ? (flagged ? '#ff3e3e' : '#00ff82') : 'var(--text-secondary)' }}>
-                      {res ? `${res.delta > 0 ? '+' : ''}${res.delta} µg/m³` : '—'}
+                      {res ? (res.delta !== undefined ? `${res.delta > 0 ? '+' : ''}${res.delta} µg/m³` : '—') : '—'}
                     </td>
                     <td style={{ padding: '14px 16px', fontWeight: 900, color: res ? (flagged ? '#ff3e3e' : '#00ff82') : 'var(--text-secondary)' }}>
-                      {res ? `${res.variance}%` : '—'}
+                      {res ? (res.variance !== undefined ? `${res.variance}%` : '—') : '—'}
                     </td>
                     <td style={{ padding: '14px 16px' }}>
                       {res ? <StatusBadge status={res.status} /> : <StatusBadge status="PENDING" />}
@@ -590,7 +658,7 @@ const CompliancePage = ({ districts, data }) => {
                 <span>RPT: <b style={{ color: 'var(--accent-cyan)' }}>{entry.reportedPm25}</b></span>
                 <span>SEN: <b style={{ color: entry.status === 'DISCREPANCY_DETECTED' ? '#ff3e3e' : '#00ff82' }}>{entry.sensorPm25}</b></span>
                 <span style={{ color: entry.status === 'DISCREPANCY_DETECTED' ? '#ff3e3e' : '#00ff82', fontWeight: 900 }}>{entry.status === 'DISCREPANCY_DETECTED' ? '⚠ FLAGGED' : '✓ VERIFIED'}</span>
-                <span style={{ color: 'var(--text-secondary)', fontSize: '0.58rem' }}>#{entry.hash.slice(0, 8)}</span>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.58rem' }}>#{entry.hash?.slice(0, 8)}</span>
               </div>
             ))}
           </div>
@@ -626,7 +694,7 @@ const CompliancePage = ({ districts, data }) => {
                 <div style={{ padding: '15px', background: r?.flagged ? 'rgba(255,62,62,0.08)' : 'rgba(0,255,130,0.08)', borderRadius: '4px', border: `1px solid ${r?.flagged ? 'rgba(255,62,62,0.2)' : 'rgba(0,255,130,0.2)'}`, marginBottom: '20px' }}>
                   <div style={{ fontSize: '0.6rem', fontWeight: 900, color: r?.flagged ? '#ff3e3e' : '#00ff82', marginBottom: '6px' }}>PLAIN-LANGUAGE COMPLIANCE PREVIEW</div>
                   <p style={{ margin: 0, fontSize: '0.75rem', lineHeight: 1.6 }}>
-                    Your reported PM2.5 was <b>{selSub.reportedPm25} µg/m³</b>. Our district node sensor recorded <b>{r?.sensorPm25 || 47} µg/m³</b> on the same day. 
+                    Your reported PM2.5 was <b>{selSub.reportedPm25} µg/m³</b>. Our district node sensor recorded <b>{r?.sensorPm25 !== undefined ? r.sensorPm25 : 47} µg/m³</b> on the same day. 
                     {r?.flagged ? (
                       <span style={{ color: '#ff3e3e', fontWeight: 800 }}> This discrepancy exceeds the permitted variance threshold and WILL BE FLAGGED by automated regulatory verification engines upon submission.</span>
                     ) : (
@@ -655,7 +723,7 @@ const CompliancePage = ({ districts, data }) => {
                   PRE-SUBMISSION RESOLUTION CHECKLIST
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {getDynamicChecklist(selSub.id, r).map(item => {
+                  {getDynamicChecklist(selSub, r).map(item => {
                     const isDone = completedItems[`${selectedCompanyId}-${item.id}`];
                     return (
                       <div
@@ -675,6 +743,20 @@ const CompliancePage = ({ districts, data }) => {
             </div>
           );
         })()}
+
+        {toast && (
+          <div style={{
+            position: 'fixed', bottom: '30px', right: '30px', zIndex: 9999,
+            background: toast.type === 'success' ? 'rgba(0,255,130,0.1)' : 'rgba(255,62,62,0.1)',
+            border: `1px solid ${toast.type === 'success' ? '#00ff82' : '#ff3e3e'}`,
+            color: toast.type === 'success' ? '#00ff82' : '#ff3e3e',
+            padding: '16px 20px', borderRadius: '6px', maxWidth: '420px',
+            fontSize: '0.7rem', fontWeight: 800, lineHeight: 1.5,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.4)'
+          }}>
+            {toast.message}
+          </div>
+        )}
 
       </div>
     </div>

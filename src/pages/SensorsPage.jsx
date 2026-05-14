@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Radio, Database, Cloud, Layout, CheckCircle2, Battery, Signal, Hash, Lock, Download, RefreshCw } from 'lucide-react';
 
 const SensorsPage = ({ districts }) => {
@@ -21,6 +21,7 @@ const SensorsPage = ({ districts }) => {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAuditLog(selectedNode);
   }, [selectedNode]);
 
