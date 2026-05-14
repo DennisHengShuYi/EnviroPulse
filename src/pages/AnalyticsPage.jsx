@@ -4,7 +4,7 @@ import {
 } from 'recharts';
 import { 
   TrendingUp, Activity, Layers, AlertTriangle, Download, ChevronLeft, 
-  MapPin, Clock, ShieldAlert, Zap, Thermometer, Wind, BrainCircuit
+  MapPin, Clock, ShieldAlert, Zap, Thermometer, Wind, BrainCircuit, RefreshCw
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -14,8 +14,9 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
   const [history, setHistory] = useState([]);
   const [comparison, setComparison] = useState([]);
   const [anomalies, setAnomalies] = useState([]);
-  const [prediction, setPrediction] = useState(null);
+  const [prediction, setPrediction] = useState({});
   const [loading, setLoading] = useState(true);
+  const [loadingRole, setLoadingRole] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [activeRole, setActiveRole] = useState('construction');
   const [histMetric, setHistMetric] = useState('aqi');
@@ -57,12 +58,12 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
     }
   }, [allDistrictsData]);
 
+  // Effect 1: Base data fetch on district change
   useEffect(() => {
-    // Wait for the parent component to fetch and provide the updated data for this district
     if (!data) return;
     if (selectedDistrictId !== 'user_gps' && data.id !== selectedDistrictId) return;
 
-    const fetchAnalytics = async () => {
+    const fetchBaseAnalytics = async () => {
       setLoading(true);
       try {
         let query = `?id=${selectedDistrictId}`;
@@ -70,7 +71,6 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
           query = `?lat=${data.lat}&lng=${data.lng}`;
         }
 
-        // Fetch historical + anomalies (no comparison — sourced from parent prop)
         const [histRes, anomRes] = await Promise.all([
           fetch(`/api/analytics/historical${query}`),
           fetch(`/api/analytics/anomalies${query}`)
@@ -81,27 +81,53 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
           anomRes.json()
         ]);
 
-        const safeHist = Array.isArray(histData) ? histData : [];
-        setHistory(safeHist);
+        setHistory(Array.isArray(histData) ? histData : []);
         setAnomalies(Array.isArray(anomData) ? anomData : []);
-
-        // Pass real historical trend to AI prediction for better context
-        const predRes = await fetch(`/api/predict`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sensorData: data, history: safeHist })
-        });
-        const predData = await predRes.json();
-        setPrediction(predData);
+        setPrediction({}); // Clear prediction cache when switching districts
       } catch (err) {
-        console.error('Analytics fetch error:', err);
+        console.error('Base analytics fetch error:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAnalytics();
+    fetchBaseAnalytics();
   }, [selectedDistrictId, data?.id]);
+
+  const fetchRolePrediction = async (roleToFetch, forceRefresh = false) => {
+    if (!data) return;
+    if (selectedDistrictId !== 'user_gps' && data.id !== selectedDistrictId) return;
+    
+    // If we already fetched this role and not forcing refresh, skip
+    if (!forceRefresh && prediction && prediction[roleToFetch]) return;
+
+    setLoadingRole(true);
+    try {
+      const predRes = await fetch(`/api/predict`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sensorData: data, history, role: roleToFetch })
+      });
+      const predData = await predRes.json();
+      
+      // Ensure any fallback indicator returned by backend is retained
+      setPrediction(prev => ({
+        ...prev,
+        isFallback: prev.isFallback || predData.isFallback,
+        [roleToFetch]: predData[roleToFetch] || predData
+      }));
+    } catch (err) {
+      console.error(`Role prediction fetch error (${roleToFetch}):`, err);
+    } finally {
+      setLoadingRole(false);
+    }
+  };
+
+  // Effect 2: Lazy load per-role prediction when tab clicked
+  useEffect(() => {
+    if (loading) return;
+    fetchRolePrediction(activeRole);
+  }, [selectedDistrictId, data?.id, activeRole, loading]);
 
   // Anomaly polling — re-check every 60 s so breaches after page-open are caught
   useEffect(() => {
@@ -233,11 +259,19 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
                 <Zap size={20} style={{ color: roleColors[activeRole] }} />
                 <h2 style={{ fontSize: '0.85rem', fontWeight: 900, margin: 0, letterSpacing: '1px' }}>AI_PREDICTIVE_ENGINE — 24H MULTI-ROLE INTELLIGENCE</h2>
               </div>
-              {prediction?.isFallback && (
-                <span className="badge" style={{ position: 'static', background: 'rgba(255, 184, 0, 0.15)', color: 'var(--accent-gold)', border: '1px solid var(--accent-gold)', fontSize: '0.55rem', padding: '2px 8px', letterSpacing: '0.5px', borderRadius: '4px', fontWeight: 800 }}>
-                  FALLBACK_MODE (HARDCODED)
-                </span>
-              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {prediction?.isFallback && (
+                  <span className="badge" style={{ position: 'static', background: 'rgba(255, 184, 0, 0.15)', color: 'var(--accent-gold)', border: '1px solid var(--accent-gold)', fontSize: '0.55rem', padding: '2px 8px', letterSpacing: '0.5px', borderRadius: '4px', fontWeight: 800 }}>
+                    FALLBACK_MODE (HARDCODED)
+                  </span>
+                )}
+                <RefreshCw 
+                  size={16} 
+                  className={`cyan pointer ${loadingRole ? 'spin' : ''}`} 
+                  onClick={() => !loadingRole && fetchRolePrediction(activeRole, true)}
+                  style={{ color: 'var(--accent-cyan)' }}
+                />
+              </div>
             </div>
             
             {/* Two-line tabs container to guarantee DOE Auditor and ESG Officer tabs are on the second line */}
@@ -311,7 +345,7 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
             </div>
           )}
 
-          {currentPred ? (
+          {currentPred && !loadingRole ? (
             <div style={{ animation: 'fadeIn 0.3s ease' }}>
               {/* Top Row: Forecast + Risk Matrix + Hourly Outlook */}
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1.5fr', gap: '20px', marginBottom: '20px' }}>
@@ -406,8 +440,10 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
             </div>
           ) : (
             <div style={{ height: '200px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: 'var(--text-secondary)', fontSize: '0.7rem', gap: '12px' }}>
-              <BrainCircuit size={40} style={{ opacity: 0.3 }} />
-              INITIALIZING_AI_FORECAST_MODEL...
+              <div className="marker-pulse" style={{ width: 32, height: 32, background: 'rgba(0, 240, 255, 0.1)', borderRadius: '50%' }}></div>
+              <span style={{ fontFamily: 'JetBrains Mono', letterSpacing: '1px' }}>
+                {loadingRole ? `FETCHING_ROLE_INTELLIGENCE (${activeRole.toUpperCase()})...` : 'INITIALIZING_AI_FORECAST_MODEL...'}
+              </span>
             </div>
           )}
         </div>

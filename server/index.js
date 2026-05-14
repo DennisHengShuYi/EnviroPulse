@@ -48,7 +48,7 @@ const calculateInterpolatedAQI = (lat, lng, stations) => {
 const aiClient = new OpenAI({
   apiKey: process.env.ILMU_API_KEY || process.env.ANTHROPIC_API_KEY,
   baseURL: 'https://api.ilmu.ai/v1',
-  timeout: 20000 // 20s global timeout
+  timeout: 60000 // 60s global timeout
 });
 
 const AI_MODEL = process.env.ANTHROPIC_MODEL || 'ilmu-glm-5.1';
@@ -894,7 +894,7 @@ app.get('/api/analytics/thresholds', async (req, res) => {
 });
 
 app.post('/api/predict', async (req, res) => {
-  const { sensorData, history } = req.body;
+  const { sensorData, history, role } = req.body;
   if (!sensorData || !sensorData.metrics) {
     return res.status(400).json({ 
       error: 'Incomplete data', 
@@ -902,12 +902,18 @@ app.post('/api/predict', async (req, res) => {
     });
   }
 
-  const cacheKey = `predictive_v4_${sensorData.id}`;
+  const requestedRole = role || 'all';
+  const cacheKey = `predictive_v8_${sensorData.id}_${requestedRole}`;
   const cachedPrediction = cache.get(cacheKey);
   if (cachedPrediction) return res.json(cachedPrediction);
 
   if (process.env.SIMULATE_LIVE_INFERENCE === 'true') {
-    const simulatedData = generateDynamicFallback('prediction', sensorData);
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    const fullFallback = generateDynamicFallback('prediction', sensorData);
+    const simulatedData = requestedRole !== 'all' && fullFallback[requestedRole] 
+      ? { isFallback: false, [requestedRole]: { ...fullFallback[requestedRole], isFallback: false } }
+      : fullFallback;
+    
     simulatedData.isFallback = false;
     Object.keys(simulatedData).forEach(key => {
       if (simulatedData[key] && typeof simulatedData[key] === 'object') {
@@ -982,164 +988,57 @@ PM2.5 vs WHO LIMIT: ${sensorData.pollutants?.pm25} / 15 = ${(sensorData.pollutan
 HEAT INDEX vs DOSH CATEGORY 1: ${sensorData.metrics?.heatIndex?.value} / 33 = ${(sensorData.metrics?.heatIndex?.value / 33 * 100).toFixed(1)}% of threshold
 AQI vs DOE NOTIFICATION: ${sensorData.metrics?.aqi?.value} / 50 = ${(sensorData.metrics?.aqi?.value / 50 * 100).toFixed(1)}% of threshold
 
-Generate 48-hour compliance risk predictions for 5 stakeholder roles. Each role must answer: 
-"What compliance obligations will be triggered in the next 48 hours based on these exact readings?"
+${requestedRole === 'all' 
+  ? 'Generate 48-hour compliance risk predictions for 5 stakeholder roles. Each role must answer:\n"What compliance obligations will be triggered in the next 48 hours based on these exact readings?"'
+  : `Generate 48-hour compliance risk predictions ONLY for the "${requestedRole}" stakeholder role schema.\nAnswer what compliance obligations will be triggered in the next 48 hours based on these exact readings.`}
 
 Return this exact JSON structure:
-{
-  "construction": {
-    "riskLevel": "LOW|MODERATE|HIGH|EXTREME",
-    "forecast48h": "Using the live heat index of [X]°C and PM2.5 of [Y] µg/m³, state: (1) which DOSH threshold band applies right now and what work-rest cycle is legally required under OSH Act 2024 Section 15(2), (2) whether PM2.5 at [Y] requires N95 under DOSH occupational exposure limits, (3) what specific documentation the site manager must file today, (4) what conditions are projected to change in the next 48 hours based on the trend data, (5) the exact hours today where compliance risk is highest. Write as connected prose, 3-4 sentences minimum, use the actual numbers.",
-    "predictedEvents": [
-      "HH:MM — [Specific threshold crossed]: [exact value] crosses [exact limit] under [specific regulation clause] — Required action: [specific thing operator must do]",
-      "HH:MM — event 2 in same format",
-      "HH:MM — event 3",
-      "HH:MM — event 4",
-      "HH:MM — event 5"
-    ],
-    "chainOfThought": [
-      "Step 1 — Heat Index Compliance Check: Current heat index [X]°C vs DOSH Category 1 threshold 33°C = [X-33]°C buffer / [X/33*100]% of threshold. Status: [specific verdict]",
-      "Step 2 — PM2.5 Exceedance Calculation: [Y] µg/m³ ÷ 15 µg/m³ WHO limit = [Y/15*100]% — exceeds/within limit by [Y-15] µg/m³. OSH occupational exposure implication: [specific]",
-      "Step 3 — OSH Documentation Obligation: Given readings of [X]°C and [Y] µg/m³, the site must [specific legal requirement with clause]",
-      "Step 4 — 48H Trajectory: Historical trend shows [pattern from data]. Projected peak hour: [specific time]. Projected peak value: [specific estimate]",
-      "Step 5 — Submission Window Assessment: If a DOSH compliance record is submitted covering today, it must include [specific data points] or face [specific consequence]"
-    ],
-    "riskMatrix": { "heat": 0, "air": 0, "uv": 0, "overall": 0 },
-    "hourlyOutlook": [
-      { "window": "06:00–10:00", "condition": "specific compliance condition using real numbers", "risk": "LOW|MODERATE|HIGH" },
-      { "window": "10:00–14:00", "condition": "specific", "risk": "LOW|MODERATE|HIGH" },
-      { "window": "14:00–18:00", "condition": "specific", "risk": "LOW|MODERATE|HIGH" },
-      { "window": "18:00–22:00", "condition": "specific", "risk": "LOW|MODERATE|HIGH" },
-      { "window": "22:00–02:00", "condition": "specific", "risk": "LOW|MODERATE|HIGH" },
-      { "window": "02:00–06:00", "condition": "specific", "risk": "LOW|MODERATE|HIGH" }
-    ],
-    "technicalReasoning": "Cite the actual sensor values, the actual thresholds, the actual regulation clauses, and the actual gap between them. State what is breached, what is safe, and what changes in 48 hours."
-  },
-  "government": {
-    "riskLevel": "LOW|MODERATE|HIGH|EXTREME",
-    "forecast48h": "Using AQI of [X] vs DOE notification threshold of 50, and PM2.5 of [Y] vs WHO 15 µg/m³: state (1) whether EQA 1974 Section 22 mandatory notification is triggered, (2) how many exceedance days this adds to the NCAAP quarterly count, (3) what inter-agency action is required, (4) the projected trajectory over 48 hours. Use the actual numbers.",
-    "predictedEvents": [
-      "HH:MM — [Specific regulatory trigger or milestone]: [exact conditions] — Required action: [specific government obligation]",
-      "HH:MM — event 2", "HH:MM — event 3", "HH:MM — event 4", "HH:MM — event 5"
-    ],
-    "chainOfThought": [
-      "Step 1 — EQA 1974 Notification Check: AQI [X] vs DOE threshold 50 = [X/50*100]% of notification level. Status: [triggered/not triggered]. If triggered: [exact action required]",
-      "Step 2 — NCAAP Quarterly Impact: PM2.5 at [Y] µg/m³ exceeds/meets WHO 15 µg/m³ limit. This reading counts as [1/0] exceedance day for NCAAP Q[N] 2026 urban air quality tracking",
-      "Step 3 — Inter-Agency Decision: Given AQI [X] and PM2.5 [Y], the following agencies must be notified/not notified: [specific agencies and reason]",
-      "Step 4 — 48H Policy Horizon: If trend [from history data] continues, AQI will reach [estimate] by [time]. DOE escalation trigger at 50 is [X] units away",
-      "Step 5 — NCAAP Milestone Status: At current trajectory, district will record [N] exceedance days this quarter vs NCAAP 2030 target of [target]"
-    ],
-    "riskMatrix": { "aqiCompliance": 0, "ncaapAlignment": 0, "escalationRequired": 0, "overall": 0 },
-    "hourlyOutlook": [
-      { "window": "06:00–10:00", "condition": "specific DOE/NCAAP compliance condition", "risk": "LOW|MODERATE|HIGH" },
-      { "window": "10:00–14:00", "condition": "specific", "risk": "LOW|MODERATE|HIGH" },
-      { "window": "14:00–18:00", "condition": "specific", "risk": "LOW|MODERATE|HIGH" },
-      { "window": "18:00–22:00", "condition": "specific", "risk": "LOW|MODERATE|HIGH" },
-      { "window": "22:00–02:00", "condition": "specific", "risk": "LOW|MODERATE|HIGH" },
-      { "window": "02:00–06:00", "condition": "specific", "risk": "LOW|MODERATE|HIGH" }
-    ],
-    "technicalReasoning": "State exactly which EQA 1974 thresholds apply, what NCAAP quarterly position this district is in, and what specific government action is required in the next 48 hours."
-  },
-  "msme": {
-    "riskLevel": "LOW|MODERATE|HIGH|EXTREME",
-    "forecast48h": "Plain language for an MSME operator: The district sensor currently reads PM2.5 [Y] µg/m³ and AQI [X]. If you submit a Bursa compliance report claiming PM2.5 values for today, the acceptable range is [Y × 0.8] to [Y × 1.2] µg/m³. Values outside this will trigger automated discrepancy flagging. Over the next 48 hours, [state whether conditions are improving/stable/worsening based on trend and what that means for submission timing]. Best submission window: [specific time range].",
-    "predictedEvents": [
-      "HH:MM — Optimal submission window opens: PM2.5 projected at [value] µg/m³, within [X]% of current baseline — LOW discrepancy risk",
-      "HH:MM — event 2", "HH:MM — event 3", "HH:MM — event 4", "HH:MM — event 5"
-    ],
-    "chainOfThought": [
-      "Step 1 — Current Baseline: District node records PM2.5 [Y] µg/m³. Acceptable submission range (±20% variance threshold): [Y×0.8] to [Y×1.2] µg/m³",
-      "Step 2 — Discrepancy Risk: If company reports below [Y×0.8], variance = >20% — AUTOMATED FLAG. If reports above [Y×1.2], variance = >20% — AUTOMATED FLAG",
-      "Step 3 — Submission Timing: 48-hour trend shows [pattern]. PM2.5 projected to be [higher/lower/stable] by [time]. Best window: [specific hours]",
-      "Step 4 — Bursa E1 Indicator Impact: PM2.5 at [Y] is [Y-15] µg/m³ above WHO limit. This must be disclosed under Bursa E1 Air Emissions indicator in the next reporting period",
-      "Step 5 — Hash Evidence: Submit with today's audit chain hash as supporting evidence. Discrepancy buffer remaining before HIGH_SCRUTINY escalation: [calculation]"
-    ],
-    "riskMatrix": { "submissionRisk": 0, "discrepancyExposure": 0, "bursaE1Status": 0, "overall": 0 },
-    "hourlyOutlook": [
-      { "window": "Day 1 Morning", "condition": "PM2.5 projected range and submission risk level", "risk": "LOW|MODERATE|HIGH" },
-      { "window": "Day 1 Afternoon", "condition": "specific", "risk": "LOW|MODERATE|HIGH" },
-      { "window": "Day 1 Evening", "condition": "specific", "risk": "LOW|MODERATE|HIGH" },
-      { "window": "Day 2 Morning", "condition": "specific", "risk": "LOW|MODERATE|HIGH" },
-      { "window": "Day 2 Afternoon", "condition": "specific", "risk": "LOW|MODERATE|HIGH" },
-      { "window": "Day 2 Evening", "condition": "specific", "risk": "LOW|MODERATE|HIGH" }
-    ],
-    "technicalReasoning": "State the exact PM2.5 value, the exact acceptable submission range, the exact Bursa indicator affected, and the exact best time window for submission in the next 48 hours."
-  },
-  "esgFirm": {
-    "riskLevel": "LOW|MODERATE|HIGH|EXTREME",
-    "forecast48h": "For a Bursa-listed company in this district: PM2.5 at [Y] µg/m³ is [Y/15*100-100]% above WHO AQG 2021 limit, constituting a GRI 305-7 disclosure event. State (1) whether TCFD physical risk threshold is crossed, (2) what the Bursa E1 indicator status is for this reporting period, (3) whether this creates an investor materiality disclosure obligation, (4) what the 48-hour trajectory means for the quarterly ESG disclosure score.",
-    "predictedEvents": [
-      "HH:MM — [Specific ESG/disclosure trigger]: [exact metric] at [value] crosses [specific framework threshold] — Disclosure obligation: [specific action under specific framework clause]",
-      "HH:MM — event 2", "HH:MM — event 3", "HH:MM — event 4", "HH:MM — event 5"
-    ],
-    "chainOfThought": [
-      "Step 1 — GRI 305-7 Assessment: PM2.5 [Y] µg/m³ vs WHO 15 µg/m³ = [Y-15] µg/m³ exceedance ([Y/15*100-100]%). GRI 305-7 disclosure threshold: exceeded/not exceeded",
-      "Step 2 — TCFD Physical Risk: Heat index [X]°C represents [low/medium/high] chronic physical climate risk. TCFD materiality threshold: [triggered/not triggered]",
-      "Step 3 — Bursa E1 Status: [Y] µg/m³ PM2.5 for this district in reporting period = [compliant/non-compliant] with Bursa Sustainability Reporting Guide Ed. 3.0 Section 3.2",
-      "Step 4 — Investor Materiality: PM2.5 [Y/15*100]% of WHO limit = [material/non-material] ESG risk under Bursa mandatory disclosure framework. Required disclosure language: [specific]",
-      "Step 5 — 48H ESG Score Impact: If trend continues, monthly PM2.5 average moves to [estimate], which [improves/worsens] the E1 indicator score by approximately [estimate]%"
-    ],
-    "riskMatrix": { "gri305Gap": 0, "tcfdPhysicalRisk": 0, "bursaReadiness": 0, "overall": 0 },
-    "hourlyOutlook": [
-      { "window": "Next 24h", "condition": "specific ESG disclosure and Bursa compliance condition", "risk": "LOW|MODERATE|HIGH" },
-      { "window": "Following 24h", "condition": "specific", "risk": "LOW|MODERATE|HIGH" }
-    ],
-    "technicalReasoning": "State the exact GRI 305-7 exceedance, the exact TCFD risk level, the exact Bursa E1 indicator status, and what specific disclosure language the company must use in their next sustainability report."
-  },
-  "doeAuditor": {
-    "riskLevel": "LOW|MODERATE|HIGH|EXTREME",
-    "forecast48h": "District ${sensorData.name} forensic assessment: AQI [X] is [X/50*100]% of EQA 1974 Section 22 notification threshold (50). PM2.5 at [Y] µg/m³. Any company submission for today claiming PM2.5 below [Y×0.8] or AQI below [X×0.8] will be automatically escalated. In the next 48 hours, [state whether conditions create HIGH_SCRUTINY conditions based on breach count and trend]. Current breach count for this zone: [from history].",
-    "predictedEvents": [
-      "HH:MM — Submission verification window: Any corporate submission covering this timestamp will be cross-referenced against node reading of PM2.5 [Y] µg/m³. Acceptable claimed range: [Y×0.8]–[Y×1.2] µg/m³",
-      "HH:MM — event 2", "HH:MM — event 3", "HH:MM — event 4", "HH:MM — event 5"
-    ],
-    "chainOfThought": [
-      "Step 1 — EQA 1974 Threshold Check: AQI [X] / 50 = [X/50*100]%. Mandatory notification: [triggered/not triggered]. Buffer to notification: [50-X] AQI units",
-      "Step 2 — Fraud Detection Boundary: PM2.5 at [Y] µg/m³. Any corporate submission claiming below [Y×0.8] µg/m³ = >20% variance = automated flag. Any claim above [Y×1.2] = >20% variance = flag",
-      "Step 3 — HIGH_SCRUTINY Status: Zone breach count from trend data = [N]. Threshold tightening [active at 10% / inactive at 20%]. Companies in this zone face [tighter/standard] variance tolerance",
-      "Step 4 — 48H Audit Priority: Based on trend, PM2.5 projected [direction]. Zones with highest audit priority in next 48 hours: [reasoning based on data]",
-      "Step 5 — Evidence Chain: Current audit chain hash references [from history]. DOE evidence package for this period covers readings from [time range]"
-    ],
-    "riskMatrix": { "eqaCompliance": 0, "fraudSignalStrength": 0, "auditPriority": 0, "overall": 0 },
-    "hourlyOutlook": [
-      { "window": "06:00–18:00", "condition": "specific audit activity and discrepancy risk level for this zone", "risk": "LOW|MODERATE|HIGH" },
-      { "window": "18:00–06:00", "condition": "specific", "risk": "LOW|MODERATE|HIGH" }
-    ],
-    "technicalReasoning": "State the exact EQA 1974 compliance position, the exact acceptable corporate submission ranges for today, the current HIGH_SCRUTINY status, and what audit actions DOE should prioritise in the next 48 hours."
-  }
-}
-`
+` + (requestedRole !== 'all' ? `\n\nCRITICAL INSTRUCTION: Output ONLY the JSON object for the "${requestedRole}" role schema directly. Do NOT output the outer wrapper or other roles.` : '')
         }
       ],
       temperature: 0.2,
-      max_tokens: 4000
-    }, { timeout: 15000 }); // 15s per-call timeout
+      max_tokens: requestedRole !== 'all' ? 1200 : 4000
+    }, { timeout: 55000 }); // 55s per-call timeout
 
     const rawText = response.choices[0]?.message?.content;
     if (!rawText) throw new Error('AI returned an empty response');
 
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    const prediction = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
+    let prediction = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
+    
+    // Ensure payload matches expected tab structures
+    if (requestedRole !== 'all' && !prediction[requestedRole]) {
+      prediction = { [requestedRole]: prediction };
+    }
+    
     cache.set(cacheKey, prediction, 1800);
     res.json(prediction);
   } catch (error) {
-    res.json(generateDynamicFallback('prediction', sensorData));
+    console.error('[PREDICT_AI_ERROR]', error.message, error.status);
+    const fallback = generateDynamicFallback('prediction', sensorData);
+    res.json(requestedRole !== 'all' && fallback[requestedRole] ? { isFallback: true, [requestedRole]: fallback[requestedRole] } : fallback);
   }
 });
 
 app.post('/api/advisor', async (req, res) => {
-  const { sensorData } = req.body;
+  const { sensorData, role } = req.body;
   if (!sensorData) return res.status(400).json({ error: 'Missing sensor data' });
 
-  const cacheKey = `advisor_v12_${sensorData.id}`;
+  const requestedRole = role || 'all';
+  const cacheKey = `advisor_v15_${sensorData.id}_${requestedRole}`;
   const cachedAdvisor = cache.get(cacheKey);
   if (cachedAdvisor) {
-    console.log(`[ADVISOR_CACHE_HIT] ${sensorData.name}`);
+    console.log(`[ADVISOR_CACHE_HIT] ${sensorData.name} (${requestedRole})`);
     return res.json(cachedAdvisor);
   }
 
   if (process.env.SIMULATE_LIVE_INFERENCE === 'true') {
-    const simulatedData = generateDynamicFallback('advisor', sensorData);
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    const fullFallback = generateDynamicFallback('advisor', sensorData);
+    const simulatedData = requestedRole !== 'all' && fullFallback[requestedRole]
+      ? { isFallback: false, [requestedRole]: { ...fullFallback[requestedRole], isFallback: false } }
+      : fullFallback;
+      
     simulatedData.isFallback = false;
     Object.keys(simulatedData).forEach(key => {
       if (simulatedData[key] && typeof simulatedData[key] === 'object') {
@@ -1147,7 +1046,7 @@ app.post('/api/advisor', async (req, res) => {
       }
     });
     cache.set(cacheKey, simulatedData, 3600);
-    console.log(`[ADVISOR_SIMULATED_LIVE] ${sensorData.name}`);
+    console.log(`[ADVISOR_SIMULATED_LIVE] ${sensorData.name} (${requestedRole})`);
     return res.json(simulatedData);
   }
 
@@ -1165,7 +1064,7 @@ app.post('/api/advisor', async (req, res) => {
 
     // Manual safety race to ensure we never hang the request
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('INTERNAL_TIMEOUT')), 19000)
+      setTimeout(() => reject(new Error('INTERNAL_TIMEOUT')), 55000)
     );
 
     const response = await Promise.race([
@@ -1212,9 +1111,12 @@ PRE-COMPUTED COMPLIANCE GAPS (use these in your output):
 - AQI buffer to EQA notification: ${(50 - sensorData.metrics?.aqi?.value).toFixed(0)} units remaining
 - Acceptable corporate PM2.5 submission range (±20%): ${(sensorData.pollutants?.pm25 * 0.8).toFixed(1)} – ${(sensorData.pollutants?.pm25 * 1.2).toFixed(1)} µg/m³
 
-Generate compliance advisory for 5 roles. Return pure JSON object containing keys: { construction, government, msme, esgFirm, doeAuditor }. Every role must have "isFallback": false and "riskLevel" ("LOW", "MODERATE", "HIGH", "EXTREME").
+${requestedRole === 'all' 
+  ? 'Generate compliance advisory for 5 roles. Return pure JSON object containing keys: { construction, government, msme, esgFirm, doeAuditor }.' 
+  : `Generate compliance advisory ONLY for the "${requestedRole}" role schema. Return a pure JSON object for this role.`}
+Every role output must have "isFallback": false and "riskLevel" ("LOW", "MODERATE", "HIGH", "EXTREME").
 
-For each role include these exact mandatory fields populated with connected sentences containing real arithmetic and concrete numbers:
+Include these exact mandatory fields populated with connected sentences containing real arithmetic and concrete numbers:
 - complianceVerdict: one sentence stating current legal compliance position with specific clause
 - submissionWindowAlert: whether today's readings support or contradict a clean submission
 - specificAction: exactly what this stakeholder must do TODAY — one concrete action with deadline
@@ -1224,35 +1126,56 @@ For each role include these exact mandatory fields populated with connected sent
 - detailedAnalysis: 3-4 sentences using the actual readings, no generic environmental language
 - technicalReasoning: cite the exact gap between current reading and applicable threshold
 - healthRiskBreakdown: { heatStress, respiratoryRisk, complianceExposure } — all using actual values
-- bursaE1Status: (all roles) whether PM2.5 at ${sensorData.pollutants?.pm25} µg/m³ creates a Bursa E1 disclosure obligation
+- bursaE1Status: whether PM2.5 at ${sensorData.pollutants?.pm25} µg/m³ creates a Bursa E1 disclosure obligation
 
 Role-specific mapping requirements:
-1. construction: must also supply "workRestCycle" (e.g. 45 min on / 15 min off based on DOSH threshold band), "submissionAlert" (copy of submissionWindowAlert), and "safetyPPE" (explicit PM2.5/Heat protection spec).
-2. government: must also supply "districtStatus", "escalationDecision", "policyAction", "ncaapScore" (numeric 0-100), "ncaapContext", "publicStatus", "populationAtRisk", "policyTrigger", "emergencyProtocol", "infrastructureImpact", and "escalationContact".
-3. msme: write complianceVerdict and specificAction in plain conversational language that a non-technical business owner understands. Include exact acceptable PM2.5 range for submission. Also supply "bursaIndicator", "plainVerdict" (copy of complianceVerdict), "submissionRisk" ("LOW"/"ELEVATED"/"HIGH"), and "preSubmissionAction".
-4. esgFirm: must also supply "readinessScore" (numeric 0-100), "complianceRating" (e.g. TIER-1), "gri305Gap", "tcfdFlag", "investorMateriality", "environmentalPerformance", "mitigationStrategy", and "regulatoryContext".
-5. doeAuditor: must also supply "verificationStatus" ("CLEAN"/"FLAGGED"), "eqaAssessment", "discrepancySignal", and "evidenceChainRef" (cryptographic hash evidence seal).
-
-Output strictly JSON adhering to these exact parameters without markdown formatting blocks.`
+${requestedRole === 'all' || requestedRole === 'construction' ? `1. construction: must also supply "workRestCycle" (e.g. 45 min on / 15 min off based on DOSH threshold band), "submissionAlert" (copy of submissionWindowAlert), and "safetyPPE" (explicit PM2.5/Heat protection spec).\n` : ''}${requestedRole === 'all' || requestedRole === 'government' ? `2. government: must also supply "districtStatus", "escalationDecision", "policyAction", "ncaapScore" (numeric 0-100), "ncaapContext", "publicStatus", "populationAtRisk", "policyTrigger", "emergencyProtocol", "infrastructureImpact", and "escalationContact".\n` : ''}${requestedRole === 'all' || requestedRole === 'msme' ? `3. msme: write complianceVerdict and specificAction in plain conversational language that a non-technical business owner understands. Include exact acceptable PM2.5 range for submission. Also supply "bursaIndicator", "plainVerdict" (copy of complianceVerdict), "submissionRisk" ("LOW"/"ELEVATED"/"HIGH"), and "preSubmissionAction".\n` : ''}${requestedRole === 'all' || requestedRole === 'esgFirm' ? `4. esgFirm: must also supply "readinessScore" (numeric 0-100), "complianceRating" (e.g. TIER-1), "gri305Gap", "tcfdFlag", "investorMateriality", "environmentalPerformance", "mitigationStrategy", and "regulatoryContext".\n` : ''}${requestedRole === 'all' || requestedRole === 'doeAuditor' ? `5. doeAuditor: must also supply "verificationStatus" ("CLEAN"/"FLAGGED"), "eqaAssessment", "discrepancySignal", and "evidenceChainRef" (cryptographic hash evidence seal).\n` : ''}
+Output strictly JSON adhering to these exact parameters without markdown formatting blocks.` + (requestedRole !== 'all' ? `\n\nCRITICAL INSTRUCTION: Output ONLY the pure flat JSON object for the "${requestedRole}" role schema directly. Must match this exact structure:\n` + JSON.stringify({
+  isFallback: false,
+  riskLevel: "LOW|MODERATE|HIGH|EXTREME",
+  complianceVerdict: "...",
+  submissionWindowAlert: "...",
+  specificAction: "...",
+  regulatoryCitation: "...",
+  chainOfThought: ["...", "...", "...", "...", "..."],
+  siteActions: ["...", "...", "...", "...", "...", "..."],
+  detailedAnalysis: "...",
+  technicalReasoning: "...",
+  healthRiskBreakdown: { heatStress: "...", respiratoryRisk: "...", complianceExposure: "..." },
+  bursaE1Status: "...",
+  ...(requestedRole === 'construction' ? { workRestCycle: "...", submissionAlert: "...", safetyPPE: "..." } : {}),
+  ...(requestedRole === 'government' ? { districtStatus: "...", escalationDecision: "...", policyAction: "...", ncaapScore: 0, ncaapContext: "...", publicStatus: "...", populationAtRisk: "...", policyTrigger: "...", emergencyProtocol: "...", infrastructureImpact: "...", escalationContact: "..." } : {}),
+  ...(requestedRole === 'msme' ? { bursaIndicator: "...", plainVerdict: "...", submissionRisk: "LOW|ELEVATED|HIGH", preSubmissionAction: "..." } : {}),
+  ...(requestedRole === 'esgFirm' ? { readinessScore: 0, complianceRating: "...", gri305Gap: "...", tcfdFlag: "...", investorMateriality: "...", environmentalPerformance: "...", mitigationStrategy: "...", regulatoryContext: "..." } : {}),
+  ...(requestedRole === 'doeAuditor' ? { verificationStatus: "CLEAN|FLAGGED", eqaAssessment: "...", discrepancySignal: "...", evidenceChainRef: "..." } : {})
+}, null, 2) : '')
           }
         ],
         temperature: 0.1,
-        max_tokens: 4000
+        max_tokens: requestedRole !== 'all' ? 1200 : 4000
       }),
       timeoutPromise
     ]);
 
-    console.log(`[ADVISOR_REQUEST_SUCCESS] ${sensorData.name}`);
+    console.log(`[ADVISOR_REQUEST_SUCCESS] ${sensorData.name} (${requestedRole})`);
 
     const rawText = response.choices[0]?.message?.content;
     if (!rawText) throw new Error('AI returned an empty response');
 
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    const advisory = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
+    let advisory = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
+    
+    // Ensure single role response is cleanly addressable by tab logic
+    if (requestedRole !== 'all' && !advisory[requestedRole]) {
+      advisory = { [requestedRole]: advisory };
+    }
+    
     cache.set(cacheKey, advisory, 1800);
     res.json(advisory);
   } catch (error) {
-    res.json(generateDynamicFallback('advisor', sensorData));
+    console.error('[ADVISOR_AI_ERROR]', error.message, error.status);
+    const fallback = generateDynamicFallback('advisor', sensorData);
+    res.json(requestedRole !== 'all' && fallback[requestedRole] ? { isFallback: true, [requestedRole]: fallback[requestedRole] } : fallback);
   }
 });
 

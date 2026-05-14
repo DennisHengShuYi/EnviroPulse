@@ -3,24 +3,39 @@ import { Brain, RefreshCw, ArrowRight, Sun, Wind, AlertCircle, ShieldCheck, Glob
 
 const AIAdvisory = ({ data }) => {
   const [loading, setLoading] = useState(false);
-  const [advisory, setAdvisory] = useState(null);
+  const [loadingRole, setLoadingRole] = useState(false);
+  const [advisory, setAdvisory] = useState({});
   const [error, setError] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeRole, setActiveRole] = useState('construction');
 
-  const fetchAdvisory = async () => {
+  // Clear advisory cache when district changes
+  useEffect(() => {
+    setAdvisory({});
+  }, [data?.id]);
+
+  const fetchRoleAdvisory = async (roleToFetch) => {
     if (!data) return;
-    setLoading(true);
+    
+    // Skip if already loaded
+    if (advisory && advisory[roleToFetch]) return;
+
+    const isFirstLoad = Object.keys(advisory).length === 0;
+    if (isFirstLoad) {
+      setLoading(true);
+    } else {
+      setLoadingRole(true);
+    }
     setError(null);
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s safety timeout
+    const timeoutId = setTimeout(() => controller.abort(), 55000); // 55s safety timeout
     
     try {
       const response = await fetch('/api/advisor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sensorData: data }),
+        body: JSON.stringify({ sensorData: data, role: roleToFetch }),
         signal: controller.signal
       });
       
@@ -28,13 +43,17 @@ const AIAdvisory = ({ data }) => {
       if (contentType && contentType.indexOf("application/json") !== -1) {
         const result = await response.json();
         if (!response.ok) throw new Error(result?.details || result?.error || 'AI_OFFLINE');
-        setAdvisory(result);
+        
+        setAdvisory(prev => ({
+          ...prev,
+          isFallback: prev.isFallback || result.isFallback,
+          [roleToFetch]: result[roleToFetch] || result
+        }));
       } else {
-        const text = await response.text();
         throw new Error(response.status === 502 || response.status === 504 ? 'GATEWAY_TIMEOUT' : 'SERVER_ERROR');
       }
     } catch (err) {
-      console.error('Advisor fetch error:', err);
+      console.error(`Advisor role fetch error (${roleToFetch}):`, err);
       if (err.name === 'AbortError') {
         setError('REQUEST_TIMEOUT');
       } else if (err.message === 'Failed to fetch') {
@@ -45,12 +64,13 @@ const AIAdvisory = ({ data }) => {
     } finally {
       clearTimeout(timeoutId);
       setLoading(false);
+      setLoadingRole(false);
     }
   };
 
   useEffect(() => {
-    fetchAdvisory();
-  }, [data?.id]); // Refetch when district changes
+    fetchRoleAdvisory(activeRole);
+  }, [data?.id, activeRole]);
 
   if (!data) return null;
 
@@ -86,8 +106,8 @@ const AIAdvisory = ({ data }) => {
         <div style={{ display: 'flex', gap: '10px' }}>
           <RefreshCw 
             size={14} 
-            className={`cyan pointer ${loading ? 'spin' : ''}`} 
-            onClick={() => !loading && fetchAdvisory()} 
+            className={`cyan pointer ${loading || loadingRole ? 'spin' : ''}`} 
+            onClick={() => !loading && !loadingRole && fetchRoleAdvisory(activeRole)} 
           />
           <button 
             onClick={toggleExpand}
@@ -184,16 +204,18 @@ const AIAdvisory = ({ data }) => {
         </div>
       )}
 
-      {loading ? (
+      {loading || loadingRole || !advisory?.[activeRole] ? (
         <div style={{ height: '150px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
           <div className="marker-pulse" style={{ width: 24, height: 24, background: 'rgba(0, 240, 255, 0.1)', borderRadius: '50%' }}></div>
-          <span style={{ fontSize: '0.5rem', color: 'var(--text-secondary)', letterSpacing: '1px' }}>ANALYZING_LIVE_DELTA...</span>
+          <span style={{ fontSize: '0.5rem', color: 'var(--text-secondary)', letterSpacing: '1px' }}>
+            {loadingRole ? `INFERRING ADVISORY (${activeRole.toUpperCase()})...` : 'ANALYZING_LIVE_DELTA...'}
+          </span>
         </div>
       ) : error ? (
         <div style={{ height: '150px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '8px', color: 'var(--accent-red)' }}>
           <AlertCircle size={20} />
           <span style={{ fontSize: '0.6rem', fontWeight: 800 }}>{error}</span>
-          <button onClick={fetchAdvisory} style={{ background: 'transparent', border: '1px solid var(--accent-red)', color: 'var(--accent-red)', fontSize: '0.5rem', padding: '2px 8px', cursor: 'pointer' }}>RETRY</button>
+          <button onClick={() => fetchRoleAdvisory(activeRole)} style={{ background: 'transparent', border: '1px solid var(--accent-red)', color: 'var(--accent-red)', fontSize: '0.5rem', padding: '2px 8px', cursor: 'pointer' }}>RETRY</button>
         </div>
       ) : (advisory && advisory[activeRole]) ? (
         <div style={{ 
