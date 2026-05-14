@@ -1,17 +1,21 @@
 import React from 'react';
 import { Thermometer, Wind, CloudRain, Droplets, ShieldAlert } from 'lucide-react';
 
-const HeroCard = ({ label, value, unit, status, thresholdLabel, details, icon: Icon, colorClass, compact }) => {
+const HeroCard = ({ label, value, unit, status, thresholdLabel, details, icon: Icon, colorClass, compact, isHazeSimulated }) => {
   const getStatusColor = (status) => {
+    if (isHazeSimulated) return 'badge-danger';
     if (status === 'DANGER' || status === 'UNHEALTHY' || status === 'BREACH') return 'badge-danger';
     if (status === 'CAUTION' || status === 'MODERATE' || status === 'SENSITIVE' || status === 'WARNING') return 'badge-warning';
     return 'badge-safe';
   };
 
+  const simulatedValue = isHazeSimulated ? (label.includes('PM2.5') ? '152.4' : (label.includes('AQI') ? '184' : value)) : value;
+  const simulatedStatus = isHazeSimulated ? 'CRITICAL' : status;
+
   return (
-    <div className="hero-card" style={{ padding: compact ? '8px 12px' : '20px', marginBottom: compact ? '8px' : '0', border: '1px solid rgba(255,255,255,0.05)', background: '#070707' }}>
+    <div className={`hero-card ${isHazeSimulated ? 'animate-pulse border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)]' : ''}`} style={{ padding: compact ? '8px 12px' : '20px', marginBottom: compact ? '8px' : '0', border: isHazeSimulated ? '2px solid #ef4444' : '1px solid rgba(255,255,255,0.05)', background: '#070707' }}>
       <div className="badge-container">
-        <span className={`badge ${getStatusColor(status)}`} style={{ fontSize: compact ? '0.5rem' : '0.65rem', fontWeight: 900 }}>{status}</span>
+        <span className={`badge ${getStatusColor(simulatedStatus)}`} style={{ fontSize: compact ? '0.5rem' : '0.65rem', fontWeight: 900 }}>{simulatedStatus}</span>
       </div>
       
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: compact ? '4px' : '12px' }}>
@@ -46,7 +50,7 @@ const HeroCard = ({ label, value, unit, status, thresholdLabel, details, icon: I
   );
 };
 
-const HeroMetrics = ({ data, layout }) => {
+const HeroMetrics = ({ data, layout, isHazeSimulated }) => {
   if (!data) return null;
 
   const isVertical = layout === 'vertical';
@@ -62,16 +66,18 @@ const HeroMetrics = ({ data, layout }) => {
         icon={Thermometer}
         colorClass="red"
         compact={isVertical}
+        isHazeSimulated={isHazeSimulated}
       />
       <HeroCard 
         label="DOE API BASELINE SCORE" 
         value={data.metrics.aqi.value} 
         unit="API" 
         status={data.metrics.aqi.value > 100 ? 'WARNING' : 'COMPLIANT'} 
-        thresholdLabel="EQA 1974 Threshold: &lt;100"
+        thresholdLabel="EQA 1974 Threshold: <100"
         icon={Wind}
         colorClass="cyan"
         compact={isVertical}
+        isHazeSimulated={isHazeSimulated}
       />
       <HeroCard 
         label="AMBIENT CORE BASELINE" 
@@ -83,6 +89,7 @@ const HeroMetrics = ({ data, layout }) => {
         icon={CloudRain}
         colorClass="gold"
         compact={isVertical}
+        isHazeSimulated={isHazeSimulated}
       />
       <HeroCard 
         label="PM2.5 BASELINE CONC." 
@@ -93,6 +100,7 @@ const HeroMetrics = ({ data, layout }) => {
         icon={Droplets}
         colorClass="salmon"
         compact={isVertical}
+        isHazeSimulated={isHazeSimulated}
       />
     </div>
   );

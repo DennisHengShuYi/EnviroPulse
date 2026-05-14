@@ -8,6 +8,7 @@ import MapHero from './components/MapHero';
 import AIAdvisory from './components/AIAdvisory';
 import TrendChart from './components/TrendChart';
 import City3DView from './components/City3DView';
+import WorkerGrid from './components/WorkerGrid';
 
 // Pages
 import AnalyticsPage from './pages/AnalyticsPage';
@@ -42,6 +43,11 @@ function App() {
   const [viewMode, setViewMode] = useState('3d');
   const [showAlerts, setShowAlerts] = useState(false);
   const [isLive, setIsLive] = useState(true);
+  const [isHazeSimulated, setIsHazeSimulated] = useState(false);
+
+  const triggerHazeSimulation = () => {
+    setIsHazeSimulated(prev => !prev);
+  };
 
   const handleLocateMe = (districtList) => {
     console.log('[GPS_SYNC] LocateMe triggered...');
@@ -176,8 +182,8 @@ function App() {
   const renderDashboard = () => (
     <div className="dashboard-grid">
       <div className="dashboard-column">
-        <HeroMetrics data={data} layout="vertical" />
-        <TrendChart data={trends} />
+        <HeroMetrics data={data} layout="vertical" isHazeSimulated={isHazeSimulated} />
+        <TrendChart data={trends} isHazeSimulated={isHazeSimulated} />
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', position: 'relative', overflow: 'hidden', height: '100%' }}>
@@ -210,6 +216,7 @@ function App() {
               allDistricts={allDistrictsData} 
               userCoords={userCoords} 
               homeDistrictId={homeDistrictId}
+              isHazeSimulated={isHazeSimulated}
             />
           )}
         </div>
@@ -238,6 +245,7 @@ function App() {
       case 'alerts': return <AlertsPage selectedDistrictId={selectedDistrict} />;
       case 'reports': return <ReportsPage data={data} districts={districts} headerDistrict={selectedDistrict} />;
       case 'compliance': return <CompliancePage districts={districts} data={data} />;
+      case 'workers': return <WorkerGrid isHazeSimulated={isHazeSimulated} triggerHazeSimulation={triggerHazeSimulation} />;
       default: return <div>Page Not Found</div>;
     }
   };

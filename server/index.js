@@ -46,7 +46,7 @@ const calculateInterpolatedAQI = (lat, lng, stations) => {
 };
 
 const aiClient = new OpenAI({
-  apiKey: process.env.ILMU_API_KEY || process.env.ANTHROPIC_API_KEY,
+  apiKey: process.env.ILMU_API_KEY || process.env.ANTHROPIC_API_KEY || 'sk-dummy-key-for-local-dev',
   baseURL: 'https://api.ilmu.ai/v1',
   timeout: 60000 // 60s global timeout
 });

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-const City3DView = ({ data, allDistricts, onSelectDistrict, userCoords, homeDistrictId }) => {
+const City3DView = ({ data, allDistricts, onSelectDistrict, userCoords, homeDistrictId, isHazeSimulated }) => {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -430,13 +430,13 @@ const City3DView = ({ data, allDistricts, onSelectDistrict, userCoords, homeDist
       canvas.height = canvas.clientHeight;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const windDirRad = (data.metrics.temp.windDir * Math.PI) / 180;
-      const windSpeed = parseFloat(data.metrics.temp.wind) || 5;
+      const windDirRad = isHazeSimulated ? (225 * Math.PI) / 180 : (data.metrics.temp.windDir * Math.PI) / 180;
+      const windSpeed = isHazeSimulated ? 25 : (parseFloat(data.metrics.temp.wind) || 5);
       
       // 1. ANIMATED WIND ARROWS (NATIONWIDE)
       windOffsetRef.current += windSpeed * 0.1;
       const gridSize = 120;
-      ctx.strokeStyle = 'rgba(0, 100, 255, 0.3)';
+      ctx.strokeStyle = isHazeSimulated ? 'rgba(239, 68, 68, 0.4)' : 'rgba(0, 100, 255, 0.3)';
       ctx.lineWidth = 1;
 
       for (let x = -gridSize; x < canvas.width + gridSize; x += gridSize) {
@@ -464,14 +464,14 @@ const City3DView = ({ data, allDistricts, onSelectDistrict, userCoords, homeDist
           const pos = mapRef.current.project([s.lng, s.lat]);
           if (pos.x > -400 && pos.x < canvas.width + 400 && pos.y > -400 && pos.y < canvas.height + 400) {
             // Increased spawn chance for "heavy" look
-            const spawnChance = s.strength ? Math.min(s.strength * 0.8, 0.6) : 0.2;
+            const spawnChance = isHazeSimulated ? 0.95 : (s.strength ? Math.min(s.strength * 0.8, 0.6) : 0.2);
             if (Math.random() < spawnChance) {
               pListRef.current.push({
                 x: pos.x, y: pos.y, life: 1.0,
                 vx: Math.sin(windDirRad) * (windSpeed * 0.35),
                 vy: -Math.cos(windDirRad) * (windSpeed * 0.35),
                 jitter: Math.random() * 2.5 - 1.25,
-                size: 6 + (s.strength ? s.strength * 15 : 8) // Larger, more impactful sources
+                size: isHazeSimulated ? 25 : (6 + (s.strength ? s.strength * 15 : 8)) // Larger, more impactful sources
               });
             }
           }

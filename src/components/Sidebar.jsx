@@ -6,7 +6,8 @@ import {
   FileText, 
   User,
   Bell,
-  ShieldCheck
+  ShieldCheck,
+  Users
 } from 'lucide-react';
 
 const Sidebar = ({ activePage, setActivePage }) => {
@@ -16,6 +17,7 @@ const Sidebar = ({ activePage, setActivePage }) => {
     { id: 'sensors', label: 'SENSORS', icon: Activity },
     { id: 'reports', label: 'REPORTS', icon: FileText },
     { id: 'compliance', label: 'COMPLIANCE_INTEL', icon: ShieldCheck },
+    { id: 'workers', label: 'WORKER_RISK', icon: Users },
   ];
 
   return (

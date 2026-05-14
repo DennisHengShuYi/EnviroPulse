@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, Polygon, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import MiniWorkerGrid from './MiniWorkerGrid';
 
 // Custom high-tech marker icon with pulse animation based on severity
 const createTerminalIcon = (type, severity = 'normal') => {
@@ -125,21 +126,41 @@ const MapHero = ({ onSelectDistrict, selectedId, userCoords }) => {
               }}
             >
               <Popup>
-                <div style={{ color: '#000', fontSize: '0.75rem', fontFamily: 'JetBrains Mono' }}>
-                  <strong style={{ color: getDistrictColor(district.type) }}>{district.name}</strong><br />
-                  TYPE: {district.type.toUpperCase()}<br />
+                <div style={{ color: '#000', fontSize: '0.75rem', fontFamily: 'JetBrains Mono', minWidth: '200px' }}>
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <strong style={{ color: getDistrictColor(district.type), fontSize: '14px' }}>{district.name}</strong><br />
+                      <span className="text-[9px] text-slate-500 uppercase font-black">TYPE: {district.type}</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[14px] font-black">{district.aqi}</div>
+                      <div className="text-[8px] text-slate-400 leading-none">AQI</div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1 my-3 bg-slate-50 p-2 rounded border border-slate-100">
+                    <div className="flex justify-between text-[10px]">
+                      <span className="text-slate-400">HEAT_INDEX</span>
+                      <span className="font-bold">{district.temp}°C</span>
+                    </div>
+                  </div>
+
+                  <MiniWorkerGrid districtName={district.name} />
+
                   <button 
                     onClick={() => onSelectDistrict(district.id)}
                     style={{ 
-                      marginTop: '10px', 
+                      marginTop: '15px', 
                       background: '#000', 
                       color: '#fff', 
                       border: 'none', 
-                      padding: '5px 10px', 
+                      padding: '8px 10px', 
                       cursor: 'pointer', 
                       width: '100%',
-                      fontSize: '0.6rem',
-                      fontWeight: 800
+                      fontSize: '0.65rem',
+                      fontWeight: 900,
+                      borderRadius: '4px',
+                      letterSpacing: '1px'
                     }}
                   >
                     SELECT_STATION
