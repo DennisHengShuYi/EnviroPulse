@@ -12,7 +12,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 
-const Sidebar = ({ activePage, setActivePage, isCollapsed, onToggleCollapse }) => {
+const Sidebar = ({ activePage, setActivePage, isCollapsed, onToggleCollapse, tier }) => {
   const menuItems = [
     { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
     { id: 'analytics', label: 'ANALYTICS', icon: BarChart2 },
@@ -38,17 +38,22 @@ const Sidebar = ({ activePage, setActivePage, isCollapsed, onToggleCollapse }) =
       </div>
       
       <nav className="nav-menu" style={{ flexGrow: 1 }}>
-        {menuItems.map((item) => (
-          <div 
-            key={item.id}
-            className={`nav-link ${activePage === item.id ? 'active' : ''}`}
-            onClick={() => setActivePage(item.id)}
-            title={isCollapsed ? item.label : ''}
-          >
-            <item.icon size={20} />
-            {!isCollapsed && <span>{item.label}</span>}
-          </div>
-        ))}
+        {menuItems.map((item) => {
+          const isDisabled = tier === 'basic' && item.id !== 'dashboard';
+          return (
+            <div 
+              key={item.id}
+              className={`nav-link ${activePage === item.id ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`}
+              onClick={() => { if (!isDisabled) setActivePage(item.id); }}
+              title={isCollapsed ? item.label : ''}
+              style={{ opacity: isDisabled ? 0.3 : 1, cursor: isDisabled ? 'not-allowed' : 'pointer', filter: isDisabled ? 'grayscale(100%)' : 'none' }}
+            >
+              <item.icon size={20} />
+              {!isCollapsed && <span>{item.label}</span>}
+              {!isCollapsed && isDisabled && <div style={{ marginLeft: 'auto', fontSize: '0.65rem', border: '1px solid var(--accent-gold)', color: 'var(--accent-gold)', padding: '2px 4px', borderRadius: '4px' }}>PRO</div>}
+            </div>
+          );
+        })}
       </nav>
 
       <div className="sidebar-footer" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1rem' }}>

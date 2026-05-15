@@ -121,6 +121,7 @@ function App() {
   const [hazeLevel, setHazeLevel] = useState(0); // 0: None, 1: Moderate, 2: Unhealthy, 3: Hazardous
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [submissions, setSubmissions] = useState(DEMO_SUBMISSIONS);
+  const [tier, setTier] = useState('premium');
 
   const addSubmission = (newSub) => {
     setSubmissions(prev => [newSub, ...prev]);
@@ -293,10 +294,18 @@ function App() {
       </div>
 
       {/* Right Column — AI Intelligence */}
-      <div className="dashboard-column">
-        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <div className="dashboard-column" style={{ position: 'relative' }}>
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', filter: tier === 'basic' ? 'blur(8px) grayscale(50%)' : 'none', pointerEvents: tier === 'basic' ? 'none' : 'auto', userSelect: tier === 'basic' ? 'none' : 'auto', transition: 'all 0.3s ease' }}>
           <AIAdvisory data={data} history={trends} />
         </div>
+        {tier === 'basic' && (
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+             <div style={{ background: 'var(--bg-widget)', padding: '20px 30px', borderRadius: '8px', border: '1px solid var(--accent-gold)', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
+               <div style={{ color: 'var(--accent-gold)', fontWeight: 900, fontSize: '1rem', letterSpacing: '2px', marginBottom: '8px' }}>PREMIUM FEATURE</div>
+               <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 600 }}>Upgrade to unlock AI advisories</div>
+             </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -330,6 +339,7 @@ function App() {
         setActivePage={setActivePage}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        tier={tier}
       />
 
       <main className="main-content">
@@ -342,6 +352,8 @@ function App() {
           onToggleAlerts={() => setShowAlerts(prev => !prev)}
           showAlerts={showAlerts}
           isLive={isLive}
+          tier={tier}
+          setTier={setTier}
         />
 
         {showAlerts && (

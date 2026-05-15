@@ -156,6 +156,16 @@ body {
   flex: 1;
 }
 
+.dashboard-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 20px;
+  padding: 20px;
+  height: 100%;
+  overflow: hidden;
+  flex: 1;
+}
+
 .dashboard-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

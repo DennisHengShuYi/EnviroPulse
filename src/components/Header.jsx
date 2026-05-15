@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Clock, ShieldCheck, ChevronDown, Bell, ShieldAlert, Crosshair } from 'lucide-react';
 
-const Header = ({ districtName, districts, onSelectDistrict, onLocateMe, alertCount, onToggleAlerts, showAlerts, isLive }) => {
+const Header = ({ districtName, districts, onSelectDistrict, onLocateMe, alertCount, onToggleAlerts, showAlerts, isLive, tier, setTier }) => {
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -92,6 +92,40 @@ const Header = ({ districtName, districts, onSelectDistrict, onLocateMe, alertCo
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+        {/* Tier Toggle Button */}
+        <div style={{ display: 'flex', background: 'var(--bg-primary)', borderRadius: '6px', padding: '4px', border: '1px solid var(--border-color)', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)' }}>
+          <button 
+            onClick={() => setTier && setTier('basic')}
+            style={{ 
+              padding: '6px 16px', 
+              border: 'none', 
+              borderRadius: '4px', 
+              fontWeight: 800, 
+              fontSize: '0.7rem',
+              letterSpacing: '0.5px',
+              background: tier === 'basic' ? '#00bcd4' : 'transparent',
+              color: tier === 'basic' ? '#000' : 'var(--text-secondary)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: tier === 'basic' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
+            }}>BASIC</button>
+          <button 
+            onClick={() => setTier && setTier('premium')}
+            style={{ 
+              padding: '6px 16px', 
+              border: 'none', 
+              borderRadius: '4px', 
+              fontWeight: 800, 
+              fontSize: '0.7rem',
+              letterSpacing: '0.5px',
+              background: tier === 'premium' ? '#00bcd4' : 'transparent',
+              color: tier === 'premium' ? '#000' : 'var(--text-secondary)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: tier === 'premium' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
+            }}>PREMIUM</button>
+        </div>
+
         {/* Alert Toggle Button */}
         <div 
           onClick={onToggleAlerts}
