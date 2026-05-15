@@ -762,14 +762,18 @@ body {
     flex-basis: auto;
     padding: 8px;
     min-width: 0;
+  }
+  /* circle icon div — keep natural size so borderRadius: 50% stays a circle */
+  .data-flow-node > div:first-child {
+    flex-shrink: 0;
+    align-self: center;
+  }
+  /* text label div — fill width and clip long text */
+  .data-flow-node > div:last-child {
     width: 100%;
     overflow: hidden;
   }
-  .data-flow-node > div {
-    width: 100%;
-    overflow: hidden;
-  }
-  .data-flow-node > div > div {
+  .data-flow-node > div:last-child > div {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -777,6 +781,24 @@ body {
   .data-flow-connector {
     display: none;
   }
+}
+
+/* --- DOSH TABLE / CARDS TOGGLE --- */
+.dosh-table-desktop { display: block; }
+.dosh-cards-mobile { display: none; }
+
+@media (max-width: 768px) {
+  .dosh-table-desktop { display: none; }
+  .dosh-cards-mobile { display: flex !important; flex-direction: column; gap: 10px; padding: 16px; }
+}
+
+/* --- STATION TABLE / CARDS TOGGLE --- */
+.station-table-desktop { display: block; }
+.station-cards-mobile { display: none; }
+
+@media (max-width: 768px) {
+  .station-table-desktop { display: none; }
+  .station-cards-mobile { display: flex !important; flex-direction: column; gap: 10px; padding: 12px; }
 }
 
 /* --- COMPLIANCE TABLE / CARDS TOGGLE --- */

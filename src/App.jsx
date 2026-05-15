@@ -113,6 +113,10 @@ function App() {
   const [activeAlerts, setActiveAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activePage, setActivePage] = useState('dashboard');
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [activePage]);
   const [selectedDistrict, setSelectedDistrict] = useState(null);
   const [homeDistrictId, setHomeDistrictId] = useState(null);
   const [userCoords, setUserCoords] = useState(null);

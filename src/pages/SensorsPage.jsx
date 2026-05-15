@@ -151,74 +151,97 @@ const SensorsPage = ({ districts }) => {
           }}>
             STATION_DIAGNOSTICS_MATRIX
           </div>
-          <table className="table-mobile" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
-            <thead>
-              <tr style={{ textAlign: 'left', color: '#64748b', background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
-                <th className="mobile-hide" style={{ padding: '15px 20px' }}>STATION_ID</th>
-                <th style={{ padding: '15px 20px' }}>LOCATION</th>
-                <th style={{ padding: '15px 20px' }}>STATUS</th>
-                <th className="mobile-hide" style={{ padding: '15px 20px' }}>BATTERY</th>
-                <th className="mobile-hide" style={{ padding: '15px 20px' }}>SIGNAL</th>
-                <th className="mobile-hide" style={{ padding: '15px 20px' }}>LAST_PING</th>
-                <th style={{ padding: '15px 20px' }}>AUDIT_LOG</th>
-              </tr>
-            </thead>
-            <tbody>
-              {districts?.map((d, i) => {
-                const seed = d.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-                const batt = 78 + (seed % 18);
-                const sig = 45 + (seed % 30);
-                const ping = 1 + (seed % 8);
-                return (
-                  <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td className="mobile-hide" style={{ padding: '15px 20px', fontWeight: 800, color: '#0f172a' }}>STN_{d.id.toUpperCase()}</td>
-                    <td style={{ padding: '15px 20px', color: '#475569' }}>{d.name}</td>
-                    <td style={{ padding: '15px 20px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10b981', fontWeight: 600 }}>
-                        <CheckCircle2 size={14} /> ONLINE
-                      </div>
-                    </td>
-                    <td className="mobile-hide" style={{ padding: '15px 20px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Battery size={14} color={batt < 80 ? '#f59e0b' : '#0ea5e9'} />
-                        <span>{batt}%</span>
-                      </div>
-                    </td>
-                    <td className="mobile-hide" style={{ padding: '15px 20px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Signal size={14} color="#0ea5e9" />
-                        <span>-{sig} dBm</span>
-                      </div>
-                    </td>
-                    <td className="mobile-hide" style={{ padding: '15px 20px', color: '#94a3b8' }}>{ping}s AGO</td>
-                    <td style={{ padding: '15px 20px' }}>
-                      <button
-                        onClick={() => openLog(d.id)}
-                        style={{
-                          background: '#fff',
-                          border: '1px solid #e2e8f0',
-                          color: '#64748b',
-                          padding: '6px 12px',
-                          fontSize: '0.65rem',
-                          fontWeight: 800,
-                          cursor: 'pointer',
-                          borderRadius: '6px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          transition: 'all 0.2s'
-                        }}
-                        onMouseOver={(e) => { e.target.style.background = '#f8fafc'; e.target.style.borderColor = '#cbd5e1'; }}
-                        onMouseOut={(e) => { e.target.style.background = '#fff'; e.target.style.borderColor = '#e2e8f0'; }}
-                      >
-                        <Hash size={12} /> VIEW_LOG
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          {/* Desktop table */}
+          <div className="station-table-desktop">
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+              <thead>
+                <tr style={{ textAlign: 'left', color: '#64748b', background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
+                  <th style={{ padding: '15px 20px' }}>STATION_ID</th>
+                  <th style={{ padding: '15px 20px' }}>LOCATION</th>
+                  <th style={{ padding: '15px 20px' }}>STATUS</th>
+                  <th style={{ padding: '15px 20px' }}>BATTERY</th>
+                  <th style={{ padding: '15px 20px' }}>SIGNAL</th>
+                  <th style={{ padding: '15px 20px' }}>LAST_PING</th>
+                  <th style={{ padding: '15px 20px' }}>AUDIT_LOG</th>
+                </tr>
+              </thead>
+              <tbody>
+                {districts?.map((d, i) => {
+                  const seed = d.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+                  const batt = 78 + (seed % 18);
+                  const sig = 45 + (seed % 30);
+                  const ping = 1 + (seed % 8);
+                  return (
+                    <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '15px 20px', fontWeight: 800, color: '#0f172a' }}>STN_{d.id.toUpperCase()}</td>
+                      <td style={{ padding: '15px 20px', color: '#475569' }}>{d.name}</td>
+                      <td style={{ padding: '15px 20px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10b981', fontWeight: 600 }}>
+                          <CheckCircle2 size={14} /> ONLINE
+                        </div>
+                      </td>
+                      <td style={{ padding: '15px 20px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Battery size={14} color={batt < 80 ? '#f59e0b' : '#0ea5e9'} />
+                          <span>{batt}%</span>
+                        </div>
+                      </td>
+                      <td style={{ padding: '15px 20px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Signal size={14} color="#0ea5e9" />
+                          <span>-{sig} dBm</span>
+                        </div>
+                      </td>
+                      <td style={{ padding: '15px 20px', color: '#94a3b8' }}>{ping}s AGO</td>
+                      <td style={{ padding: '15px 20px' }}>
+                        <button onClick={() => openLog(d.id)} style={{ background: '#fff', border: '1px solid #e2e8f0', color: '#64748b', padding: '6px 12px', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.2s' }}>
+                          <Hash size={12} /> VIEW_LOG
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile cards — all data, no horizontal scroll */}
+          <div className="station-cards-mobile">
+            {districts?.map((d, i) => {
+              const seed = d.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+              const batt = 78 + (seed % 18);
+              const sig = 45 + (seed % 30);
+              const ping = 1 + (seed % 8);
+              return (
+                <div key={i} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '0.75rem', color: '#0f172a' }}>STN_{d.id.toUpperCase()}</div>
+                      <div style={{ fontSize: '0.65rem', color: '#475569', marginTop: '2px' }}>{d.name}</div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#10b981', fontWeight: 700, fontSize: '0.65rem' }}>
+                      <CheckCircle2 size={12} /> ONLINE
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '0.62rem', color: '#475569', marginBottom: '10px' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Battery size={11} color={batt < 80 ? '#f59e0b' : '#0ea5e9'} /> {batt}%
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Signal size={11} color="#0ea5e9" /> -{sig} dBm
+                    </span>
+                    <span style={{ color: '#94a3b8' }}>PING: {ping}s AGO</span>
+                  </div>
+                  <button
+                    onClick={() => openLog(d.id)}
+                    style={{ background: '#fff', border: '1px solid #e2e8f0', color: '#64748b', padding: '6px 12px', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '5px', width: '100%', justifyContent: 'center' }}
+                  >
+                    <Hash size={12} /> VIEW_LOG
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Audit Log Modal */}

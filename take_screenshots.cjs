@@ -8,7 +8,6 @@ const { chromium } = require('playwright');
   await page.goto('http://localhost:5173');
   await page.waitForTimeout(4000);
 
-  // Navigate to worker page
   await page.evaluate(() => {
     const links = document.querySelectorAll('.nav-link');
     for (const link of links) {
@@ -16,25 +15,20 @@ const { chromium } = require('playwright');
     }
   });
 
-  // Wait for worker content to appear
   await page.waitForSelector('h2', { timeout: 5000 }).catch(() => {});
   await page.waitForTimeout(2000);
 
   // Scroll to DOSH table
   await page.evaluate(() => {
-    const headings = Array.from(document.querySelectorAll('h2, h3, [class*="dosh"], [class*="compliance"]'));
-    const doshEl = headings.find(el => el.textContent?.toLowerCase().includes('dosh'));
-    if (doshEl) {
-      doshEl.scrollIntoView({ behavior: 'instant', block: 'start' });
-    } else {
-      // Scroll to 60% of page
-      window.scrollTo(0, document.documentElement.scrollHeight * 0.6);
-    }
+    const headings = Array.from(document.querySelectorAll('h2'));
+    const el = headings.find(h => h.textContent?.toLowerCase().includes('dosh'));
+    if (el) el.scrollIntoView({ behavior: 'instant', block: 'start' });
+    else window.scrollTo(0, document.documentElement.scrollHeight * 0.65);
   });
 
-  await page.waitForTimeout(500);
-  await page.screenshot({ path: 'verify_dosh_table.png' });
-  console.log('Saved verify_dosh_table.png');
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: 'dosh_cards.png' });
+  console.log('Saved dosh_cards.png');
 
   await browser.close();
 })();

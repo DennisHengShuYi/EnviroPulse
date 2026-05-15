@@ -109,15 +109,16 @@ const DOSHComplianceTable = ({ workers }) => {
         <p className="text-slate-500 text-xs italic">Referenced: DOSH Malaysia Heat Stress Guidelines (Table 2 Annex B)</p>
       </div>
 
-      <div>
+      {/* Desktop table — all 5 columns */}
+      <div className="dosh-table-desktop">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wider">
-              <th className="mobile-hide px-6 py-4 font-bold">Worker Name</th>
+              <th className="px-6 py-4 font-bold">Worker Name</th>
               <th className="px-4 py-4 font-bold">Current Risk</th>
-              <th className="px-4 py-4 font-bold">Work</th>
-              <th className="px-4 py-4 font-bold">Rest</th>
-              <th className="mobile-hide px-6 py-4 font-bold">Status</th>
+              <th className="px-4 py-4 font-bold">Work Duration</th>
+              <th className="px-4 py-4 font-bold">Rest Duration</th>
+              <th className="px-6 py-4 font-bold">Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-mono text-sm">
@@ -125,28 +126,17 @@ const DOSHComplianceTable = ({ workers }) => {
               const logic = DOSH_LOGIC[worker.risk];
               const isCritical = worker.risk === 'CRITICAL';
               const isAmber = worker.risk === 'MODERATE' || worker.risk === 'HIGH';
-
               return (
                 <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                  <td className="mobile-hide px-6 py-4 text-slate-800 font-bold">{worker.name}</td>
+                  <td className="px-6 py-4 text-slate-800 font-bold">{worker.name}</td>
                   <td className="px-4 py-4">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
-                      worker.risk === 'CRITICAL' ? 'text-red-500' :
-                      worker.risk === 'HIGH' ? 'text-orange-500' :
-                      'text-yellow-500'
-                    }`}>
-                      {worker.risk}
-                    </span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${worker.risk === 'CRITICAL' ? 'text-red-500' : worker.risk === 'HIGH' ? 'text-orange-500' : 'text-yellow-500'}`}>{worker.risk}</span>
                   </td>
                   <td className="px-4 py-4 text-slate-600">{logic?.work || '30m'}</td>
                   <td className="px-4 py-4 text-slate-600">{logic?.rest || '30m'}</td>
-                  <td className="mobile-hide px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${
-                      isCritical ? 'bg-red-500/20 text-red-500 border border-red-500/50' :
-                      isAmber ? 'bg-amber-500/20 text-amber-500 border border-amber-500/50' :
-                      'bg-emerald-500/20 text-emerald-500 border border-emerald-500/50'
-                    }`}>
-                      {isCritical ? 'STOP WORK' : (isAmber ? 'MANDATORY REST' : 'ON WORK')}
+                  <td className="px-6 py-4">
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${isCritical ? 'bg-red-500/20 text-red-500 border border-red-500/50' : isAmber ? 'bg-amber-500/20 text-amber-500 border border-amber-500/50' : 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/50'}`}>
+                      {isCritical ? 'STOP WORK - Immediate Evacuation / Notify Supervisor' : (isAmber ? 'MANDATORY REST' : 'ON WORK')}
                     </span>
                   </td>
                 </tr>
@@ -154,6 +144,33 @@ const DOSHComplianceTable = ({ workers }) => {
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile cards — all data, no horizontal scroll */}
+      <div className="dosh-cards-mobile">
+        {workers && workers.map((worker, idx) => {
+          const logic = DOSH_LOGIC[worker.risk];
+          const isCritical = worker.risk === 'CRITICAL';
+          const isAmber = worker.risk === 'MODERATE' || worker.risk === 'HIGH';
+          const riskColor = isCritical ? '#ef4444' : isAmber ? (worker.risk === 'HIGH' ? '#f97316' : '#eab308') : '#10b981';
+          const statusBg = isCritical ? 'rgba(239,68,68,0.1)' : isAmber ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)';
+          const statusBorder = isCritical ? 'rgba(239,68,68,0.3)' : isAmber ? 'rgba(245,158,11,0.3)' : 'rgba(16,185,129,0.3)';
+          return (
+            <div key={idx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.8rem', color: '#0f172a' }}>{worker.name}</div>
+                <span style={{ fontWeight: 900, fontSize: '0.65rem', color: riskColor, textTransform: 'uppercase' }}>{worker.risk}</span>
+              </div>
+              <div style={{ display: 'flex', gap: '16px', fontSize: '0.65rem', color: '#475569', marginBottom: '10px' }}>
+                <span>WORK: <strong style={{ color: '#0f172a' }}>{logic?.work || '30m'}</strong></span>
+                <span>REST: <strong style={{ color: '#0f172a' }}>{logic?.rest || '30m'}</strong></span>
+              </div>
+              <div style={{ background: statusBg, border: `1px solid ${statusBorder}`, borderRadius: '4px', padding: '6px 10px', fontSize: '0.6rem', fontWeight: 700, color: riskColor, textTransform: 'uppercase', textAlign: 'center' }}>
+                {isCritical ? 'STOP WORK — Immediate Evacuation / Notify Supervisor' : (isAmber ? 'MANDATORY REST' : 'ON WORK')}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <div className="p-4 bg-slate-50 border-t border-slate-200">
