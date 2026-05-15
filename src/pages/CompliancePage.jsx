@@ -136,7 +136,7 @@ const CompliancePage = ({ districts, submissions, setSubmissions }) => {
           </div>
 
           {/* Mobile cards — shows all data without horizontal scroll */}
-          <div className="compliance-cards-mobile" style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '12px' }}>
+          <div className="compliance-cards-mobile" style={{ flexDirection: 'column', gap: '10px', padding: '12px' }}>
             {submissions.map((sub) => {
               const res = results[sub.id];
               const isVerifying = verifying === sub.id;
