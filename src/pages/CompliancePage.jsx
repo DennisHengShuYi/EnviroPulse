@@ -91,13 +91,17 @@ const CompliancePage = ({ districts, submissions, setSubmissions }) => {
             <FileSearch size={16} className="cyan" />
             <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>CORPORATE_SUBMISSIONS_QUEUE ({submissions.length})</span>
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.7rem', tableLayout: 'auto' }}>
+          <div>
+            <table className="table-mobile" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.7rem', tableLayout: 'auto' }}>
               <thead>
                 <tr style={{ textAlign: 'left', color: 'var(--text-secondary)', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-                  {['ZONE', 'NODE', 'DATE', 'PM2.5', 'AQI', 'STATUS', 'ACTION'].map(h => (
-                    <th key={h} style={{ padding: '10px 12px', fontWeight: 800, fontSize: '0.55rem', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>{h}</th>
-                  ))}
+                  <th style={{ padding: '10px 12px', fontWeight: 800, fontSize: '0.55rem', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>ZONE</th>
+                  <th className="mobile-hide" style={{ padding: '10px 12px', fontWeight: 800, fontSize: '0.55rem', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>NODE</th>
+                  <th className="mobile-hide" style={{ padding: '10px 12px', fontWeight: 800, fontSize: '0.55rem', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>DATE</th>
+                  <th className="mobile-hide" style={{ padding: '10px 12px', fontWeight: 800, fontSize: '0.55rem', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>PM2.5</th>
+                  <th className="mobile-hide" style={{ padding: '10px 12px', fontWeight: 800, fontSize: '0.55rem', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>AQI</th>
+                  <th style={{ padding: '10px 12px', fontWeight: 800, fontSize: '0.55rem', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>STATUS</th>
+                  <th style={{ padding: '10px 12px', fontWeight: 800, fontSize: '0.55rem', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>ACTION</th>
                 </tr>
               </thead>
               <tbody>
@@ -107,16 +111,16 @@ const CompliancePage = ({ districts, submissions, setSubmissions }) => {
                   const isDone = res && res.status === 'VERIFIED';
                   return (
                     <tr key={sub.id} style={{ borderTop: '1px solid rgba(255,255,255,0.03)', background: i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
-                      <td style={{ padding: '10px 12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{sub.zone}</td>
-                      <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>{sub.zone}</td>
+                      <td className="mobile-hide" style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <MapPin size={10} style={{ color: 'var(--accent-gold)' }} />
                           <span style={{ fontSize: '0.6rem' }}>{sub.nodeName}</span>
                         </div>
                       </td>
-                      <td style={{ padding: '10px 12px', color: 'var(--text-secondary)', fontSize: '0.65rem', whiteSpace: 'nowrap' }}>{sub.date}</td>
-                      <td style={{ padding: '10px 12px', fontWeight: 800, color: 'var(--accent-cyan)' }}>{sub.reportedPm25}</td>
-                      <td style={{ padding: '10px 12px', fontWeight: 800 }}>{sub.reportedAqi}</td>
+                      <td className="mobile-hide" style={{ padding: '10px 12px', color: 'var(--text-secondary)', fontSize: '0.65rem', whiteSpace: 'nowrap' }}>{sub.date}</td>
+                      <td className="mobile-hide" style={{ padding: '10px 12px', fontWeight: 800, color: 'var(--accent-cyan)' }}>{sub.reportedPm25}</td>
+                      <td className="mobile-hide" style={{ padding: '10px 12px', fontWeight: 800 }}>{sub.reportedAqi}</td>
                       <td style={{ padding: '8px 12px' }}>
                         <StatusBadge status={res ? res.status : 'PENDING'} />
                       </td>

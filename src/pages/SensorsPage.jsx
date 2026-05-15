@@ -100,24 +100,14 @@ const SensorsPage = ({ districts }) => {
 
         {/* Data Flow Visualization */}
         <div style={{
-          padding: '40px',
+          padding: '30px 20px',
           background: '#ffffff',
           borderRadius: '12px',
           border: '1px solid #e2e8f0',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-          overflowX: 'auto'
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', position: 'relative', minWidth: '360px' }}>
-            {/* Connector Line */}
-            <div style={{
-              position: 'absolute',
-              top: '40%',
-              left: '10%',
-              right: '10%',
-              height: '2px',
-              background: '#e2e8f0',
-              zIndex: 0
-            }} />
+          <div className="data-flow-grid">
+            <div className="data-flow-connector" />
 
             {[
               { icon: Radio, label: 'SENSOR_ARRAY', status: 'TRANSMITTING', color: '#0ea5e9' },
@@ -125,15 +115,15 @@ const SensorsPage = ({ districts }) => {
               { icon: Cloud, label: 'CLOUD_HUB', status: 'SYNCED', color: '#10b981' },
               { icon: Layout, label: 'DASHBOARD', status: 'ACTIVE', color: '#f59e0b' },
             ].map((node, i) => (
-              <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', zIndex: 1, background: '#fff', padding: '0 15px' }}>
+              <div key={i} className="data-flow-node">
                 <div style={{
-                  padding: '20px',
+                  padding: '16px',
                   background: '#fff',
                   borderRadius: '50%',
                   border: `2px solid ${node.color}`,
                   boxShadow: `0 0 15px ${node.color}20`
                 }}>
-                  <node.icon size={30} color={node.color} />
+                  <node.icon size={28} color={node.color} />
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#475569' }}>{node.label}</div>
@@ -161,15 +151,15 @@ const SensorsPage = ({ districts }) => {
           }}>
             STATION_DIAGNOSTICS_MATRIX
           </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', minWidth: '600px' }}>
+          <table className="table-mobile" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
             <thead>
               <tr style={{ textAlign: 'left', color: '#64748b', background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
                 <th style={{ padding: '15px 20px' }}>STATION_ID</th>
                 <th style={{ padding: '15px 20px' }}>LOCATION</th>
                 <th style={{ padding: '15px 20px' }}>STATUS</th>
-                <th style={{ padding: '15px 20px' }}>BATTERY</th>
-                <th style={{ padding: '15px 20px' }}>SIGNAL</th>
-                <th style={{ padding: '15px 20px' }}>LAST_PING</th>
+                <th className="mobile-hide" style={{ padding: '15px 20px' }}>BATTERY</th>
+                <th className="mobile-hide" style={{ padding: '15px 20px' }}>SIGNAL</th>
+                <th className="mobile-hide" style={{ padding: '15px 20px' }}>LAST_PING</th>
                 <th style={{ padding: '15px 20px' }}>AUDIT_LOG</th>
               </tr>
             </thead>
@@ -188,19 +178,19 @@ const SensorsPage = ({ districts }) => {
                         <CheckCircle2 size={14} /> ONLINE
                       </div>
                     </td>
-                    <td style={{ padding: '15px 20px' }}>
+                    <td className="mobile-hide" style={{ padding: '15px 20px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Battery size={14} color={batt < 80 ? '#f59e0b' : '#0ea5e9'} />
                         <span>{batt}%</span>
                       </div>
                     </td>
-                    <td style={{ padding: '15px 20px' }}>
+                    <td className="mobile-hide" style={{ padding: '15px 20px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Signal size={14} color="#0ea5e9" />
                         <span>-{sig} dBm</span>
                       </div>
                     </td>
-                    <td style={{ padding: '15px 20px', color: '#94a3b8' }}>{ping}s AGO</td>
+                    <td className="mobile-hide" style={{ padding: '15px 20px', color: '#94a3b8' }}>{ping}s AGO</td>
                     <td style={{ padding: '15px 20px' }}>
                       <button
                         onClick={() => openLog(d.id)}

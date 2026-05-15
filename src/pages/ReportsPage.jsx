@@ -272,19 +272,19 @@ const ReportsPage = ({ districts, headerDistrict, addSubmission }) => {
     <div style={{ padding: '2rem', background: '#ffffff', color: '#1e293b', minHeight: '100vh', overflowY: 'auto' }} className="printable-area analytics-container">
 
       {/* HEADER + CONTROLS */}
-      <div className="flex-row-responsive" style={{ marginBottom: '30px', justifyContent: 'space-between', alignItems: 'flex-start' }} className="no-print">
+      <div className="flex-row-responsive no-print" style={{ marginBottom: '30px', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#0891b2', marginBottom: '5px' }}>
             <FileText size={18} />
             <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '2px' }}>IFRS_ISSB_COMPLIANCE_DISCLOSURE</span>
           </div>
-          <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: '#0f172a' }}>{selectedDistrict.toUpperCase()} | {period.toUpperCase()}</h1>
+          <h1 style={{ margin: 0, fontSize: 'clamp(1rem, 4vw, 1.5rem)', fontWeight: 900, color: '#0f172a' }}>{selectedDistrict.toUpperCase()} | {period.toUpperCase()}</h1>
           <div style={{ fontSize: '0.6rem', color: '#475569', marginTop: '4px' }}>
             Target Platform Alignment: <span style={{ color: '#b45309' }}>Bursa CSI Platform</span> | Verified by EnviroPulse Node Network
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', flexShrink: 0 }}>
           <button
             onClick={handlePrintPDF}
             disabled={generatingPdf || !reportReady}
@@ -378,7 +378,7 @@ const ReportsPage = ({ districts, headerDistrict, addSubmission }) => {
           {!reportReady && !generating && (
             <div className="widget" style={{ height: '500px', background: '#f8fafc', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '20px', opacity: 0.7, border: '1px dashed #cbd5e1', borderRadius: '8px' }}>
               <Layout size={60} color="#94a3b8" />
-              <span style={{ fontSize: '0.8rem', letterSpacing: '2px', color: '#475569' }}>SELECT_PARAMETERS_TO_GENERATE_IFRS_LAYOUT</span>
+              <span style={{ fontSize: '0.8rem', letterSpacing: '1px', color: '#475569', textAlign: 'center', wordBreak: 'break-word', maxWidth: '100%', padding: '0 10px' }}>SELECT_PARAMETERS_TO_GENERATE_IFRS_LAYOUT</span>
             </div>
           )}
 
@@ -386,7 +386,7 @@ const ReportsPage = ({ districts, headerDistrict, addSubmission }) => {
             <div className="widget" style={{ height: '500px', background: '#f8fafc', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '25px', border: '1px solid #0891b2', borderRadius: '8px' }}>
               <div className="marker-pulse" style={{ width: 80, height: 80, background: '#e0f2fe', borderRadius: '50%' }}></div>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 900, letterSpacing: '4px', marginBottom: '10px', color: '#0891b2' }}>COMPILING_IFRS_S1_S2_PILLARS...</div>
+                <div style={{ fontSize: '0.8rem', fontWeight: 900, letterSpacing: '2px', marginBottom: '10px', color: '#0891b2', wordBreak: 'break-word' }}>COMPILING_IFRS_S1_S2_PILLARS...</div>
                 <div style={{ fontSize: '0.6rem', color: '#475569' }}>EVALUATING SENSOR NODES AGAINST BURSA CSI COMPLIANCE MATRICES</div>
               </div>
             </div>

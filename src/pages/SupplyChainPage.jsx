@@ -77,22 +77,22 @@ const SupplyChainPage = () => {
   const currentData = supplyChainData.find(d => d.tier === selectedTier);
 
   return (
-    <div style={{ padding: '2rem', background: '#ffffff', color: '#1e293b', minHeight: '100vh', overflowY: 'auto' }}>
+    <div className="page-scroll-container" style={{ padding: '2rem', background: '#ffffff', color: '#1e293b' }}>
       {/* Header */}
-      <div style={{ marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div style={{ marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '15px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
             <Layers className="cyan" size={20} color="#0891b2" />
             <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#0891b2', letterSpacing: '2px' }}>SUPPLY_CHAIN_TERMINAL_v1.0</span>
           </div>
-          <h1 style={{ fontSize: '1.8rem', fontWeight: 900, margin: 0, textTransform: 'uppercase', letterSpacing: '-1px', color: '#0f172a' }}>
+          <h1 style={{ fontSize: 'clamp(1.2rem, 4vw, 1.8rem)', fontWeight: 900, margin: 0, textTransform: 'uppercase', letterSpacing: '-1px', color: '#0f172a' }}>
             Supplier Compliance <span style={{ color: '#b45309' }}>Framework</span>
           </h1>
           <p style={{ color: '#475569', fontSize: '0.8rem', marginTop: '5px' }}>
             Multi-tier sustainability tracking for automotive ecosystem (Proton/Perodua)
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', flexShrink: 0 }}>
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '10px 20px', borderRadius: '4px' }}>
             <div style={{ fontSize: '0.55rem', color: '#475569', marginBottom: '2px' }}>TOTAL_SUPPLIERS</div>
             <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0f172a' }}>154</div>
@@ -105,7 +105,7 @@ const SupplyChainPage = () => {
       </div>
 
       {/* Tier Selector */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginBottom: '30px' }}>
+      <div className="responsive-grid-3" style={{ gap: '15px', marginBottom: '30px' }}>
         {supplyChainData.map((d) => (
           <div
             key={d.tier}
@@ -144,10 +144,10 @@ const SupplyChainPage = () => {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '30px' }}>
+      <div className="supply-main-grid" style={{ gap: '30px' }}>
         {/* Suppliers List */}
         <div className="widget" style={{ padding: '0', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-          <div style={{ padding: '20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ padding: '20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
             <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, color: '#0f172a' }}>MANAGED SUPPLIER DIRECTORY</h3>
             <div style={{ position: 'relative' }}>
               <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
@@ -163,19 +163,19 @@ const SupplyChainPage = () => {
                   borderRadius: '4px',
                   fontSize: '0.7rem',
                   color: '#1e293b',
-                  width: '200px'
+                  width: '160px'
                 }}
               />
             </div>
           </div>
           <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <table className="table-mobile" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead style={{ position: 'sticky', top: 0, background: '#ffffff', zIndex: 10 }}>
                 <tr style={{ fontSize: '0.65rem', color: '#475569', borderBottom: '1px solid #e2e8f0' }}>
                   <th style={{ padding: '15px 20px' }}>SUPPLIER_NAME</th>
-                  <th style={{ padding: '15px 20px' }}>CORE_CATEGORY</th>
-                  <th style={{ padding: '15px 20px' }}>REPORTING_STATUS</th>
-                  <th style={{ padding: '15px 20px' }}>DATA_FIDELITY</th>
+                  <th className="mobile-hide" style={{ padding: '15px 20px' }}>CORE_CATEGORY</th>
+                  <th style={{ padding: '15px 20px' }}>STATUS</th>
+                  <th className="mobile-hide" style={{ padding: '15px 20px' }}>DATA_FIDELITY</th>
                 </tr>
               </thead>
               <tbody>
@@ -184,14 +184,14 @@ const SupplyChainPage = () => {
                   .map((s, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '0.75rem', transition: 'background 0.2s' }} className="hover-row" onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                       <td style={{ padding: '15px 20px', fontWeight: 700, color: '#0f172a' }}>{s.name}</td>
-                      <td style={{ padding: '15px 20px', color: '#475569' }}>{s.category}</td>
+                      <td className="mobile-hide" style={{ padding: '15px 20px', color: '#475569' }}>{s.category}</td>
                       <td style={{ padding: '15px 20px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           {s.status === 'Verified' ? <CheckCircle2 size={12} style={{ color: '#16a34a' }} /> : <AlertCircle size={12} style={{ color: '#b45309' }} />}
                           <span style={{ color: s.status === 'Verified' ? '#16a34a' : '#b45309', fontWeight: 800, fontSize: '0.65rem' }}>{s.status.toUpperCase()}</span>
                         </div>
                       </td>
-                      <td style={{ padding: '15px 20px', fontFamily: 'monospace', fontSize: '0.65rem', color: '#0891b2' }}>{s.data.toUpperCase()}</td>
+                      <td className="mobile-hide" style={{ padding: '15px 20px', fontFamily: 'monospace', fontSize: '0.65rem', color: '#0891b2' }}>{s.data.toUpperCase()}</td>
                     </tr>
                   ))}
               </tbody>
@@ -237,7 +237,7 @@ const SupplyChainPage = () => {
       {/* Global Supply Chain Visualization Placeholder */}
       <div className="widget" style={{ marginTop: '30px', padding: '30px', background: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '200px', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
         <Globe size={40} style={{ color: '#cbd5e1', marginBottom: '15px' }} />
-        <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#475569', letterSpacing: '4px' }}>MAPPING_GLOBAL_RAW_MATERIAL_INTENSITY...</span>
+        <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#475569', letterSpacing: '2px', wordBreak: 'break-all', textAlign: 'center', maxWidth: '100%' }}>MAPPING_GLOBAL_RAW_MATERIAL_INTENSITY...</span>
         <div style={{ width: '60%', height: '2px', background: '#e2e8f0', marginTop: '20px', position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: '40%', background: '#0891b2', boxShadow: '0 0 10px #0891b2' }}></div>
         </div>

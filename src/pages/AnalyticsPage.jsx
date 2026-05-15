@@ -207,13 +207,13 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
         
         {/* Pattern Analysis: 7-Day Trend */}
         <div className="widget span-12" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <TrendingUp size={18} style={{ color: '#000' }} />
               <h2 style={{ fontSize: '0.8rem', fontWeight: 900, margin: 0, color: '#000' }}>PATTERN_ANALYSIS_HISTORICAL</h2>
             </div>
             {/* Metric toggle for historical chart */}
-            <div style={{ display: 'flex', gap: '6px' }}>
+            <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
               {histMetrics.map(m => (
                 <button
                   key={m.id}
@@ -260,12 +260,12 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
 
         {/* Predictive Engine — Factory MSME */}
         <div className="widget span-12" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <Zap size={20} style={{ color: FACTORY_COLOR }} />
               <h2 style={{ fontSize: '0.85rem', fontWeight: 900, margin: 0, letterSpacing: '1px', color: '#000' }}>AI_PREDICTIVE_ENGINE — 6H FACTORY INTELLIGENCE</h2>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
               {currentPred?.isFallback && (
                 <span style={{ background: 'rgba(255,184,0,0.15)', color: '#ffb800', border: '1px solid #ffb800', fontSize: '0.55rem', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>OFFLINE_MODE</span>
               )}
@@ -311,10 +311,10 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
 
                 {/* Row 2: PM2.5 6H Forecast Chart */}
                 <div style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.06)', borderRadius: '8px', padding: '18px', marginBottom: '20px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                    <span style={{ fontSize: '0.6rem', fontWeight: 900, color: FACTORY_COLOR, letterSpacing: '1px' }}>PM2.5_FORECAST — 6H PROJECTION (WHO 15 µg/m³ limit)</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+                    <span style={{ fontSize: '0.6rem', fontWeight: 900, color: FACTORY_COLOR, letterSpacing: '1px', flexShrink: 0 }}>PM2.5_FORECAST — 6H PROJECTION (WHO 15 µg/m³ limit)</span>
                     {n.forecastSummary && (
-                      <span style={{ fontSize: '0.62rem', color: '#333', maxWidth: '55%', textAlign: 'right', lineHeight: '1.3' }}>{n.forecastSummary}</span>
+                      <span style={{ fontSize: '0.62rem', color: '#333', lineHeight: '1.3' }}>{n.forecastSummary}</span>
                     )}
                   </div>
                   <div style={{ height: '180px' }}>

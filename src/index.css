@@ -510,6 +510,26 @@ body {
   }
 }
 
+/* --- SUPPLY CHAIN MAIN GRID --- */
+.supply-main-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 30px;
+}
+
+@media (max-width: 1024px) {
+  .supply-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .supply-main-grid {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
 /* --- REPORT MAIN GRID --- */
 .report-main-grid {
   display: grid;
@@ -685,6 +705,60 @@ body {
 
 .leaflet-container {
   background: #000 !important;
+}
+
+/* --- MOBILE TABLE UTILITIES --- */
+/* Hide columns on mobile that can't fit without horizontal scroll */
+@media (max-width: 768px) {
+  .mobile-hide {
+    display: none !important;
+  }
+  /* Tighter padding for table cells on mobile */
+  .table-mobile td,
+  .table-mobile th {
+    padding: 10px 10px !important;
+    font-size: 0.72rem !important;
+  }
+}
+
+/* --- DATA FLOW VISUALIZATION --- */
+.data-flow-grid {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  position: relative;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.data-flow-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  z-index: 1;
+  background: #fff;
+  padding: 0 15px;
+}
+
+.data-flow-connector {
+  position: absolute;
+  top: 40%;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: #e2e8f0;
+  z-index: 0;
+}
+
+@media (max-width: 768px) {
+  .data-flow-node {
+    flex-basis: calc(50% - 20px);
+    padding: 8px;
+  }
+  .data-flow-connector {
+    display: none;
+  }
 }
 
 /* Print Styles */
