@@ -85,7 +85,7 @@ const Map2DVisualization = ({ onSelectDistrict }) => {
                 Type: {district.type}<br />
                 <button 
                   onClick={() => onSelectDistrict(district.id)}
-                  style={{ marginTop: '5px', background: '#000', color: '#fff', border: 'none', padding: '2px 5px', cursor: 'pointer', fontSize: '0.6rem' }}
+                  style={{ marginTop: '5px', background: 'var(--bg-primary)', color: 'var(--text-primary)', border: 'none', padding: '2px 5px', cursor: 'pointer', fontSize: '0.6rem' }}
                 >
                   VIEW DATA
                 </button>
@@ -128,3 +128,4 @@ const Map2DVisualization = ({ onSelectDistrict }) => {
 };
 
 export default Map2DVisualization;
+

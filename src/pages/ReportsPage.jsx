@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { 
-  FileText, Download, 
-  Layout, Share2, AlertTriangle, 
+import {
+  FileText, Download,
+  Layout, Share2, AlertTriangle,
   Activity, Zap, Globe, Shield, Table as TableIcon,
   Users, UserCheck, BarChart3, Database, Lock, Scale, Droplets, Leaf, Truck
 } from 'lucide-react';
-import { 
-  ResponsiveContainer, XAxis, YAxis, CartesianGrid, 
+import {
+  ResponsiveContainer, XAxis, YAxis, CartesianGrid,
   Tooltip, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   LineChart, Line
 } from 'recharts';
@@ -43,7 +43,7 @@ const ReportsPage = ({ districts, headerDistrict }) => {
   const handleGenerate = async () => {
     setGenerating(true);
     setReportReady(false);
-    
+
     try {
       // 1. Ensure we have latest stats
       const statsRes = await fetch(`/api/analytics/esg-stats?id=${selectedDistrict}&period=${encodeURIComponent(period)}`);
@@ -58,7 +58,7 @@ const ReportsPage = ({ districts, headerDistrict }) => {
       const response = await fetch('/api/analytics/esg', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           sensorData: sensorData || { name: currentStats.districtName, id: selectedDistrict },
           stats: currentStats
         })
@@ -139,24 +139,24 @@ const ReportsPage = ({ districts, headerDistrict }) => {
       return;
     }
     setGeneratingPdf(true);
-    
+
     await new Promise(r => setTimeout(r, 150));
 
     try {
       const element = reportContentRef.current;
       const canvas = await html2canvas(element, {
-        backgroundColor: '#050505',
+        backgroundColor: '#ffffff',
         scale: 2,
         logging: false,
         useCORS: true,
         allowTaint: true
       });
-      
+
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      
+
       const rawDataStr = `${selectedDistrict}|${stats?.currentPm25 || 0}|${stats?.currentAqi || 0}|${stats?.currentHeatIndex || 0}|${stats?.totalDaysAnalyzed || 30}`;
       let h = 0x811c9dc5;
       for (let i = 0; i < rawDataStr.length; i++) {
@@ -169,16 +169,15 @@ const ReportsPage = ({ districts, headerDistrict }) => {
       const drawHeaderFooter = (page) => {
         pdf.setFont('courier', 'bold');
         pdf.setFontSize(8);
-        pdf.setTextColor(0, 240, 255);
+        pdf.setTextColor(0, 80, 100);
         pdf.text(`PATENT UI 2020000785 | ENVIROPULSE NODE: ${selectedDistrict.toUpperCase()}`, 10, 8);
-        pdf.setTextColor(150, 150, 150);
+        pdf.setTextColor(100, 100, 100);
         pdf.text(`TIMESTAMP: ${timestampStr}`, pdfWidth - 10, 8, { align: 'right' });
-        
+
         pdf.setFontSize(7);
-        pdf.setTextColor(255, 184, 0);
+        pdf.setTextColor(200, 120, 0);
         pdf.text(`DATASET FNV-1a HASH: #${hashStr}`, 10, pageHeight - 11);
-        pdf.setTextColor(120, 120, 120);
-        // Bursa CSI Platform alignment mandatory footer
+        pdf.setTextColor(80, 80, 80);
         pdf.text(`ALIGNMENT: Bursa CSI Platform | IFRS S1/S2 Disclosure | OSH Act 2024`, 10, pageHeight - 6);
         pdf.text(`PAGE ${page}`, pdfWidth - 10, pageHeight - 6, { align: 'right' });
       };
@@ -186,7 +185,7 @@ const ReportsPage = ({ districts, headerDistrict }) => {
       const printableHeight = pageHeight - 28;
       const imgWidthOnPdf = pdfWidth - 20;
       const imgHeightOnPdf = (canvas.height * imgWidthOnPdf) / canvas.width;
-      
+
       let heightLeft = imgHeightOnPdf;
       let position = 12;
       let pageNum = 1;
@@ -200,11 +199,11 @@ const ReportsPage = ({ districts, headerDistrict }) => {
         pdf.addPage();
         pageNum++;
         pdf.addImage(imgData, 'PNG', 10, position + 12, imgWidthOnPdf, imgHeightOnPdf);
-        
-        pdf.setFillColor(5, 5, 5);
+
+        pdf.setFillColor(255, 255, 255);
         pdf.rect(0, 0, pdfWidth, 11, 'F');
         pdf.rect(0, pageHeight - 15, pdfWidth, 15, 'F');
-        
+
         drawHeaderFooter(pageNum);
         heightLeft -= printableHeight;
       }
@@ -247,38 +246,38 @@ const ReportsPage = ({ districts, headerDistrict }) => {
   }, [selectedDistrict]);
 
   return (
-    <div style={{ padding: '2rem', background: '#050505', color: '#fff', minHeight: '100vh', overflowY: 'auto' }} className="printable-area">
-      
+    <div style={{ padding: '2rem', background: '#ffffff', color: '#1e293b', minHeight: '100vh', overflowY: 'auto' }} className="printable-area">
+
       {/* HEADER + CONTROLS */}
       <div style={{ marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }} className="no-print">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--accent-cyan)', marginBottom: '5px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#0891b2', marginBottom: '5px' }}>
             <FileText size={18} />
             <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '2px' }}>IFRS_ISSB_COMPLIANCE_DISCLOSURE</span>
           </div>
-          <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900 }}>{selectedDistrict.toUpperCase()} | {period.toUpperCase()}</h1>
-          <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-            Target Platform Alignment: <span style={{ color: 'var(--accent-gold)' }}>Bursa CSI Platform</span> | Verified by EnviroPulse Node Network
+          <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: '#0f172a' }}>{selectedDistrict.toUpperCase()} | {period.toUpperCase()}</h1>
+          <div style={{ fontSize: '0.6rem', color: '#475569', marginTop: '4px' }}>
+            Target Platform Alignment: <span style={{ color: '#b45309' }}>Bursa CSI Platform</span> | Verified by EnviroPulse Node Network
           </div>
         </div>
 
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <button 
+          <button
             onClick={handlePrintPDF}
             disabled={generatingPdf || !reportReady}
-            style={{ 
-              background: generatingPdf ? 'rgba(0,240,255,0.1)' : 'rgba(255,255,255,0.05)', 
-              border: `1px solid ${generatingPdf ? 'var(--accent-cyan)' : 'rgba(255,255,255,0.1)'}`, 
-              color: generatingPdf ? 'var(--accent-cyan)' : '#fff', 
-              padding: '8px 15px', fontSize: '0.65rem', fontWeight: 800, 
-              cursor: generatingPdf || !reportReady ? 'not-allowed' : 'pointer', 
-              borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px', 
-              opacity: !reportReady ? 0.5 : 1 
+            style={{
+              background: generatingPdf ? '#e0f2fe' : '#f8fafc',
+              border: `1px solid ${generatingPdf ? '#0891b2' : '#cbd5e1'}`,
+              color: generatingPdf ? '#0891b2' : '#1e293b',
+              padding: '8px 15px', fontSize: '0.65rem', fontWeight: 800,
+              cursor: generatingPdf || !reportReady ? 'not-allowed' : 'pointer',
+              borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px',
+              opacity: !reportReady ? 0.5 : 1
             }}
           >
             {generatingPdf ? (
               <>
-                <div className="animate-spin" style={{ width: 10, height: 10, border: '1px solid var(--accent-cyan)', borderTopColor: 'transparent', borderRadius: '50%' }} />
+                <div className="animate-spin" style={{ width: 10, height: 10, border: '2px solid #0891b2', borderTopColor: 'transparent', borderRadius: '50%' }} />
                 SYNTHESIZING_PDF...
               </>
             ) : (
@@ -287,23 +286,23 @@ const ReportsPage = ({ districts, headerDistrict }) => {
               </>
             )}
           </button>
-          <button 
+          <button
             onClick={handleExportCSV}
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '8px 15px', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}
+            style={{ background: '#f8fafc', border: '1px solid #cbd5e1', color: '#1e293b', padding: '8px 15px', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}
           >
             <TableIcon size={14} /> CSV
           </button>
-          <button 
+          <button
             onClick={handleSubmitToBursa}
             disabled={!reportReady}
-            style={{ 
-              background: reportReady ? 'var(--accent-gold)' : 'rgba(255,184,0,0.1)', 
-              color: reportReady ? '#000' : '#666', 
-              border: `1px solid ${reportReady ? 'var(--accent-gold)' : 'rgba(255,184,0,0.2)'}`, 
-              padding: '8px 18px', fontSize: '0.65rem', fontWeight: 900, 
-              cursor: reportReady ? 'pointer' : 'not-allowed', 
-              borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px', 
-              letterSpacing: '0.5px' 
+            style={{
+              background: reportReady ? '#b45309' : '#fef3c7',
+              color: reportReady ? '#ffffff' : '#92400e',
+              border: `1px solid ${reportReady ? '#b45309' : '#fed7aa'}`,
+              padding: '8px 18px', fontSize: '0.65rem', fontWeight: 900,
+              cursor: reportReady ? 'pointer' : 'not-allowed',
+              borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px',
+              letterSpacing: '0.5px'
             }}
           >
             <Share2 size={14} /> SUBMIT_TO_BURSA_CSI
@@ -313,13 +312,13 @@ const ReportsPage = ({ districts, headerDistrict }) => {
 
       <div className="report-main-grid" style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '25px', marginBottom: '40px' }}>
         {/* CONFIG PANEL */}
-        <div className="widget no-print" style={{ padding: '20px', height: 'fit-content', background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.05)' }}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 900, marginBottom: '20px', borderBottom: '1px solid rgba(0, 240, 255, 0.2)', paddingBottom: '10px' }}>REPORT_PARAMETERS</div>
-          
+        <div className="widget" style={{ padding: '20px', height: 'fit-content', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+          <div style={{ fontSize: '0.7rem', fontWeight: 900, marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', color: '#0f172a' }}>REPORT_PARAMETERS</div>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <div>
-              <label style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '5px' }}>TEMPORAL_LOOKBACK</label>
-              <select value={period} onChange={(e) => setPeriod(e.target.value)} style={{ width: '100%', background: '#050505', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '8px', fontSize: '0.7rem', borderRadius: '4px' }}>
+              <label style={{ fontSize: '0.55rem', color: '#475569', display: 'block', marginBottom: '5px' }}>TEMPORAL_LOOKBACK</label>
+              <select value={period} onChange={(e) => setPeriod(e.target.value)} style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', color: '#1e293b', padding: '8px', fontSize: '0.7rem', borderRadius: '4px' }}>
                 <option>Today</option>
                 <option>Last 7 Days</option>
                 <option>Last 30 Days</option>
@@ -328,24 +327,24 @@ const ReportsPage = ({ districts, headerDistrict }) => {
             </div>
 
             <div>
-              <label style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '5px' }}>DISTRICT_NODE</label>
-              <select value={selectedDistrict} onChange={(e) => setSelectedDistrict(e.target.value)} style={{ width: '100%', background: '#050505', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '8px', fontSize: '0.7rem', borderRadius: '4px' }}>
+              <label style={{ fontSize: '0.55rem', color: '#475569', display: 'block', marginBottom: '5px' }}>DISTRICT_NODE</label>
+              <select value={selectedDistrict} onChange={(e) => setSelectedDistrict(e.target.value)} style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', color: '#1e293b', padding: '8px', fontSize: '0.7rem', borderRadius: '4px' }}>
                 {districts?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
             </div>
 
-            <button 
+            <button
               onClick={handleGenerate}
               disabled={generating}
-              style={{ 
-                width: '100%', background: 'var(--accent-cyan)', color: '#000', 
-                border: 'none', padding: '12px', fontWeight: 900, fontSize: '0.7rem', 
+              style={{
+                width: '100%', background: '#0891b2', color: '#ffffff',
+                border: 'none', padding: '12px', fontWeight: 900, fontSize: '0.7rem',
                 cursor: 'pointer', marginTop: '10px', borderRadius: '4px',
-                display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' 
+                display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px'
               }}
             >
               {generating ? 'SYNTHESIZING_ISSB...' : 'GENERATE_IFRS_REPORT'}
-              {generating && <div className="animate-spin" style={{ width: 12, height: 12, border: '2px solid #000', borderTopColor: 'transparent', borderRadius: '50%' }}></div>}
+              {generating && <div className="animate-spin" style={{ width: 12, height: 12, border: '2px solid #ffffff', borderTopColor: 'transparent', borderRadius: '50%' }}></div>}
             </button>
           </div>
         </div>
@@ -353,84 +352,84 @@ const ReportsPage = ({ districts, headerDistrict }) => {
         {/* REPORT CONTENT AREA */}
         <div style={{ position: 'relative' }}>
           {!reportReady && !generating && (
-            <div className="widget" style={{ height: '500px', background: '#0a0a0a', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '20px', opacity: 0.3, border: '1px dashed rgba(255,255,255,0.1)' }}>
-              <Layout size={60} />
-              <span style={{ fontSize: '0.8rem', letterSpacing: '2px' }}>SELECT_PARAMETERS_TO_GENERATE_IFRS_LAYOUT</span>
+            <div className="widget" style={{ height: '500px', background: '#f8fafc', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '20px', opacity: 0.7, border: '1px dashed #cbd5e1', borderRadius: '8px' }}>
+              <Layout size={60} color="#94a3b8" />
+              <span style={{ fontSize: '0.8rem', letterSpacing: '2px', color: '#475569' }}>SELECT_PARAMETERS_TO_GENERATE_IFRS_LAYOUT</span>
             </div>
           )}
 
           {generating && (
-            <div className="widget" style={{ height: '500px', background: '#0a0a0a', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '25px', border: '1px solid rgba(0,240,255,0.1)' }}>
-              <div className="marker-pulse" style={{ width: 80, height: 80, background: 'rgba(0, 240, 255, 0.1)', borderRadius: '50%' }}></div>
+            <div className="widget" style={{ height: '500px', background: '#f8fafc', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '25px', border: '1px solid #0891b2', borderRadius: '8px' }}>
+              <div className="marker-pulse" style={{ width: 80, height: 80, background: '#e0f2fe', borderRadius: '50%' }}></div>
               <div style={{ textAlign: 'center' }}>
-                <div className="cyan" style={{ fontSize: '0.8rem', fontWeight: 900, letterSpacing: '4px', marginBottom: '10px' }}>COMPILING_IFRS_S1_S2_PILLARS...</div>
-                <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>EVALUATING SENSOR NODES AGAINST BURSA CSI COMPLIANCE MATRICES</div>
+                <div style={{ fontSize: '0.8rem', fontWeight: 900, letterSpacing: '4px', marginBottom: '10px', color: '#0891b2' }}>COMPILING_IFRS_S1_S2_PILLARS...</div>
+                <div style={{ fontSize: '0.6rem', color: '#475569' }}>EVALUATING SENSOR NODES AGAINST BURSA CSI COMPLIANCE MATRICES</div>
               </div>
             </div>
           )}
 
           {reportReady && (
-            <div className="animate-in" ref={reportContentRef} style={{ display: 'flex', flexDirection: 'column', gap: '30px', background: '#050505', padding: generatingPdf ? '20px' : '0' }}>
+            <div className="animate-in" ref={reportContentRef} style={{ display: 'flex', flexDirection: 'column', gap: '30px', background: '#ffffff', padding: generatingPdf ? '20px' : '0' }}>
 
               {/* OVERARCHING CITATION / ADVISORY CARD */}
-              <div className="widget" style={{ padding: '25px', background: '#0a0a0a', borderLeft: '4px solid var(--accent-cyan)', border: '1px solid rgba(0,240,255,0.15)' }}>
+              <div className="widget" style={{ padding: '25px', background: '#f8fafc', borderLeft: '4px solid #0891b2', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                   <div>
-                    <span style={{ fontSize: '0.55rem', fontWeight: 800, color: 'var(--accent-cyan)', letterSpacing: '1px', display: 'block', marginBottom: '4px' }}>MANDATORY DISCLOSURE CITATIONS</span>
-                    <h2 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0 }}>IFRS S1 & IFRS S2 GENERAL SUSTAINABILITY DISCLOSURES</h2>
+                    <span style={{ fontSize: '0.55rem', fontWeight: 800, color: '#0891b2', letterSpacing: '1px', display: 'block', marginBottom: '4px' }}>MANDATORY DISCLOSURE CITATIONS</span>
+                    <h2 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0, color: '#0f172a' }}>IFRS S1 & IFRS S2 GENERAL SUSTAINABILITY DISCLOSURES</h2>
                   </div>
-                  <div style={{ background: 'rgba(0,240,255,0.08)', padding: '4px 10px', borderRadius: '3px', fontSize: '0.65rem', fontWeight: 900, color: 'var(--accent-cyan)' }}>
+                  <div style={{ background: '#e0f2fe', padding: '4px 10px', borderRadius: '3px', fontSize: '0.65rem', fontWeight: 900, color: '#0891b2' }}>
                     {esgAdvisory?.performanceScore || 'A RATED'}
                   </div>
                 </div>
-                <p style={{ fontSize: '0.75rem', lineHeight: '1.6', color: 'var(--text-secondary)', margin: 0 }}>
+                <p style={{ fontSize: '0.75rem', lineHeight: '1.6', color: '#334155', margin: 0 }}>
                   {esgAdvisory?.narrative || "This integrated disclosure follows the mandate of IFRS S1 General Requirements for Disclosure of Sustainability-related Financial Information and IFRS S2 Climate-related Disclosures. Dynamic empirical validation is established directly via real-time ambient PM2.5, carbon equivalencies, and thermal stress indices mapped to regional baseline targets."}
                 </p>
               </div>
 
               {/* PILLAR 1: GOVERNANCE */}
-              <div className="widget" style={{ padding: '25px', background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px' }}>
-                  <div style={{ background: 'var(--accent-cyan)', color: '#000', width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 900 }}>1</div>
-                  <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 900, letterSpacing: '1px', color: 'var(--accent-cyan)' }}>PILLAR 1: GOVERNANCE</h3>
+              <div className="widget" style={{ padding: '25px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                  <div style={{ background: '#0891b2', color: '#ffffff', width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 900 }}>1</div>
+                  <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 900, letterSpacing: '1px', color: '#0891b2' }}>PILLAR 1: GOVERNANCE</h3>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '20px', alignItems: 'start' }}>
-                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', borderRadius: '4px' }}>
-                    <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>VERIFICATION CHAIN</div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 800, marginBottom: '10px' }}>EnviroPulse Telemetry Node</div>
-                    <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>DATASET INTEGRITY HASH</div>
-                    <div style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--accent-gold)' }}>#811C9DC5-LOCKED</div>
+                  <div style={{ background: '#f1f5f9', padding: '15px', borderRadius: '4px' }}>
+                    <div style={{ fontSize: '0.55rem', color: '#475569', marginBottom: '4px' }}>VERIFICATION CHAIN</div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 800, marginBottom: '10px', color: '#0f172a' }}>EnviroPulse Telemetry Node</div>
+                    <div style={{ fontSize: '0.55rem', color: '#475569', marginBottom: '4px' }}>DATASET INTEGRITY HASH</div>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#b45309' }}>#811C9DC5-LOCKED</div>
                   </div>
-                  <div style={{ fontSize: '0.75rem', lineHeight: '1.6', color: '#ddd' }}>
+                  <div style={{ fontSize: '0.75rem', lineHeight: '1.6', color: '#334155' }}>
                     {getAdvisoryText('governance', "Governance structure overseen by real-time spatial node telemetry locking empirical environmental performance against decentralized public ledgers. Stakeholder monitoring and internal data verification systems enforce cross-checks prior to transmission.")}
                   </div>
                 </div>
               </div>
 
               {/* PILLAR 2: STRATEGY */}
-              <div className="widget" style={{ padding: '25px', background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px' }}>
-                  <div style={{ background: 'var(--accent-gold)', color: '#000', width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 900 }}>2</div>
-                  <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 900, letterSpacing: '1px', color: 'var(--accent-gold)' }}>PILLAR 2: STRATEGY</h3>
+              <div className="widget" style={{ padding: '25px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                  <div style={{ background: '#b45309', color: '#ffffff', width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 900 }}>2</div>
+                  <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 900, letterSpacing: '1px', color: '#b45309' }}>PILLAR 2: STRATEGY</h3>
                 </div>
-                <p style={{ fontSize: '0.75rem', lineHeight: '1.6', color: '#ddd', margin: '0 0 20px 0' }}>
+                <p style={{ fontSize: '0.75rem', lineHeight: '1.6', color: '#334155', margin: '0 0 20px 0' }}>
                   {getAdvisoryText('strategy', "Strategic mitigation plans anchored to local meteorological models and ambient air standards to manage short-term physical and transitional climate risks. Active optimization routines shift operating profiles dynamically.")}
                 </p>
-                
+
                 {/* AI RECOMMENDED INTERVENTIONS ROW */}
-                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <div style={{ fontSize: '0.6rem', fontWeight: 900, color: 'var(--text-secondary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Zap size={12} className="gold" /> STRATEGIC STAKEHOLDER ACTIONS
+                <div style={{ background: '#f1f5f9', padding: '15px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#475569', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Zap size={12} color="#b45309" /> STRATEGIC STAKEHOLDER ACTIONS
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     {(esgAdvisory?.interventions || [
                       { action: "Deploy additional outdoor localized air scrubbers along primary access precincts", potential: "High", stakeholder: "Facility Management" },
                       { action: "Implement real-time worker rest-rotation routines during flag-red afternoon thermal cycles", potential: "High", stakeholder: "Field Personnel" }
                     ]).map((item, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.7rem', background: 'rgba(0,0,0,0.3)', padding: '8px 12px', borderRadius: '3px' }}>
-                        <span style={{ background: item.potential === 'High' ? 'var(--accent-red)' : 'var(--accent-gold)', color: '#000', padding: '2px 6px', fontSize: '0.5rem', fontWeight: 900, borderRadius: '2px' }}>{item.potential.toUpperCase()}</span>
-                        <span style={{ flex: 1, fontWeight: 700 }}>{item.action}</span>
-                        <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>[{item.stakeholder}]</span>
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.7rem', background: '#ffffff', padding: '8px 12px', borderRadius: '3px', border: '1px solid #e2e8f0' }}>
+                        <span style={{ background: item.potential === 'High' ? '#dc2626' : '#b45309', color: '#ffffff', padding: '2px 6px', fontSize: '0.5rem', fontWeight: 900, borderRadius: '2px' }}>{item.potential.toUpperCase()}</span>
+                        <span style={{ flex: 1, fontWeight: 700, color: '#0f172a' }}>{item.action}</span>
+                        <span style={{ fontSize: '0.6rem', color: '#64748b' }}>[{item.stakeholder}]</span>
                       </div>
                     ))}
                   </div>
@@ -438,80 +437,80 @@ const ReportsPage = ({ districts, headerDistrict }) => {
               </div>
 
               {/* PILLAR 3: RISK MANAGEMENT */}
-              <div className="widget" style={{ padding: '25px', background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px' }}>
-                  <div style={{ background: 'var(--accent-red)', color: '#000', width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 900 }}>3</div>
-                  <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 900, letterSpacing: '1px', color: 'var(--accent-red)' }}>PILLAR 3: RISK MANAGEMENT</h3>
+              <div className="widget" style={{ padding: '25px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                  <div style={{ background: '#dc2626', color: '#ffffff', width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 900 }}>3</div>
+                  <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 900, letterSpacing: '1px', color: '#dc2626' }}>PILLAR 3: RISK MANAGEMENT</h3>
                 </div>
-                <p style={{ fontSize: '0.75rem', lineHeight: '1.6', color: '#ddd', margin: '0 0 20px 0' }}>
+                <p style={{ fontSize: '0.75rem', lineHeight: '1.6', color: '#334155', margin: '0 0 20px 0' }}>
                   {getAdvisoryText('riskManagement', "Automated threshold anomaly detection safeguards asset stability. Direct alignment with the OSH (Amendment) Act 2024 mandates strict tracking of extreme thermal profiles and high particulate concentrations.")}
                 </p>
 
                 {/* ANOMALY / BREACH ASSESSMENT SECTION */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '15px' }}>
-                  <div style={{ padding: '15px', background: 'rgba(255,62,62,0.05)', borderRadius: '4px', border: '1px solid rgba(255,62,62,0.15)' }}>
-                    <div style={{ fontSize: '0.6rem', fontWeight: 900, color: 'var(--accent-red)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ padding: '15px', background: '#fef2f2', borderRadius: '4px', border: '1px solid #fecaca' }}>
+                    <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#dc2626', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <AlertTriangle size={12} /> SPATIAL COMPLIANCE ANOMALIES
                     </div>
-                    <div style={{ fontSize: '0.7rem', lineHeight: '1.5', color: '#fff' }}>
+                    <div style={{ fontSize: '0.7rem', lineHeight: '1.5', color: '#1e293b' }}>
                       {esgAdvisory?.anomalies?.[0]?.details || `Active node monitoring reflects average PM2.5 compliance ratio of ${stats?.pm25Compliance || 95}%. Real-time localized atmospheric dispersion buffers maintain compliance inside operational tolerance bands.`}
                     </div>
                   </div>
-                  
-                  <div style={{ padding: '15px', background: 'rgba(0,240,255,0.05)', borderRadius: '4px', border: '1px solid rgba(0,240,255,0.15)' }}>
-                    <div style={{ fontSize: '0.6rem', fontWeight: 900, color: 'var(--accent-cyan)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+
+                  <div style={{ padding: '15px', background: '#e0f2fe', borderRadius: '4px', border: '1px solid #bae6fd' }}>
+                    <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#0891b2', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Activity size={12} /> OSH THERMAL STRESS TRACKER
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Recorded Heat Index:</span>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 900, color: parseFloat(stats?.currentHeatIndex) > 38 ? '#ff3e3e' : '#00ff82' }}>{stats?.currentHeatIndex || 32.4}°C</span>
+                      <span style={{ fontSize: '0.65rem', color: '#475569' }}>Recorded Heat Index:</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 900, color: parseFloat(stats?.currentHeatIndex) > 38 ? '#dc2626' : '#16a34a' }}>{stats?.currentHeatIndex || 32.4}°C</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Safe Operation Band:</span>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#00ff82' }}>&lt; 38.0°C limit</span>
+                      <span style={{ fontSize: '0.65rem', color: '#475569' }}>Safe Operation Band:</span>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#16a34a' }}>&lt; 38.0°C limit</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* PILLAR 4: METRICS & TARGETS */}
-              <div className="widget" style={{ padding: '25px', background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px' }}>
-                  <div style={{ background: '#00ff82', color: '#000', width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 900 }}>4</div>
-                  <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 900, letterSpacing: '1px', color: '#00ff82' }}>PILLAR 4: METRICS & TARGETS</h3>
+              <div className="widget" style={{ padding: '25px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                  <div style={{ background: '#16a34a', color: '#ffffff', width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 900 }}>4</div>
+                  <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 900, letterSpacing: '1px', color: '#16a34a' }}>PILLAR 4: METRICS & TARGETS</h3>
                 </div>
-                <p style={{ fontSize: '0.75rem', lineHeight: '1.6', color: '#ddd', margin: '0 0 20px 0' }}>
+                <p style={{ fontSize: '0.75rem', lineHeight: '1.6', color: '#334155', margin: '0 0 20px 0' }}>
                   {getAdvisoryText('metricsAndTargets', "Quantitative assessment of physical metrics targeting zero environmental baseline breaches. Complete integration with national environmental policy targets ensures continuous monitoring.")}
                 </p>
 
                 {/* METRICS GRID */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '25px' }}>
-                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                    <span style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', fontWeight: 800 }}>PM2.5 AVERAGE LOAD</span>
-                    <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--accent-cyan)' }}>{stats?.currentPm25 || 12.5}</div>
-                    <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)' }}>WHO Guideline &lt;15 µg/m³</div>
+                  <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                    <span style={{ fontSize: '0.55rem', color: '#475569', fontWeight: 800 }}>PM2.5 AVERAGE LOAD</span>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0891b2' }}>{stats?.currentPm25 || 12.5}</div>
+                    <div style={{ fontSize: '0.55rem', color: '#475569' }}>WHO Guideline &lt;15 µg/m³</div>
                   </div>
-                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                    <span style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', fontWeight: 800 }}>DOE API INDEX</span>
-                    <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--accent-gold)' }}>{stats?.currentAqi || 45}</div>
-                    <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)' }}>EQA 1974 Threshold &lt;100</div>
+                  <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                    <span style={{ fontSize: '0.55rem', color: '#475569', fontWeight: 800 }}>DOE API INDEX</span>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#b45309' }}>{stats?.currentAqi || 45}</div>
+                    <div style={{ fontSize: '0.55rem', color: '#475569' }}>EQA 1974 Threshold &lt;100</div>
                   </div>
-                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                    <span style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', fontWeight: 800 }}>HEAT SAFE RATIO</span>
-                    <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#00ff82' }}>{stats?.heatSafeDays || 100}%</div>
-                    <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)' }}>Uptime within band</div>
+                  <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                    <span style={{ fontSize: '0.55rem', color: '#475569', fontWeight: 800 }}>HEAT SAFE RATIO</span>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#16a34a' }}>{stats?.heatSafeDays || 100}%</div>
+                    <div style={{ fontSize: '0.55rem', color: '#475569' }}>Uptime within band</div>
                   </div>
-                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                    <span style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', fontWeight: 800 }}>LOOKBACK DURATION</span>
-                    <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#fff' }}>{stats?.totalDaysAnalyzed || 30}</div>
-                    <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)' }}>Analyzed Data Points</div>
+                  <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                    <span style={{ fontSize: '0.55rem', color: '#475569', fontWeight: 800 }}>LOOKBACK DURATION</span>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0f172a' }}>{stats?.totalDaysAnalyzed || 30}</div>
+                    <div style={{ fontSize: '0.55rem', color: '#475569' }}>Analyzed Data Points</div>
                   </div>
                 </div>
 
                 {/* VISUAL CHARTS UNDER METRICS */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                  <div style={{ background: 'rgba(255,255,255,0.01)', padding: '15px', borderRadius: '4px', height: '280px' }}>
-                    <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '10px' }}>COMPLIANCE RADAR PROFILE</div>
+                  <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '4px', height: '280px' }}>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#475569', marginBottom: '10px' }}>COMPLIANCE RADAR PROFILE</div>
                     <ResponsiveContainer width="100%" height="85%">
                       <RadarChart cx="50%" cy="50%" outerRadius="75%" data={[
                         { subject: 'WHO PM2.5', val: stats?.pm25Compliance || 95 },
@@ -520,63 +519,64 @@ const ReportsPage = ({ districts, headerDistrict }) => {
                         { subject: 'Telemetry', val: 100 },
                         { subject: 'ISSB Lock', val: 100 }
                       ]}>
-                        <PolarGrid stroke="rgba(255,255,255,0.1)" />
-                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#888', fontSize: 9 }} />
+                        <PolarGrid stroke="#cbd5e1" />
+                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#475569', fontSize: 9 }} />
                         <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-                        <Radar name="Metrics" dataKey="val" stroke="var(--accent-cyan)" fill="var(--accent-cyan)" fillOpacity={0.5} />
-                        <Tooltip contentStyle={{ background: '#000', border: '1px solid var(--accent-cyan)', fontSize: '0.7rem' }} />
+                        <Radar name="Metrics" dataKey="val" stroke="#0891b2" fill="#0891b2" fillOpacity={0.3} />
+                        <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid #0891b2', fontSize: '0.7rem', color: '#0f172a' }} />
                       </RadarChart>
                     </ResponsiveContainer>
                   </div>
 
-                  <div style={{ background: 'rgba(255,255,255,0.01)', padding: '15px', borderRadius: '4px', height: '280px' }}>
-                    <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '10px' }}>PM2.5 HISTORICAL DISPERSION</div>
+                  <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '4px', height: '280px' }}>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#475569', marginBottom: '10px' }}>PM2.5 HISTORICAL DISPERSION</div>
                     <ResponsiveContainer width="100%" height="85%">
                       <LineChart data={stats?.trend || [
                         { day: 'D1', pm25: 12.1 }, { day: 'D2', pm25: 14.5 }, { day: 'D3', pm25: 18.2 }, { day: 'D4', pm25: 15.0 }
                       ]}>
-                        <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
-                        <XAxis dataKey="day" stroke="#666" fontSize={9} axisLine={false} tickLine={false} />
-                        <YAxis stroke="#666" fontSize={9} axisLine={false} tickLine={false} />
-                        <Tooltip contentStyle={{ background: '#000', border: '1px solid var(--accent-cyan)', fontSize: '0.7rem' }} />
-                        <Line type="monotone" dataKey="pm25" stroke="var(--accent-cyan)" strokeWidth={2} dot={{ r: 2, fill: 'var(--accent-cyan)' }} />
+                        <CartesianGrid stroke="#e2e8f0" vertical={false} />
+                        <XAxis dataKey="day" stroke="#94a3b8" fontSize={9} axisLine={false} tickLine={false} />
+                        <YAxis stroke="#94a3b8" fontSize={9} axisLine={false} tickLine={false} />
+                        <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid #0891b2', fontSize: '0.7rem', color: '#0f172a' }} />
+                        <Line type="monotone" dataKey="pm25" stroke="#0891b2" strokeWidth={2} dot={{ r: 2, fill: '#0891b2' }} />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
-              </div>              {/* BURSA MALAYSIA MANDATORY SUSTAINABILITY MATTERS (COMMON MATTERS) */}
-              <div className="widget" style={{ padding: '25px', background: '#0a0a0a', border: '1px solid rgba(255,184,0,0.15)' }}>
+              </div>
+              {/* BURSA MALAYSIA MANDATORY SUSTAINABILITY MATTERS (COMMON MATTERS) */}
+              <div className="widget" style={{ padding: '25px', background: '#fefce8', border: '1px solid #fde68a', borderRadius: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Globe size={16} className="gold" />
-                    <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 900, letterSpacing: '1px', color: 'var(--accent-gold)' }}>BURSA COMMON SUSTAINABILITY MATTERS (MAIN/ACE)</h3>
+                    <Globe size={16} color="#b45309" />
+                    <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 900, letterSpacing: '1px', color: '#b45309' }}>BURSA COMMON SUSTAINABILITY MATTERS (MAIN/ACE)</h3>
                   </div>
-                  <div style={{ background: 'rgba(255,184,0,0.1)', padding: '4px 10px', borderRadius: '4px', border: '1px solid rgba(255,184,0,0.2)' }}>
-                    <span style={{ fontSize: '0.6rem', fontWeight: 900, color: 'var(--accent-gold)' }}>CSI_MODULE_COMPLIANT</span>
+                  <div style={{ background: '#fef3c7', padding: '4px 10px', borderRadius: '4px', border: '1px solid #fde68a' }}>
+                    <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#b45309' }}>CSI_MODULE_COMPLIANT</span>
                   </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
                   {[
-                    { key: 'antiCorruption', label: 'Anti-Corruption', icon: Shield, color: 'var(--accent-gold)' },
-                    { key: 'community', label: 'Community/Society', icon: Users, color: '#00d0ff' },
-                    { key: 'diversity', label: 'Workforce Diversity', icon: UserCheck, color: '#ff0080' },
-                    { key: 'energyManagement', label: 'Energy Management', icon: Zap, color: '#ffb800' },
-                    { key: 'healthAndSafety', label: 'Health & Safety', icon: Activity, color: '#00ff82' },
-                    { key: 'labourPractices', label: 'Labour Standards', icon: Scale, color: '#a855f7' },
-                    { key: 'supplyChain', label: 'Supply Chain', icon: Layout, color: '#f97316' },
-                    { key: 'dataPrivacy', label: 'Data Privacy', icon: Lock, color: '#ec4899' },
-                    { key: 'water', label: 'Water Usage', icon: Droplets, color: '#3b82f6' }
+                    { key: 'antiCorruption', label: 'Anti-Corruption', icon: Shield, color: '#b45309' },
+                    { key: 'community', label: 'Community/Society', icon: Users, color: '#0891b2' },
+                    { key: 'diversity', label: 'Workforce Diversity', icon: UserCheck, color: '#db2777' },
+                    { key: 'energyManagement', label: 'Energy Management', icon: Zap, color: '#b45309' },
+                    { key: 'healthAndSafety', label: 'Health & Safety', icon: Activity, color: '#16a34a' },
+                    { key: 'labourPractices', label: 'Labour Standards', icon: Scale, color: '#9333ea' },
+                    { key: 'supplyChain', label: 'Supply Chain', icon: Layout, color: '#ea580c' },
+                    { key: 'dataPrivacy', label: 'Data Privacy', icon: Lock, color: '#db2777' },
+                    { key: 'water', label: 'Water Usage', icon: Droplets, color: '#2563eb' }
                   ].map((matter) => {
                     const data = getMatterObj(matter.key, { status: 'Compliant', details: 'Continuous monitoring active.' });
                     return (
-                      <div key={matter.key} style={{ padding: '15px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div key={matter.key} style={{ padding: '15px', background: '#ffffff', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                           <matter.icon size={14} style={{ color: matter.color }} />
-                          <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#fff', textTransform: 'uppercase' }}>{matter.label}</span>
+                          <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#0f172a', textTransform: 'uppercase' }}>{matter.label}</span>
                         </div>
                         <div style={{ fontSize: '0.75rem', fontWeight: 900, color: matter.color, marginBottom: '5px' }}>{data.status}</div>
-                        <div style={{ fontSize: '0.6rem', color: '#aaa', lineHeight: '1.4' }}>{data.details}</div>
+                        <div style={{ fontSize: '0.6rem', color: '#475569', lineHeight: '1.4' }}>{data.details}</div>
                       </div>
                     );
                   })}
@@ -585,35 +585,35 @@ const ReportsPage = ({ districts, headerDistrict }) => {
 
               {/* GHG EMISSIONS INVENTORY (IFRS S2 / CSI CALCULATOR) */}
               <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '20px' }}>
-                <div className="widget" style={{ padding: '25px', background: '#0a0a0a' }}>
+                <div className="widget" style={{ padding: '25px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-                    <Leaf size={16} style={{ color: '#00ff82' }} />
-                    <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 900, letterSpacing: '1px', color: '#00ff82' }}>GHG EMISSIONS INVENTORY (tCO2e)</h3>
+                    <Leaf size={16} style={{ color: '#16a34a' }} />
+                    <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 900, letterSpacing: '1px', color: '#16a34a' }}>GHG EMISSIONS INVENTORY (tCO2e)</h3>
                   </div>
-                  
+
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                     {[
                       { label: 'Scope 1 (Direct)', value: esgAdvisory?.ghgInventory?.scope1 || '12.45 tCO2e', sub: 'Fuel & Refrigerants' },
                       { label: 'Scope 2 (Indirect)', value: esgAdvisory?.ghgInventory?.scope2 || '45.12 tCO2e', sub: 'Purchased Electricity' },
                       { label: 'Scope 3 (Value Chain)', value: esgAdvisory?.ghgInventory?.scope3 || 'Transition Relief Active', sub: 'IFRS S2 One-Year Deferral' }
                     ].map((row, i) => (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '4px' }}>
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: '#f8fafc', borderRadius: '4px' }}>
                         <div>
-                          <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#fff' }}>{row.label}</div>
-                          <div style={{ fontSize: '0.6rem', color: '#666' }}>{row.sub}</div>
+                          <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#0f172a' }}>{row.label}</div>
+                          <div style={{ fontSize: '0.6rem', color: '#64748b' }}>{row.sub}</div>
                         </div>
-                        <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#00ff82' }}>{row.value}</div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#16a34a' }}>{row.value}</div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="widget" style={{ padding: '25px', background: '#0a0a0a' }}>
+                <div className="widget" style={{ padding: '25px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-                    <Users size={16} style={{ color: '#ec4899' }} />
-                    <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 900, letterSpacing: '1px', color: '#ec4899' }}>SOCIAL & GOVERNANCE DATASET</h3>
+                    <Users size={16} style={{ color: '#db2777' }} />
+                    <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 900, letterSpacing: '1px', color: '#db2777' }}>SOCIAL & GOVERNANCE DATASET</h3>
                   </div>
-                  
+
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
                     {[
                       { label: 'Workforce Diversity', value: esgAdvisory?.socialGovernance?.diversityRatio || '42% Female', icon: UserCheck },
@@ -621,11 +621,11 @@ const ReportsPage = ({ districts, headerDistrict }) => {
                       { label: 'Avg Training Hours', value: esgAdvisory?.socialGovernance?.trainingHoursAvg || '24.5h', icon: BarChart3 },
                       { label: 'Anti-Corruption %', value: esgAdvisory?.socialGovernance?.antiCorruptionTrainingPct || '100%', icon: Shield }
                     ].map((row, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px', background: 'rgba(255,255,255,0.02)', borderRadius: '4px' }}>
-                        <row.icon size={14} style={{ color: '#ec4899' }} />
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px', background: '#f8fafc', borderRadius: '4px' }}>
+                        <row.icon size={14} style={{ color: '#db2777' }} />
                         <div>
-                          <div style={{ fontSize: '0.6rem', color: '#666', textTransform: 'uppercase' }}>{row.label}</div>
-                          <div style={{ fontSize: '0.8rem', fontWeight: 900, color: '#fff' }}>{row.value}</div>
+                          <div style={{ fontSize: '0.6rem', color: '#64748b', textTransform: 'uppercase' }}>{row.label}</div>
+                          <div style={{ fontSize: '0.8rem', fontWeight: 900, color: '#0f172a' }}>{row.value}</div>
                         </div>
                       </div>
                     ))}
@@ -634,10 +634,10 @@ const ReportsPage = ({ districts, headerDistrict }) => {
               </div>
 
               {/* SUPPLY CHAIN (SCOPE 3) DISCLOSURE */}
-              <div className="widget" style={{ padding: '25px', background: '#0a0a0a', border: '1px solid rgba(0,240,255,0.1)' }}>
+              <div className="widget" style={{ padding: '25px', background: '#ffffff', border: '1px solid #0891b2', borderRadius: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-                  <Truck size={16} style={{ color: 'var(--accent-cyan)' }} />
-                  <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 900, letterSpacing: '1px', color: 'var(--accent-cyan)' }}>SUPPLY CHAIN (SCOPE 3) DISCLOSURE</h3>
+                  <Truck size={16} style={{ color: '#0891b2' }} />
+                  <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 900, letterSpacing: '1px', color: '#0891b2' }}>SUPPLY CHAIN (SCOPE 3) DISCLOSURE</h3>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
@@ -646,65 +646,65 @@ const ReportsPage = ({ districts, headerDistrict }) => {
                     { tier: 'TIER_2', label: 'Indirect/MSMEs', intensity: 'High', compliance: '82%', count: '86 Nodes' },
                     { tier: 'TIER_3', label: 'Service/Support', intensity: 'Low', compliance: '98%', count: '44 Nodes' }
                   ].map((tier, i) => (
-                    <div key={i} style={{ padding: '15px', background: 'rgba(255,255,255,0.02)', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <div style={{ fontSize: '0.55rem', fontWeight: 800, color: 'var(--accent-cyan)', marginBottom: '5px' }}>{tier.tier}</div>
-                      <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#fff', marginBottom: '10px' }}>{tier.label}</div>
+                    <div key={i} style={{ padding: '15px', background: '#f8fafc', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ fontSize: '0.55rem', fontWeight: 800, color: '#0891b2', marginBottom: '5px' }}>{tier.tier}</div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#0f172a', marginBottom: '10px' }}>{tier.label}</div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem' }}>
-                        <span style={{ color: '#666' }}>Carbon Intensity:</span>
-                        <span style={{ color: tier.intensity === 'High' ? '#ff4444' : (tier.intensity === 'Medium' ? 'var(--accent-gold)' : '#00ff82'), fontWeight: 800 }}>{tier.intensity}</span>
+                        <span style={{ color: '#64748b' }}>Carbon Intensity:</span>
+                        <span style={{ color: tier.intensity === 'High' ? '#dc2626' : (tier.intensity === 'Medium' ? '#b45309' : '#16a34a'), fontWeight: 800 }}>{tier.intensity}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', marginTop: '4px' }}>
-                        <span style={{ color: '#666' }}>CSI Compliance:</span>
-                        <span style={{ color: '#fff', fontWeight: 800 }}>{tier.compliance}</span>
+                        <span style={{ color: '#64748b' }}>CSI Compliance:</span>
+                        <span style={{ color: '#0f172a', fontWeight: 800 }}>{tier.compliance}</span>
                       </div>
-                      <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', marginTop: '8px', fontStyle: 'italic' }}>{tier.count} mapped via EnviroPulse</div>
+                      <div style={{ fontSize: '0.6rem', color: '#475569', marginTop: '8px', fontStyle: 'italic' }}>{tier.count} mapped via EnviroPulse</div>
                     </div>
                   ))}
                 </div>
               </div>
-              <div className="widget" style={{ padding: '25px', background: '#050505', border: '1px dashed rgba(255,255,255,0.1)' }}>
+              <div className="widget" style={{ padding: '25px', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Database size={14} className="cyan" />
-                    <span style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--accent-cyan)' }}>CSI PORTAL AUDIT CHAIN RECORD</span>
+                    <Database size={14} color="#0891b2" />
+                    <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#0891b2' }}>CSI PORTAL AUDIT CHAIN RECORD</span>
                   </div>
-                  <div style={{ fontSize: '0.6rem', color: '#666', fontFamily: 'monospace' }}>
+                  <div style={{ fontSize: '0.6rem', color: '#64748b', fontFamily: 'monospace' }}>
                     SEAL_ID: #8a9f4773-{selectedDistrict.toUpperCase()}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '20px' }}>
-                  <div style={{ flex: 1, padding: '10px', background: 'rgba(0,240,255,0.03)', border: '1px solid rgba(0,240,255,0.1)', borderRadius: '4px' }}>
-                    <div style={{ fontSize: '0.6rem', color: 'var(--accent-cyan)', marginBottom: '5px' }}>PRESCRIBED FORMAT HASH</div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#fff', fontFamily: 'monospace' }}>{reportHashes.formatHash}</div>
+                  <div style={{ flex: 1, padding: '10px', background: '#e0f2fe', border: '1px solid #bae6fd', borderRadius: '4px' }}>
+                    <div style={{ fontSize: '0.6rem', color: '#0891b2', marginBottom: '5px' }}>PRESCRIBED FORMAT HASH</div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#0f172a', fontFamily: 'monospace' }}>{reportHashes.formatHash}</div>
                   </div>
-                  <div style={{ flex: 1, padding: '10px', background: 'rgba(0,240,255,0.03)', border: '1px solid rgba(0,240,255,0.1)', borderRadius: '4px' }}>
-                    <div style={{ fontSize: '0.6rem', color: 'var(--accent-cyan)', marginBottom: '5px' }}>IFRS S2 DEFERRAL STATUS</div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#00ff82' }}>ACTIVE (FY2025 TRANSITION)</div>
+                  <div style={{ flex: 1, padding: '10px', background: '#e0f2fe', border: '1px solid #bae6fd', borderRadius: '4px' }}>
+                    <div style={{ fontSize: '0.6rem', color: '#0891b2', marginBottom: '5px' }}>IFRS S2 DEFERRAL STATUS</div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#16a34a' }}>ACTIVE (FY2025 TRANSITION)</div>
                   </div>
                 </div>
               </div>
               {/* MANDATORY SECTION: THREE-YEAR COMPARATIVE BASELINE DISCLOSURE */}
-              <div className="widget" style={{ padding: '25px', background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div className="widget" style={{ padding: '25px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <TableIcon size={16} className="cyan" />
-                    <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 900, letterSpacing: '1px', color: '#fff' }}>THREE-YEAR COMPARATIVE BASELINE DISCLOSURE</h3>
+                    <TableIcon size={16} color="#0891b2" />
+                    <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 900, letterSpacing: '1px', color: '#0f172a' }}>THREE-YEAR COMPARATIVE BASELINE DISCLOSURE</h3>
                   </div>
-                  <span style={{ fontSize: '0.55rem', color: 'var(--accent-cyan)', fontWeight: 800 }}>FY2024 – FY2026 HORIZON</span>
+                  <span style={{ fontSize: '0.55rem', color: '#0891b2', fontWeight: 800 }}>FY2024 – FY2026 HORIZON</span>
                 </div>
-                
-                <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '15px', margin: '0 0 15px 0' }}>
+
+                <p style={{ fontSize: '0.7rem', color: '#475569', marginBottom: '15px', margin: '0 0 15px 0' }}>
                   Bursa Malaysia mandates three financial years of comparative data for all material sustainability matters.
                 </p>
 
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.7rem', textAlign: 'left' }}>
                     <thead>
-                      <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-secondary)' }}>
+                      <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
                         <th style={{ padding: '10px', fontWeight: 800 }}>REPORTING METRIC</th>
                         <th style={{ padding: '10px', fontWeight: 800 }}>FY2024</th>
                         <th style={{ padding: '10px', fontWeight: 800 }}>FY2025</th>
-                        <th style={{ padding: '10px', fontWeight: 800, color: 'var(--accent-cyan)' }}>FY2026 (LIVE)</th>
+                        <th style={{ padding: '10px', fontWeight: 800, color: '#0891b2' }}>FY2026 (LIVE)</th>
                         <th style={{ padding: '10px', fontWeight: 800 }}>CSI INDICATOR</th>
                       </tr>
                     </thead>
@@ -717,29 +717,29 @@ const ReportsPage = ({ districts, headerDistrict }) => {
                         { label: 'Avg Training Hours', y1: '20.5h', y2: '22.0h', y3: esgAdvisory?.socialGovernance?.trainingHoursAvg || '24.5h', indicator: 'S1.1 Training' },
                         { label: 'Anti-Corruption Training', y1: '100%', y2: '100%', y3: '100%', indicator: 'G1.1 Ethics' }
                       ].map((row, i) => (
-                        <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                          <td style={{ padding: '10px', fontWeight: 700 }}>{row.label}</td>
-                          <td style={{ padding: '10px', color: 'var(--text-secondary)' }}>{row.y1}</td>
-                          <td style={{ padding: '10px', color: 'var(--text-secondary)' }}>{row.y2}</td>
-                          <td style={{ padding: '10px', fontWeight: 900, color: 'var(--accent-cyan)' }}>{row.y3}</td>
-                          <td style={{ padding: '10px', color: 'var(--text-secondary)' }}>{row.indicator}</td>
+                        <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                          <td style={{ padding: '10px', fontWeight: 700, color: '#0f172a' }}>{row.label}</td>
+                          <td style={{ padding: '10px', color: '#475569' }}>{row.y1}</td>
+                          <td style={{ padding: '10px', color: '#475569' }}>{row.y2}</td>
+                          <td style={{ padding: '10px', fontWeight: 900, color: '#0891b2' }}>{row.y3}</td>
+                          <td style={{ padding: '10px', color: '#475569' }}>{row.indicator}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               </div>
-                
-                <div style={{ marginTop: '12px', fontSize: '0.6rem', color: 'var(--text-secondary)', textAlign: 'right' }}>
-                  * FY2024/2025 baselines represent official benchmark layers pending enterprise audit finalization.
-                </div>
+
+              <div style={{ marginTop: '12px', fontSize: '0.6rem', color: '#64748b', textAlign: 'right' }}>
+                * FY2024/2025 baselines represent official benchmark layers pending enterprise audit finalization.
+              </div>
 
               {/* FOOTER ALIGNMENT DISCLAIMER */}
-              <div style={{ padding: '15px', background: 'rgba(255,255,255,0.01)', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+              <div style={{ padding: '15px', background: '#f8fafc', borderRadius: '4px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem', color: '#475569' }}>
                 <div>
-                  <b>Target Platform Alignment:</b> Bursa Malaysia Continuous Sustainability Integration (CSI) Platform
+                  <b style={{ color: '#0f172a' }}>Target Platform Alignment:</b> Bursa Malaysia Continuous Sustainability Integration (CSI) Platform
                 </div>
-                <div style={{ color: 'var(--accent-cyan)' }}>
+                <div style={{ color: '#0891b2' }}>
                   IFRS S1 / IFRS S2 Standard Enforced
                 </div>
               </div>
