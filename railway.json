@@ -4,7 +4,6 @@
     "buildCommand": "npm install"
   },
   "deploy": {
-    "startCommand": "npm start",
-    "runtime": "node20"
+    "startCommand": "npm start"
   }
 }
