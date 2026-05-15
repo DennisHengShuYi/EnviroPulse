@@ -154,7 +154,7 @@ const SensorsPage = ({ districts }) => {
           <table className="table-mobile" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
             <thead>
               <tr style={{ textAlign: 'left', color: '#64748b', background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
-                <th style={{ padding: '15px 20px' }}>STATION_ID</th>
+                <th className="mobile-hide" style={{ padding: '15px 20px' }}>STATION_ID</th>
                 <th style={{ padding: '15px 20px' }}>LOCATION</th>
                 <th style={{ padding: '15px 20px' }}>STATUS</th>
                 <th className="mobile-hide" style={{ padding: '15px 20px' }}>BATTERY</th>
@@ -171,7 +171,7 @@ const SensorsPage = ({ districts }) => {
                 const ping = 1 + (seed % 8);
                 return (
                   <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '15px 20px', fontWeight: 800, color: '#0f172a' }}>STN_{d.id.toUpperCase()}</td>
+                    <td className="mobile-hide" style={{ padding: '15px 20px', fontWeight: 800, color: '#0f172a' }}>STN_{d.id.toUpperCase()}</td>
                     <td style={{ padding: '15px 20px', color: '#475569' }}>{d.name}</td>
                     <td style={{ padding: '15px 20px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10b981', fontWeight: 600 }}>

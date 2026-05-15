@@ -312,7 +312,7 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
                 {/* Row 2: PM2.5 6H Forecast Chart */}
                 <div style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.06)', borderRadius: '8px', padding: '18px', marginBottom: '20px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
-                    <span style={{ fontSize: '0.6rem', fontWeight: 900, color: FACTORY_COLOR, letterSpacing: '1px', flexShrink: 0 }}>PM2.5_FORECAST — 6H PROJECTION (WHO 15 µg/m³ limit)</span>
+                    <span style={{ fontSize: '0.6rem', fontWeight: 900, color: FACTORY_COLOR, letterSpacing: '1px' }}>PM2.5_FORECAST — 6H PROJECTION (WHO 15 µg/m³ limit)</span>
                     {n.forecastSummary && (
                       <span style={{ fontSize: '0.62rem', color: '#333', lineHeight: '1.3' }}>{n.forecastSummary}</span>
                     )}

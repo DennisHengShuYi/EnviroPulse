@@ -91,15 +91,16 @@ const CompliancePage = ({ districts, submissions, setSubmissions }) => {
             <FileSearch size={16} className="cyan" />
             <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>CORPORATE_SUBMISSIONS_QUEUE ({submissions.length})</span>
           </div>
-          <div>
-            <table className="table-mobile" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.7rem', tableLayout: 'auto' }}>
+          {/* Desktop table */}
+          <div className="compliance-table-desktop">
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.7rem', tableLayout: 'auto' }}>
               <thead>
                 <tr style={{ textAlign: 'left', color: 'var(--text-secondary)', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
                   <th style={{ padding: '10px 12px', fontWeight: 800, fontSize: '0.55rem', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>ZONE</th>
-                  <th className="mobile-hide" style={{ padding: '10px 12px', fontWeight: 800, fontSize: '0.55rem', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>NODE</th>
-                  <th className="mobile-hide" style={{ padding: '10px 12px', fontWeight: 800, fontSize: '0.55rem', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>DATE</th>
-                  <th className="mobile-hide" style={{ padding: '10px 12px', fontWeight: 800, fontSize: '0.55rem', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>PM2.5</th>
-                  <th className="mobile-hide" style={{ padding: '10px 12px', fontWeight: 800, fontSize: '0.55rem', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>AQI</th>
+                  <th style={{ padding: '10px 12px', fontWeight: 800, fontSize: '0.55rem', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>NODE</th>
+                  <th style={{ padding: '10px 12px', fontWeight: 800, fontSize: '0.55rem', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>DATE</th>
+                  <th style={{ padding: '10px 12px', fontWeight: 800, fontSize: '0.55rem', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>PM2.5</th>
+                  <th style={{ padding: '10px 12px', fontWeight: 800, fontSize: '0.55rem', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>AQI</th>
                   <th style={{ padding: '10px 12px', fontWeight: 800, fontSize: '0.55rem', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>STATUS</th>
                   <th style={{ padding: '10px 12px', fontWeight: 800, fontSize: '0.55rem', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>ACTION</th>
                 </tr>
@@ -112,54 +113,19 @@ const CompliancePage = ({ districts, submissions, setSubmissions }) => {
                   return (
                     <tr key={sub.id} style={{ borderTop: '1px solid rgba(255,255,255,0.03)', background: i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
                       <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>{sub.zone}</td>
-                      <td className="mobile-hide" style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <MapPin size={10} style={{ color: 'var(--accent-gold)' }} />
                           <span style={{ fontSize: '0.6rem' }}>{sub.nodeName}</span>
                         </div>
                       </td>
-                      <td className="mobile-hide" style={{ padding: '10px 12px', color: 'var(--text-secondary)', fontSize: '0.65rem', whiteSpace: 'nowrap' }}>{sub.date}</td>
-                      <td className="mobile-hide" style={{ padding: '10px 12px', fontWeight: 800, color: 'var(--accent-cyan)' }}>{sub.reportedPm25}</td>
-                      <td className="mobile-hide" style={{ padding: '10px 12px', fontWeight: 800 }}>{sub.reportedAqi}</td>
-                      <td style={{ padding: '8px 12px' }}>
-                        <StatusBadge status={res ? res.status : 'PENDING'} />
-                      </td>
+                      <td style={{ padding: '10px 12px', color: 'var(--text-secondary)', fontSize: '0.65rem', whiteSpace: 'nowrap' }}>{sub.date}</td>
+                      <td style={{ padding: '10px 12px', fontWeight: 800, color: 'var(--accent-cyan)' }}>{sub.reportedPm25}</td>
+                      <td style={{ padding: '10px 12px', fontWeight: 800 }}>{sub.reportedAqi}</td>
+                      <td style={{ padding: '8px 12px' }}><StatusBadge status={res ? res.status : 'PENDING'} /></td>
                       <td style={{ padding: '8px 12px', width: '120px' }}>
-                        <button
-                          onClick={() => handleVerify(sub)}
-                          disabled={isVerifying || isDone}
-                          style={{ 
-                            background: isVerifying ? 'rgba(0,240,255,0.1)' : 
-                                        isDone ? 'rgba(0,255,130,0.1)' :
-                                        'var(--accent-cyan)', 
-                            color: isVerifying ? 'var(--accent-cyan)' : 
-                                   isDone ? '#00ff82' :
-                                   '#000', 
-                            border: `1px solid ${isVerifying ? 'var(--accent-cyan)' : 
-                                               isDone ? '#00ff82' :
-                                               'var(--accent-cyan)'}`, 
-                            padding: '6px 12px', 
-                            fontSize: '0.55rem', 
-                            fontWeight: 900, 
-                            cursor: (isVerifying || isDone) ? 'not-allowed' : 'pointer', 
-                            borderRadius: '2px', 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center',
-                            gap: '4px',
-                            opacity: isDone ? 0.7 : 1,
-                            transition: 'all 0.2s ease',
-                            width: '100%',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          {isVerifying ? (
-                            <><div className="animate-spin" style={{ width: 8, height: 8, border: '1px solid var(--accent-cyan)', borderTopColor: 'transparent', borderRadius: '50%' }} /> VERIFYING</>
-                          ) : isDone ? (
-                            <><ShieldCheck size={10} /> VERIFIED</>
-                          ) : (
-                            <><ShieldCheck size={10} /> VERIFY</>
-                          )}
+                        <button onClick={() => handleVerify(sub)} disabled={isVerifying || isDone} style={{ background: isVerifying ? 'rgba(0,240,255,0.1)' : isDone ? 'rgba(0,255,130,0.1)' : 'var(--accent-cyan)', color: isVerifying ? 'var(--accent-cyan)' : isDone ? '#00ff82' : '#000', border: `1px solid ${isVerifying ? 'var(--accent-cyan)' : isDone ? '#00ff82' : 'var(--accent-cyan)'}`, padding: '6px 12px', fontSize: '0.55rem', fontWeight: 900, cursor: (isVerifying || isDone) ? 'not-allowed' : 'pointer', borderRadius: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', opacity: isDone ? 0.7 : 1, transition: 'all 0.2s ease', width: '100%', whiteSpace: 'nowrap' }}>
+                          {isVerifying ? (<><div className="animate-spin" style={{ width: 8, height: 8, border: '1px solid var(--accent-cyan)', borderTopColor: 'transparent', borderRadius: '50%' }} /> VERIFYING</>) : isDone ? (<><ShieldCheck size={10} /> VERIFIED</>) : (<><ShieldCheck size={10} /> VERIFY</>)}
                         </button>
                       </td>
                     </tr>
@@ -167,6 +133,41 @@ const CompliancePage = ({ districts, submissions, setSubmissions }) => {
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile cards — shows all data without horizontal scroll */}
+          <div className="compliance-cards-mobile" style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '12px' }}>
+            {submissions.map((sub) => {
+              const res = results[sub.id];
+              const isVerifying = verifying === sub.id;
+              const isDone = res && res.status === 'VERIFIED';
+              return (
+                <div key={sub.id} style={{ background: 'var(--bg-secondary)', border: '1px solid rgba(0,0,0,0.07)', borderRadius: '6px', padding: '14px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', gap: '8px' }}>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '0.75rem', color: 'var(--text-primary)' }}>{sub.zone}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '3px' }}>
+                        <MapPin size={9} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
+                        <span style={{ fontSize: '0.58rem', color: 'var(--text-secondary)' }}>{sub.nodeName}</span>
+                      </div>
+                    </div>
+                    <StatusBadge status={res ? res.status : 'PENDING'} />
+                  </div>
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '0.62rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                    <span>DATE: <strong style={{ color: 'var(--text-primary)' }}>{sub.date}</strong></span>
+                    <span>PM2.5: <strong style={{ color: 'var(--accent-cyan)' }}>{sub.reportedPm25}</strong></span>
+                    <span>AQI: <strong style={{ color: 'var(--text-primary)' }}>{sub.reportedAqi}</strong></span>
+                  </div>
+                  <button
+                    onClick={() => handleVerify(sub)}
+                    disabled={isVerifying || isDone}
+                    style={{ background: isVerifying ? 'rgba(0,240,255,0.1)' : isDone ? 'rgba(0,255,130,0.1)' : 'var(--accent-cyan)', color: isVerifying ? 'var(--accent-cyan)' : isDone ? '#00ff82' : '#000', border: `1px solid ${isVerifying ? 'var(--accent-cyan)' : isDone ? '#00ff82' : 'var(--accent-cyan)'}`, padding: '8px 14px', fontSize: '0.6rem', fontWeight: 900, cursor: (isVerifying || isDone) ? 'not-allowed' : 'pointer', borderRadius: '2px', display: 'flex', alignItems: 'center', gap: '6px', opacity: isDone ? 0.7 : 1, transition: 'all 0.2s ease', width: '100%', justifyContent: 'center' }}
+                  >
+                    {isVerifying ? (<><div className="animate-spin" style={{ width: 8, height: 8, border: '1px solid var(--accent-cyan)', borderTopColor: 'transparent', borderRadius: '50%' }} /> VERIFYING</>) : isDone ? (<><ShieldCheck size={10} /> VERIFIED</>) : (<><ShieldCheck size={10} /> VERIFY</>)}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
 

@@ -752,13 +752,40 @@ body {
 }
 
 @media (max-width: 768px) {
+  .data-flow-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    justify-content: initial;
+  }
   .data-flow-node {
-    flex-basis: calc(50% - 20px);
+    flex-basis: auto;
     padding: 8px;
+    min-width: 0;
+    width: 100%;
+    overflow: hidden;
+  }
+  .data-flow-node > div {
+    width: 100%;
+    overflow: hidden;
+  }
+  .data-flow-node > div > div {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .data-flow-connector {
     display: none;
   }
+}
+
+/* --- COMPLIANCE TABLE / CARDS TOGGLE --- */
+.compliance-table-desktop { display: block; }
+.compliance-cards-mobile { display: none; }
+
+@media (max-width: 768px) {
+  .compliance-table-desktop { display: none; }
+  .compliance-cards-mobile { display: flex !important; }
 }
 
 /* Print Styles */
