@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, AlertTriangle, Clock, MapPin, Lock, FileText, Wind, Eye, Users, Shield } from 'lucide-react';
-import ImmutableAuditLog from './ImmutableAuditLog';
-import BursaReportModal from './BursaReportModal';
 import WhatsAppAlert from './WhatsAppAlert';
 
 const workers = [
@@ -186,7 +184,6 @@ const DOSHComplianceTable = ({ blur, workers }) => {
 const WorkerGrid = ({ isHazeSimulated, triggerHazeSimulation }) => {
   const [role, setRole] = useState('Site Manager'); // Site Manager | Auditor/DOE
   const [mode, setMode] = useState('Premium'); // Basic | Premium
-  const [showBursaModal, setShowBursaModal] = useState(false);
   const [showWhatsApp, setShowWhatsApp] = useState(false);
   const [whatsAppMessage, setWhatsAppMessage] = useState(null);
 
@@ -275,15 +272,6 @@ const WorkerGrid = ({ isHazeSimulated, triggerHazeSimulation }) => {
           </div>
         </div>
 
-        {/* Top Action Row */}
-        <div className="mb-8 flex justify-end">
-          <button 
-            onClick={() => setShowBursaModal(true)}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${isHazeSimulated ? 'bg-cyan-500 text-black animate-bounce shadow-[0_0_30px_rgba(6,182,212,0.6)]' : 'bg-slate-800 text-cyan-500 border border-cyan-500/20 hover:bg-slate-700'}`}
-          >
-            <FileText size={16} /> Generate Bursa CSI Report
-          </button>
-        </div>
 
         {/* Main Grid Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -292,14 +280,9 @@ const WorkerGrid = ({ isHazeSimulated, triggerHazeSimulation }) => {
           ))}
         </div>
 
-        {/* Audit Log (Stage 3) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-12 items-start">
-          <div className="lg:col-span-2">
-            <DOSHComplianceTable blur={isBasic} workers={activeWorkers} />
-          </div>
-          <div className="lg:col-span-1">
-            <ImmutableAuditLog blur={isBasic} isHazeSimulated={isHazeSimulated} />
-          </div>
+        {/* Compliance Table (Stage 3) */}
+        <div className="mt-12">
+          <DOSHComplianceTable blur={isBasic} workers={activeWorkers} />
         </div>
 
         {/* Footer Audit Log Footer (Stage 2) */}
@@ -319,7 +302,6 @@ const WorkerGrid = ({ isHazeSimulated, triggerHazeSimulation }) => {
       </div>
 
       {/* New Components */}
-      <BursaReportModal isOpen={showBursaModal} onClose={() => setShowBursaModal(false)} />
       <WhatsAppAlert isTriggered={showWhatsApp} onClose={() => setShowWhatsApp(false)} message={whatsAppMessage} />
     </div>
   );

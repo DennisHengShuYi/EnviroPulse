@@ -16,6 +16,7 @@ import SensorsPage from './pages/SensorsPage';
 import ReportsPage from './pages/ReportsPage';
 import AlertsPage from './pages/AlertsPage';
 import CompliancePage from './pages/CompliancePage';
+import SupplyChainPage from './pages/SupplyChainPage';
 
 // Helper to calculate distance between two coordinates
 const getDistance = (lat1, lon1, lat2, lon2) => {
@@ -245,6 +246,7 @@ function App() {
       case 'alerts': return <AlertsPage selectedDistrictId={selectedDistrict} />;
       case 'reports': return <ReportsPage data={data} districts={districts} headerDistrict={selectedDistrict} />;
       case 'compliance': return <CompliancePage districts={districts} data={data} />;
+      case 'supply': return <SupplyChainPage />;
       case 'workers': return <WorkerGrid isHazeSimulated={isHazeSimulated} triggerHazeSimulation={triggerHazeSimulation} />;
       default: return <div>Page Not Found</div>;
     }
