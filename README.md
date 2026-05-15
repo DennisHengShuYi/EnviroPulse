@@ -5,15 +5,15 @@ EnviroPulse is an IoT-anchored environmental compliance platform that prevents g
 
 🔗 **Important Links**
 - 📄 **EnviroPulse Documentation** — [View Documentation](https://www.notion.so/EnviroPulse-Anti-Greenwashing-Platform-System-Design-361f0ca19eb1812c9fd4c082092ff442)
-- 🧠 **Agent Architecture Deep-Dive** — [Statutory AI Intelligence](#)
-- 🔍 **Compliance Strategy Deep-Dive** — [How EnviroPulse Detects Greenwashing](#)
+
 - 🎤 **Pitch Deck** — [View Slides](#)
 
 👥 **Team Members**
 - 👨‍💻 **Dennis** — 3rd Year @ UM
-- 👨‍💻 **Shao Xian** — 3rd Year @ UM
-- 👨‍💻 **Zhen Yu** — 3rd Year @ UM
-- 👨‍💻 **Sean Sean** — 3rd Year @ UM
+- 👨‍💻 **Joey** — 3rd Year @ UM
+- 👨‍💻 **Andrew** — 3rd Year @ UM
+- 👨‍💻 **Shareen** — 3rd Year @ UM
+- 👨‍💻 **yi Xing** — 3rd Year @ UM
 
 📋 **Table of Contents**
 - [Project Overview](#-project-overview)
