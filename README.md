@@ -1,17 +1,17 @@
 # 🏭 EnviroPulse Terminal — Industrial Compliance Command Center
 
-A high-density, real-time industrial compliance command center designed for MSME factories and environmental monitoring districts. It provides live telemetry visualization of Air Quality Index (AQI), Heat Index, and various pollutants, coupled with an AI-driven compliance advisory engine.
+EnviroPulse is an IoT-anchored environmental compliance platform that prevents greenwashing by generating ESG reports directly from tamper-evident physical sensors installed at company facilities — making falsification structurally impossible.
 
 🔗 **Important Links**
-- 📄 [EnviroPulse Documentation](#) — View Documentation
-- 🧠 [Compliance Strategy Deep-Dive](#) — How the Engine Assesses Risk
+📄 EnviroPulse Documentation — [View Documentation](https://www.notion.so/EnviroPulse-Anti-Greenwashing-Platform-System-Design-361f0ca19eb1812c9fd4c082092ff442?source=copy_link)
 - 🎤 [Pitch Deck](#) — View Slides
 
 👥 **Team Members**
 - 👨‍💻 Dennis — 3rd Year @ UM
-- 👨‍💻 Shao Xian — 3rd Year @ UM
-- 👨‍💻 Zhen Yu — 3rd Year @ UM
-- 👨‍💻 Sean Sean — 3rd Year @ UM
+- 👨‍💻 Joey — 3rd Year @ UM
+- 👨‍💻 Shareen— 3rd Year @ UM
+- 👨‍💻 Andrew — 3rd Year @ UM
+- 👨‍💻 Yi Xing — 3rd Year @ UM
 
 📋 **Table of Contents**
 - [Project Overview](#-project-overview)
