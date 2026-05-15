@@ -194,7 +194,6 @@ function App() {
       {/* Center Column — Risk Assessment */}
       <div className="dashboard-column">
         <RiskCommandCenter data={data} />
-        <ComplianceHeatmap history={trends} />
         <PollutantGrid pollutants={data.pollutants} hazeLevel={hazeLevel} />
       </div>
 

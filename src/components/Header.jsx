@@ -12,11 +12,11 @@ const Header = ({ districtName, districts, onSelectDistrict, onLocateMe, alertCo
   return (
     <header style={{ 
       padding: '1rem 2rem', 
-      borderBottom: '1px solid rgba(255,255,255,0.05)',
+      borderBottom: '1px solid var(--border-color)',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      background: 'rgba(5, 5, 5, 0.5)',
+      background: 'rgba(255, 255, 255, 0.85)',
       backdropFilter: 'blur(10px)',
       position: 'sticky',
       top: 0,
@@ -39,7 +39,7 @@ const Header = ({ districtName, districts, onSelectDistrict, onLocateMe, alertCo
               style={{ 
                 background: 'transparent', 
                 border: 'none', 
-                color: '#fff', 
+                color: 'var(--text-primary)', 
                 fontSize: '0.9rem', 
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -48,13 +48,13 @@ const Header = ({ districtName, districts, onSelectDistrict, onLocateMe, alertCo
                 paddingRight: '20px'
               }}
             >
-              <optgroup label="CURRENT_GPS" style={{ background: '#111', color: 'var(--accent-cyan)', fontSize: '0.7rem' }}>
-                <option value="user_gps" style={{ background: '#000', color: '#fff' }}>[ LOCAL_STATION ]</option>
+              <optgroup label="CURRENT_GPS" style={{ background: 'var(--bg-primary)', color: 'var(--accent-cyan)', fontSize: '0.7rem' }}>
+                <option value="user_gps" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>[ LOCAL_STATION ]</option>
               </optgroup>
               {Array.from(new Set(districts.map(d => d.region))).map(region => (
-                <optgroup key={region} label={region} style={{ background: '#111', color: '#00f0ff', fontSize: '0.7rem' }}>
+                <optgroup key={region} label={region} style={{ background: 'var(--bg-primary)', color: 'var(--accent-cyan)', fontSize: '0.7rem' }}>
                   {districts.filter(d => d.region === region).map(d => (
-                    <option key={d.id} value={d.id} style={{ background: '#000', color: '#fff' }}>{d.name}</option>
+                    <option key={d.id} value={d.id} style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>{d.name}</option>
                   ))}
                 </optgroup>
               ))}
@@ -100,8 +100,8 @@ const Header = ({ districtName, districts, onSelectDistrict, onLocateMe, alertCo
             cursor: 'pointer', 
             padding: '8px',
             borderRadius: '4px',
-            background: showAlerts ? 'rgba(255, 62, 62, 0.2)' : 'rgba(255,255,255,0.05)',
-            border: `1px solid ${showAlerts ? 'var(--accent-red)' : 'rgba(255,255,255,0.1)'}`,
+            background: showAlerts ? 'rgba(255, 62, 62, 0.1)' : 'var(--bg-secondary)',
+            border: `1px solid ${showAlerts ? 'var(--accent-red)' : 'var(--border-color)'}`,
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
@@ -138,3 +138,4 @@ const Header = ({ districtName, districts, onSelectDistrict, onLocateMe, alertCo
 };
 
 export default Header;
+

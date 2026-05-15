@@ -33,8 +33,8 @@ const TrendChart = ({ data, hazeLevel }) => {
       const isExceeding = (activeMetric === 'pm25' && val > 15) || isHazeSimulated;
       return (
         <div style={{ 
-          background: 'rgba(7, 7, 7, 0.95)', 
-          border: isExceeding ? '1px solid #ff3e3e' : '1px solid rgba(255,255,255,0.1)', 
+          background: 'var(--bg-widget)', 
+          border: isExceeding ? '1px solid #ff3e3e' : '1px solid var(--border-color)', 
           padding: '10px',
           fontSize: '0.7rem',
           backdropFilter: 'blur(5px)',
@@ -77,7 +77,7 @@ const TrendChart = ({ data, hazeLevel }) => {
   const offset = getGradientOffset();
 
   return (
-    <div className="trend-area" style={{ background: '#070707', border: '1px solid rgba(255,255,255,0.05)', padding: '15px', borderRadius: '4px', height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+    <div className="trend-area" style={{ background: 'var(--bg-widget)', border: '1px solid rgba(0,0,0,0.05)', padding: '15px', borderRadius: '4px', height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px', flexShrink: 0 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <span style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--text-secondary)', letterSpacing: '1px' }}>COMPLIANCE_TREND_MONITOR</span>
@@ -94,7 +94,7 @@ const TrendChart = ({ data, hazeLevel }) => {
               onClick={() => setActiveMetric(m.id)}
               style={{
                 background: activeMetric === m.id ? 'rgba(0, 240, 255, 0.15)' : 'transparent',
-                border: activeMetric === m.id ? '1px solid var(--accent-cyan)' : '1px solid rgba(255,255,255,0.05)',
+                border: activeMetric === m.id ? '1px solid var(--accent-cyan)' : '1px solid rgba(0,0,0,0.05)',
                 color: activeMetric === m.id ? 'var(--accent-cyan)' : 'var(--text-secondary)',
                 padding: '4px 10px',
                 fontSize: '0.55rem',
@@ -111,7 +111,7 @@ const TrendChart = ({ data, hazeLevel }) => {
         </div>
       </div>
 
-      <div style={{ flex: 1, minHeight: '160px', width: '100%', minWidth: 0 }}>
+      <div style={{ flex: 1, minHeight: '180px', height: '180px', width: '100%', minWidth: 0 }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={simulatedData} margin={{ top: 15, right: 10, left: 10, bottom: 10 }}>
             <defs>
@@ -139,7 +139,7 @@ const TrendChart = ({ data, hazeLevel }) => {
                 </linearGradient>
               )}
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" vertical={false} />
             <XAxis 
               dataKey="time" 
               axisLine={false} 
@@ -222,3 +222,4 @@ const TrendChart = ({ data, hazeLevel }) => {
 };
 
 export default TrendChart;
+

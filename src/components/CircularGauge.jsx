@@ -124,7 +124,7 @@ const CircularGauge = ({
       {/* Footer Labels - Below the arc */}
       {isSemicircle && (
         <div style={{ marginTop: '5px', textAlign: 'center', width: '100%' }}>
-          <div style={{ fontSize: '0.65rem', fontWeight: 900, letterSpacing: '0.5px', color: '#fff' }}>{label}</div>
+          <div style={{ fontSize: '0.65rem', fontWeight: 900, letterSpacing: '0.5px', color: 'var(--text-primary)' }}>{label}</div>
           <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', marginTop: '2px', fontWeight: 700, whiteSpace: 'nowrap' }}>
             {limitLabel}: {max}{unit} | {headroomLabel}: {(max - value).toFixed(1)}{unit}
           </div>
@@ -143,3 +143,4 @@ const CircularGauge = ({
 };
 
 export default CircularGauge;
+

@@ -151,8 +151,8 @@ const MapHero = ({ onSelectDistrict, selectedId, userCoords }) => {
                     onClick={() => onSelectDistrict(district.id)}
                     style={{ 
                       marginTop: '15px', 
-                      background: '#000', 
-                      color: '#fff', 
+                      background: 'var(--bg-primary)', 
+                      color: 'var(--text-primary)', 
                       border: 'none', 
                       padding: '8px 10px', 
                       cursor: 'pointer', 
@@ -203,7 +203,7 @@ const MapHero = ({ onSelectDistrict, selectedId, userCoords }) => {
             width: '100%', 
             background: 'rgba(10, 10, 10, 0.8)', 
             border: '1px solid rgba(0, 240, 255, 0.3)', 
-            color: '#fff', 
+            color: 'var(--text-primary)', 
             padding: '10px 15px',
             fontSize: '0.7rem',
             fontFamily: 'JetBrains Mono',
@@ -219,7 +219,7 @@ const MapHero = ({ onSelectDistrict, selectedId, userCoords }) => {
           style={{ 
             background: showPolygons ? 'rgba(0, 240, 255, 0.2)' : 'rgba(10, 10, 10, 0.8)', 
             border: '1px solid rgba(0, 240, 255, 0.3)',
-            color: '#fff',
+            color: 'var(--text-primary)',
             padding: '8px 12px',
             fontSize: '0.6rem',
             fontWeight: 800,
@@ -264,3 +264,4 @@ const MapHero = ({ onSelectDistrict, selectedId, userCoords }) => {
 };
 
 export default MapHero;
+

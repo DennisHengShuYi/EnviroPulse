@@ -594,11 +594,11 @@ const CompliancePage = ({ districts, data }) => {
   };
 
 
-  const inputStyle = { width: '100%', background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '8px 10px', fontSize: '0.7rem', borderRadius: '3px', fontFamily: 'inherit' };
+  const inputStyle = { width: '100%', background: 'var(--bg-secondary)', border: '1px solid rgba(0,0,0,0.1)', color: 'var(--text-primary)', padding: '8px 10px', fontSize: '0.7rem', borderRadius: '3px', fontFamily: 'inherit' };
   const labelStyle = { fontSize: '0.55rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px', fontWeight: 800, letterSpacing: '1px' };
 
   return (
-    <div style={{ height: 'calc(100vh - 80px)', overflowY: 'auto', padding: '2rem', color: '#fff' }}>
+    <div style={{ height: 'calc(100vh - 80px)', overflowY: 'auto', padding: '2rem', color: 'var(--text-primary)' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
 
         {/* Header */}
@@ -614,7 +614,7 @@ const CompliancePage = ({ districts, data }) => {
             </p>
           </div>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '6px 12px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(0,0,0,0.05)', padding: '6px 12px', borderRadius: '4px', border: '1px solid rgba(0,0,0,0.1)' }}>
               <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>DISCREPANCY_THRESHOLD</span>
               <input
                 type="number"
@@ -634,7 +634,7 @@ const CompliancePage = ({ districts, data }) => {
         </div>
 
         {/* VIEW MODE SWITCHER */}
-        <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.1)', gap: '10px' }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid rgba(0,0,0,0.1)', gap: '10px' }}>
           <button
             onClick={() => setMode('AUDITOR')}
             style={{ background: mode === 'AUDITOR' ? 'rgba(0,240,255,0.1)' : 'transparent', color: mode === 'AUDITOR' ? 'var(--accent-cyan)' : 'var(--text-secondary)', border: 'none', borderBottom: mode === 'AUDITOR' ? '2px solid var(--accent-cyan)' : '2px solid transparent', padding: '12px 20px', fontWeight: 900, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', letterSpacing: '1px' }}
@@ -673,7 +673,7 @@ const CompliancePage = ({ districts, data }) => {
               </div>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button type="submit" style={{ background: 'var(--accent-cyan)', color: '#000', border: 'none', padding: '10px 20px', fontWeight: 900, fontSize: '0.7rem', cursor: 'pointer', borderRadius: '3px' }}>SUBMIT_FOR_VERIFICATION</button>
-                <button type="button" onClick={() => setShowForm(false)} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '10px 20px', fontWeight: 900, fontSize: '0.7rem', cursor: 'pointer', borderRadius: '3px' }}>CANCEL</button>
+                <button type="button" onClick={() => setShowForm(false)} style={{ background: 'transparent', border: '1px solid rgba(0,0,0,0.1)', color: 'var(--text-primary)', padding: '10px 20px', fontWeight: 900, fontSize: '0.7rem', cursor: 'pointer', borderRadius: '3px' }}>CANCEL</button>
               </div>
             </form>
           </div>
@@ -681,13 +681,13 @@ const CompliancePage = ({ districts, data }) => {
 
         {/* Submissions Table */}
         <div className="widget" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '15px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ padding: '15px 20px', borderBottom: '1px solid rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <FileSearch size={16} className="cyan" />
             <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>CORPORATE_SUBMISSIONS_QUEUE ({submissions.length})</span>
           </div>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.72rem' }}>
             <thead>
-              <tr style={{ textAlign: 'left', color: 'var(--text-secondary)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <tr style={{ textAlign: 'left', color: 'var(--text-secondary)', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
                 {['COMPANY', 'ZONE', 'NODE', 'DATE', 'REPORTED_PM2.5', 'REPORTED_AQI', 'SENSOR_PM2.5', 'DELTA', 'VARIANCE', 'STATUS', 'ACTION'].map(h => (
                   <th key={h} style={{ padding: '12px 16px', fontWeight: 800, fontSize: '0.58rem', letterSpacing: '1px' }}>{h}</th>
                 ))}
@@ -833,7 +833,7 @@ const CompliancePage = ({ districts, data }) => {
 
         {/* Immutable Audit Log */}
         <div className="widget" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '15px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ padding: '15px 20px', borderBottom: '1px solid rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <Hash size={16} style={{ color: 'var(--accent-gold)' }} />
               <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>TAMPER-EVIDENT_AUDIT_LOG</span>
@@ -881,7 +881,7 @@ const CompliancePage = ({ districts, data }) => {
                     <select
                       value={selectedCompanyId}
                       onChange={e => setSelectedCompanyId(e.target.value)}
-                      style={{ background: '#0a0a0a', border: '1px solid rgba(255,184,0,0.3)', color: 'var(--accent-gold)', padding: '6px 12px', fontSize: '0.85rem', fontWeight: 900, borderRadius: '3px' }}
+                      style={{ background: 'var(--bg-secondary)', border: '1px solid rgba(255,184,0,0.3)', color: 'var(--accent-gold)', padding: '6px 12px', fontSize: '0.85rem', fontWeight: 900, borderRadius: '3px' }}
                     >
                       {submissions.map(s => <option key={s.id} value={s.id}>{s.company} ({s.zone})</option>)}
                     </select>
@@ -908,7 +908,7 @@ const CompliancePage = ({ districts, data }) => {
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>
-                    Assigned Verification Array: <b style={{ color: '#fff' }}>{selSub.nodeName}</b>
+                    Assigned Verification Array: <b style={{ color: 'var(--text-primary)' }}>{selSub.nodeName}</b>
                   </div>
                   <button
                     onClick={() => handleGenerateBursaReport(selSub)}
@@ -932,7 +932,7 @@ const CompliancePage = ({ districts, data }) => {
                       <div
                         key={item.id}
                         onClick={() => toggleChecklist(item.id)}
-                        style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', background: isDone ? 'rgba(255,255,255,0.02)' : 'rgba(255,184,0,0.05)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '4px', cursor: 'pointer', opacity: isDone ? 0.6 : 1 }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', background: isDone ? 'rgba(255,255,255,0.02)' : 'rgba(255,184,0,0.05)', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '4px', cursor: 'pointer', opacity: isDone ? 0.6 : 1 }}
                       >
                         {isDone ? <CheckSquare size={14} style={{ color: '#00ff82' }} /> : <Square size={14} style={{ color: 'var(--accent-gold)' }} />}
                         <span style={{ fontSize: '0.72rem', textDecoration: isDone ? 'line-through' : 'none', color: isDone ? 'var(--text-secondary)' : '#fff', fontWeight: isDone ? 400 : 800 }}>
@@ -967,3 +967,4 @@ const CompliancePage = ({ districts, data }) => {
 };
 
 export default CompliancePage;
+

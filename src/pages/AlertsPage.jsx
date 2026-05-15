@@ -85,7 +85,7 @@ const AlertsPage = ({ selectedDistrictId }) => {
                   type="number"
                   value={config[key]}
                   onChange={(e) => setConfig({ ...config, [key]: parseFloat(e.target.value) })}
-                  style={{ width: '100%', background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '10px', borderRadius: '4px', fontSize: '0.8rem' }}
+                  style={{ width: '100%', background: 'var(--bg-secondary)', border: '1px solid rgba(0,0,0,0.1)', color: 'var(--text-primary)', padding: '10px', borderRadius: '4px', fontSize: '0.8rem' }}
                 />
               </div>
             ))}
@@ -130,7 +130,7 @@ const AlertsPage = ({ selectedDistrictId }) => {
                     <span style={{ fontSize: '0.6rem', fontWeight: 900, color: 'var(--accent-red)' }}>{alert.type}_BREACH</span>
                     <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>{alert.time}</span>
                   </div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fff' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                     {alert.metric || alert.type} limit exceeded at {alert.zone}
                   </div>
                   <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '5px' }}>
@@ -147,3 +147,4 @@ const AlertsPage = ({ selectedDistrictId }) => {
 };
 
 export default AlertsPage;
+

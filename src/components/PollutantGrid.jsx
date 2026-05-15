@@ -1,156 +1,107 @@
 import React from 'react';
 
-const MiniDonut = ({ percentage, color, size = 32 }) => {
-  const radius = (size / 2) - 3;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (Math.min(percentage, 100) / 100) * circumference;
-
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        stroke="rgba(255,255,255,0.05)"
-        strokeWidth="3"
-      />
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        stroke={color}
-        strokeWidth="3"
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
-        strokeLinecap="round"
-        style={{ transition: 'stroke-dashoffset 1s ease-in-out' }}
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
-      />
-    </svg>
-  );
-};
-
-const Sparkline = ({ color, realValue }) => {
-  const [points, setPoints] = React.useState(() => Array.from({ length: 10 }, () => 20 + Math.random() * 20));
-  
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      setPoints(prev => {
-        const next = [...prev.slice(1), 20 + Math.random() * 20];
-        return next;
-      });
-    }, 1500);
-    return () => clearInterval(interval);
-  }, []);
-
-  const pathData = points.map((p, i) => `${i * 10},${p}`).join(' L ');
-
-  return (
-    <svg width="100%" height="30" viewBox="0 0 90 60" preserveAspectRatio="none" style={{ position: 'absolute', bottom: 0, left: 0, opacity: 0.2, pointerEvents: 'none' }}>
-      <path
-        d={`M 0,${points[0]} L ${pathData}`}
-        fill="none"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-        style={{ transition: 'all 1.5s linear' }}
-      />
-    </svg>
-  );
-};
-
-const PollutantCard = ({ label, value, unit, limit, color, accentClass, hazeLevel, tier = 1 }) => {
+const MetricCard = ({ label, value, unit, limit, color, hazeLevel, isResource = false }) => {
+  // Air pollutants increase with hazeLevel; resources do not.
   const getSimulatedValue = () => {
-    if (!hazeLevel || hazeLevel === 0) return value;
+    if (isResource || !hazeLevel || hazeLevel === 0) return value;
     const base = parseFloat(value);
-    if (label === 'PM2.5') {
-      if (hazeLevel === 1) return (base * 4).toFixed(1);
-      if (hazeLevel === 2) return (base * 10).toFixed(1);
-      if (hazeLevel === 3) return (base * 25).toFixed(1);
-    }
-    if (label === 'PM10') {
-      if (hazeLevel === 1) return (base * 2).toFixed(1);
-      if (hazeLevel === 2) return (base * 5).toFixed(1);
-      if (hazeLevel === 3) return (base * 12).toFixed(1);
-    }
+    if (label === 'PM2.5') return (base * (hazeLevel === 1 ? 4 : hazeLevel === 2 ? 10 : 25)).toFixed(1);
+    if (label === 'PM10') return (base * (hazeLevel === 1 ? 2 : hazeLevel === 2 ? 5 : 12)).toFixed(1);
     return (base * (1 + hazeLevel * 0.5)).toFixed(1);
   };
 
-  const simulatedValue = getSimulatedValue();
-  const pct = Math.min(100, Math.round((parseFloat(simulatedValue) / parseFloat(limit)) * 100));
-  const isCritical = pct > 80;
+  const finalValue = getSimulatedValue();
+  const pct = Math.min(100, Math.round((parseFloat(finalValue) / parseFloat(limit)) * 100));
+
+  // Highlight tile if limit is exceeded (>= 100%)
+  const isCritical = !isResource && pct >= 100;
+  const displayColor = isCritical ? '#ef4444' : color;
 
   return (
-    <div className="widget" style={{ 
-      padding: tier === 1 ? '12px' : '8px 12px', 
-      borderLeft: `3px solid ${isCritical ? 'var(--accent-red)' : color}`, 
-      minHeight: tier === 1 ? '90px' : '60px', 
-      display: 'flex', 
-      flexDirection: 'column', 
+    <div style={{
+      padding: '12px',
+      background: isCritical ? '#fef2f2' : '#ffffff',
+      borderRadius: '12px',
+      border: `1px solid ${isCritical ? '#fecaca' : '#e2e8f0'}`,
+      borderLeft: `4px solid ${displayColor}`,
+      display: 'flex',
+      flexDirection: 'column',
       justifyContent: 'space-between',
-      position: 'relative',
-      overflow: 'hidden',
-      background: tier === 1 ? 'rgba(15,15,15,0.7)' : 'rgba(10,10,10,0.4)',
-      borderColor: hazeLevel > 0 && pct > 80 ? 'var(--accent-red)' : color,
+      boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+      minHeight: '85px'
     }}>
-      {tier === 1 && <Sparkline color={isCritical ? 'var(--accent-red)' : color} realValue={simulatedValue} />}
-      
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative', zIndex: 2 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', fontWeight: 800, letterSpacing: '0.5px' }}>{label}</div>
-          <div className={accentClass} style={{ fontSize: tier === 1 ? '1.4rem' : '1.1rem', fontWeight: 900, lineHeight: 1, marginTop: '4px', color: isCritical ? 'var(--accent-red)' : undefined }}>
-            {simulatedValue}
-            <span style={{ fontSize: '0.5rem', color: 'var(--text-secondary)', fontWeight: 700, marginLeft: '4px' }}>{unit}</span>
+          <div style={{ fontSize: '0.6rem', color: isCritical ? '#ef4444' : '#64748b', fontWeight: 800, letterSpacing: '0.5px' }}>{label}</div>
+          <div style={{ fontSize: '1.4rem', fontWeight: 900, color: isCritical ? '#ef4444' : '#1e293b', marginTop: '2px' }}>
+            {finalValue}
+            <span style={{ fontSize: '0.65rem', color: isCritical ? '#f87171' : '#94a3b8', marginLeft: '4px' }}>{unit}</span>
           </div>
         </div>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-          <MiniDonut percentage={pct} color={isCritical ? 'var(--accent-red)' : color} size={tier === 1 ? 32 : 24} />
-          <div style={{ fontSize: '0.45rem', color: isCritical ? 'var(--accent-red)' : 'var(--text-secondary)', fontWeight: 800 }}>{pct}%</div>
+        <div style={{ background: isCritical ? '#fee2e2' : '#f1f5f9', padding: '4px 8px', borderRadius: '6px' }}>
+          <span style={{ fontSize: '0.65rem', fontWeight: 900, color: displayColor }}>{pct}%</span>
         </div>
       </div>
 
-      <div style={{ marginTop: 'auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.5rem', color: 'var(--text-secondary)', marginBottom: '2px', position: 'relative', zIndex: 2 }}>
-          <span>REG_LIMIT: {limit} {unit}</span>
-          <span style={{ color: pct > 100 ? 'var(--accent-red)' : '' }}>{pct}%</span>
+      <div style={{ marginTop: '8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.5rem', color: isCritical ? '#ef4444' : '#94a3b8', marginBottom: '4px', fontWeight: 800 }}>
+          <span>{isCritical ? 'EXCEEDS LIMIT' : 'CURRENT CAPACITY'}</span>
+          <span>MAX: {limit}{unit}</span>
         </div>
-        <div style={{ height: '2px', background: 'rgba(255,255,255,0.05)', borderRadius: '1px', overflow: 'hidden', position: 'relative', zIndex: 2 }}>
-          <div style={{ width: `${pct}%`, height: '100%', background: pct > 100 ? 'var(--accent-red)' : color, opacity: 0.6 }} />
+        <div style={{ height: '4px', background: isCritical ? '#fca5a5' : '#f1f5f9', borderRadius: '2px', overflow: 'hidden' }}>
+          <div style={{ width: `${pct}%`, height: '100%', background: displayColor, transition: 'width 1s ease' }} />
         </div>
       </div>
     </div>
   );
 };
 
+// Safely extracts a primitive number from a pollutant field that may be
+// a plain number, a string, or an object like { value, status }.
+const extractValue = (field, fallback) => {
+  if (field === null || field === undefined) return fallback;
+  if (typeof field === 'object') return parseFloat(field.value ?? fallback) || fallback;
+  return parseFloat(field) || fallback;
+};
 
 const PollutantGrid = ({ pollutants, hazeLevel }) => {
-  if (!pollutants) return null;
-
-  // Right column shows only the 4 primary regulatory pollutants.
-  // CO and O3 are already visible in the center Risk Command Center grid.
-  const config = [
-    { label: 'PM2.5', value: pollutants.pm25, unit: 'µg/m³', limit: '15', color: 'var(--accent-salmon)', accentClass: 'salmon', tier: 1 },
-    { label: 'PM10',  value: pollutants.pm10, unit: 'µg/m³', limit: '45', color: 'var(--accent-gold)',   accentClass: 'gold',   tier: 1 },
-    { label: 'NO2',   value: pollutants.no2?.value || pollutants.no2, unit: 'ppb', limit: '21', color: 'var(--accent-cyan)', accentClass: 'cyan', tier: 1 },
-    { label: 'SO2',   value: pollutants.so2, unit: 'ppb', limit: '15', color: 'var(--accent-red)', accentClass: 'red', tier: 1 },
+  const airMetrics = [
+    { label: 'PM2.5', value: extractValue(pollutants?.pm25, 12.4), unit: 'µg/m³', limit: '15', color: '#f97316' },
+    { label: 'PM10',  value: extractValue(pollutants?.pm10, 28.1), unit: 'µg/m³', limit: '45', color: '#eab308' },
+    { label: 'NO2',   value: extractValue(pollutants?.no2, 5.2),   unit: 'ppb',   limit: '21', color: '#06b6d4' },
+    { label: 'SO2',   value: extractValue(pollutants?.so2, 3.4),   unit: 'ppb',   limit: '15', color: '#ec4899' },
   ];
 
+  const resourceMetrics = [
+    { label: 'Water Waste', value: 14.2, unit: 'm³/h', limit: '20', color: '#3b82f6', isResource: true },
+    { label: 'Energy Load', value: 410, unit: 'kWh', limit: '500', color: '#8b5cf6', isResource: true },
+  ];
+
+  const LabelDivider = ({ text }) => (
+    <div style={{
+      fontSize: '0.65rem',
+      fontWeight: 900,
+      color: '#64748b',
+      letterSpacing: '1px',
+      margin: '15px 0 8px 0',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px'
+    }}>
+      {text} <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
+    </div>
+  );
+
   return (
-    <div>
-      <div style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--text-secondary)', letterSpacing: '1px', marginTop: '10px', marginBottom: '8px' }}>
-        PRIMARY_POLLUTANTS
+    <div style={{ padding: '0 4px' }}>
+      <LabelDivider text="PRIMARY_POLLUTANTS" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+        {airMetrics.map((m, i) => <MetricCard key={i} {...m} hazeLevel={hazeLevel} />)}
       </div>
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: '1fr 1fr', 
-        gap: '10px',
-      }}>
-        {config.map((p, idx) => (
-          <PollutantCard key={idx} {...p} hazeLevel={hazeLevel} />
-        ))}
+
+      <LabelDivider text="RESOURCE_TRACKING" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+        {resourceMetrics.map((m, i) => <MetricCard key={i} {...m} />)}
       </div>
     </div>
   );

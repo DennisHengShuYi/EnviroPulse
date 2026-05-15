@@ -10,7 +10,7 @@ const AlertBanner = ({ alerts, onDismiss, onNavigate }) => {
         <ShieldAlert size={20} />
         <div>
           <span style={{ textTransform: 'uppercase', letterSpacing: '1px' }}>THRESHOLD_BREACH_DETECTED: </span>
-          <span style={{ color: '#fff' }}>
+          <span style={{ color: 'var(--text-primary)' }}>
             {alerts[0].type} at {alerts[0].zone} exceeded limit ({alerts[0].value}). Status: {alerts[0].status}
           </span>
         </div>
@@ -21,7 +21,7 @@ const AlertBanner = ({ alerts, onDismiss, onNavigate }) => {
           onClick={onNavigate}
           style={{ 
             background: 'var(--accent-red)', 
-            color: '#fff', 
+            color: 'var(--text-primary)', 
             border: 'none', 
             padding: '4px 12px', 
             borderRadius: '2px', 
@@ -42,3 +42,4 @@ const AlertBanner = ({ alerts, onDismiss, onNavigate }) => {
 };
 
 export default AlertBanner;
+
