@@ -93,7 +93,27 @@ const callAIWithFallback = async (systemPrompt, userPrompt, maxTokens = 1800) =>
   }
 };
 
-app.use(cors());
+const allowedOrigins = [
+  'https://enviro-pulse.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3001'
+];
+
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // If FRONTEND_URL is not set, allow all for development flexibility
+    if (!process.env.FRONTEND_URL) return callback(null, true);
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
+}));
 app.use(express.json());
 
 const AQICN_TOKEN = process.env.AQICN_TOKEN || 'demo';
