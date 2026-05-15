@@ -28,13 +28,13 @@ body {
   width: 100vw;
 }
 
-@media (min-width: 769px) {
+@media (min-width: 1201px) {
   body {
     overflow: hidden; /* Only hide scroll on desktop for terminal vibe */
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1200px) {
   body {
     overflow-x: hidden;
     overflow-y: auto;
@@ -221,8 +221,18 @@ body {
 }
 
 @media (max-width: 1200px) {
-  .dashboard-grid-3col {
-    grid-template-columns: 1fr 1fr;
+  .dashboard-grid-3col, .dashboard-grid-2col {
+    grid-template-columns: 1fr !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding-bottom: 40px;
+    gap: 20px;
+  }
+  
+  .dashboard-column {
+    height: auto !important;
+    min-height: 300px;
+    overflow: visible !important;
   }
 }
 
@@ -273,10 +283,22 @@ body {
   height: 100%;
 }
 
-@media (max-width: 768px) {
-  .dashboard-column {
+@media (max-width: 1200px) {
+  body {
+    overflow-y: auto !important;
+  }
+  .main-layout {
     height: auto;
     overflow-y: visible;
+  }
+  .app-content {
+    overflow-y: visible;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --sidebar-width: 60px;
   }
 }
 
@@ -319,6 +341,22 @@ body {
   animation: banner-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
+@media (max-width: 768px) {
+  .alert-banner {
+    min-width: unset;
+    width: 95%;
+    top: 140px;
+    flex-direction: column;
+    gap: 15px;
+    padding: 15px;
+    text-align: center;
+  }
+  .alert-banner > div {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
 @keyframes fadeSlideDown {
   from { opacity: 0; transform: translateY(-8px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -331,17 +369,6 @@ body {
 
 /* --- RESPONSIVE GRID UTILS --- */
 .grid-container { display: flex; flex-direction: column; gap: 16px; width: 100%; }
-.responsive-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.responsive-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-@media (max-width: 768px) {
-  .responsive-grid-3 { grid-template-columns: 1fr; }
-  .responsive-grid-2 { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 480px) {
-  .responsive-grid-3, .responsive-grid-2 { grid-template-columns: 1fr; }
-}
 
 /* --- HEADER RESPONSIVENESS --- */
 .app-header {
@@ -360,12 +387,21 @@ body {
 @media (max-width: 768px) {
   .app-header {
     padding: 0.5rem 1rem;
-    flex-wrap: wrap;
+    flex-direction: column;
+    height: auto;
     gap: 10px;
   }
   .header-left, .header-right {
     width: 100%;
     justify-content: space-between !important;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-group {
+    flex-wrap: wrap;
+    justify-content: center !important;
   }
 }
 
