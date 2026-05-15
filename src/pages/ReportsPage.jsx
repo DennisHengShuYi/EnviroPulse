@@ -13,7 +13,7 @@ import {
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-const ReportsPage = ({ districts, headerDistrict }) => {
+const ReportsPage = ({ districts, headerDistrict, addSubmission }) => {
   const [generating, setGenerating] = useState(false);
   const [reportReady, setReportReady] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
@@ -21,6 +21,8 @@ const ReportsPage = ({ districts, headerDistrict }) => {
   const [selectedDistrict, setSelectedDistrict] = useState(headerDistrict || 'klcc');
   const [stats, setStats] = useState(null);
   const [esgAdvisory, setEsgAdvisory] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [submitted, setSubmitted] = useState(false);
   const reportContentRef = useRef(null);
 
   // Fetch real stats when district changes
@@ -28,6 +30,7 @@ const ReportsPage = ({ districts, headerDistrict }) => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setReportReady(false);
     setEsgAdvisory(null);
+    setSubmitted(false);
     const fetchStats = async () => {
       try {
         const res = await fetch(`/api/analytics/esg-stats?id=${selectedDistrict}&period=${encodeURIComponent(period)}`);
@@ -130,7 +133,26 @@ const ReportsPage = ({ districts, headerDistrict }) => {
     a.download = `BURSA_CSI_DISCLOSURE_${selectedDistrict.toUpperCase()}_${Date.now()}.json`;
     a.click();
 
-    alert(`[BURSA CSI PORTAL INTEGRATION]\n\nFormatted JSON submission package compiled and automatically downloaded.\n\nHash Lock Signature: #${signatureHash}\nTarget Platform: Bursa Continuous Sustainability Integration (CSI) Platform`);
+    // ADD TO GLOBAL QUEUE
+    const districtName = districts.find(d => d.id === selectedDistrict)?.name || selectedDistrict;
+    addSubmission({
+      id: `SUB-${Date.now()}`,
+      company: `${districtName} Industrial Facility`,
+      zone: districtName,
+      nodeId: selectedDistrict,
+      nodeName: `${selectedDistrict.toUpperCase()}_NODE_${signatureHash.slice(0, 4)}`,
+      date: ts.split('T')[0],
+      reportedPm25: stats?.currentPm25 || 0,
+      reportedAqi: stats?.currentAqi || 0,
+      reportedStatus: stats?.currentAqi < 50 ? 'GOOD' : stats?.currentAqi < 100 ? 'MODERATE' : 'UNHEALTHY',
+    });
+
+    setToast({
+      message: `DISCLOSURE_PACK_GENERATED: Bursa CSI submission for ${districtName} successful. Audit hash recorded: #${signatureHash}`,
+      type: 'success'
+    });
+    setSubmitted(true);
+    setTimeout(() => setToast(null), 5000);
   };
 
   const handlePrintPDF = async () => {
@@ -294,18 +316,19 @@ const ReportsPage = ({ districts, headerDistrict }) => {
           </button>
           <button
             onClick={handleSubmitToBursa}
-            disabled={!reportReady}
+            disabled={!reportReady || submitted}
             style={{
-              background: reportReady ? '#b45309' : '#fef3c7',
-              color: reportReady ? '#ffffff' : '#92400e',
-              border: `1px solid ${reportReady ? '#b45309' : '#fed7aa'}`,
+              background: (reportReady && !submitted) ? '#b45309' : '#fef3c7',
+              color: (reportReady && !submitted) ? '#ffffff' : '#92400e',
+              border: `1px solid ${(reportReady && !submitted) ? '#b45309' : '#fed7aa'}`,
               padding: '8px 18px', fontSize: '0.65rem', fontWeight: 900,
-              cursor: reportReady ? 'pointer' : 'not-allowed',
+              cursor: (reportReady && !submitted) ? 'pointer' : 'not-allowed',
               borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px',
-              letterSpacing: '0.5px'
+              letterSpacing: '0.5px',
+              opacity: submitted ? 0.7 : 1
             }}
           >
-            <Share2 size={14} /> SUBMIT_TO_BURSA_CSI
+            <Share2 size={14} /> {submitted ? 'SUBMISSION_TRANSMITTED' : 'SUBMIT_TO_BURSA_CSI'}
           </button>
         </div>
       </div>
@@ -748,6 +771,21 @@ const ReportsPage = ({ districts, headerDistrict }) => {
           )}
         </div>
       </div>
+      {/* Toast Feedback */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: '30px', right: '30px', zIndex: 9999,
+          background: 'rgba(0,255,130,0.1)',
+          border: '1px solid #00ff82',
+          color: '#00ff82',
+          padding: '16px 20px', borderRadius: '6px', maxWidth: '420px',
+          fontSize: '0.7rem', fontWeight: 800, lineHeight: 1.5,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+          fontFamily: 'JetBrains Mono, monospace'
+        }}>
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
-import AlertBanner from './components/AlertBanner';
+import AlertPanel from './components/AlertPanel';
 import HeroMetrics from './components/HeroMetrics';
 import PollutantGrid from './components/PollutantGrid';
 import AIAdvisory from './components/AIAdvisory';
@@ -31,11 +31,85 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
   return R * c;
 };
 
+const DEMO_SUBMISSIONS = [
+  {
+    id: 'SUB-001',
+    company: 'Acme Sdn Bhd',
+    zone: 'Cheras Industrial',
+    nodeId: 'kajang',
+    nodeName: 'CHERAS_NODE_7 (via KAJANG)',
+    date: new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0],
+    reportedPm25: 12,
+    reportedAqi: 45,
+    reportedStatus: 'GOOD',
+  },
+  {
+    id: 'SUB-002',
+    company: 'GreenOps Holdings',
+    zone: 'Shah Alam Industrial Park',
+    nodeId: 'shahalam',
+    nodeName: 'SHAHALAM_NODE_2',
+    date: new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0],
+    reportedPm25: 10,
+    reportedAqi: 40,
+    reportedStatus: 'GOOD',
+  },
+  {
+    id: 'SUB-003',
+    company: 'Klang Chemical Works Sdn Bhd',
+    zone: 'Klang North Industrial Corridor',
+    nodeId: 'klang',
+    nodeName: 'KLANG_NODE_4 (NORTH_CORRIDOR)',
+    date: new Date(Date.now() - 4 * 86400000).toISOString().split('T')[0],
+    reportedPm25: 18,
+    reportedAqi: 60,
+    reportedStatus: 'MODERATE',
+  },
+];
+
+const computeThresholdAlerts = (sensorData) => {
+  if (!sensorData) return [];
+  const now = new Date().toLocaleTimeString('en-MY', { timeZone: 'Asia/Kuala_Lumpur', hour12: false });
+  const pm25 = parseFloat(sensorData.pollutants?.pm25) || 0;
+  const aqi  = parseFloat(sensorData.metrics?.aqi?.value) || 0;
+  const hi   = parseFloat(sensorData.metrics?.heatIndex?.value) || 0;
+  const no2  = parseFloat(sensorData.pollutants?.no2?.value || sensorData.pollutants?.no2) || 0;
+  const results = [];
+
+  if (hi >= 40) {
+    results.push({ id: 'hi_stop', type: 'HEAT_INDEX', zone: sensorData.name, value: `${hi}°C`, status: 'STOP_WORK', severity: 'CRITICAL', message: `Heat Index ${hi}°C ≥ 40°C — STOP WORK order. All outdoor work must cease immediately.`, regulation: 'OSH Act 2024 §15(2)', time: now });
+  } else if (hi >= 38) {
+    results.push({ id: 'hi_danger', type: 'HEAT_INDEX', zone: sensorData.name, value: `${hi}°C`, status: 'DANGER', severity: 'CRITICAL', message: `Heat Index ${hi}°C ≥ 38°C — DANGER. Mandatory 45 min work / 15 min rest cycle.`, regulation: 'OSH Act 2024 §15(2)', time: now });
+  } else if (hi >= 33) {
+    results.push({ id: 'hi_caution', type: 'HEAT_INDEX', zone: sensorData.name, value: `${hi}°C`, status: 'CAUTION', severity: 'WARNING', message: `Heat Index ${hi}°C ≥ 33°C — DOSH CAUTION. 50 min work / 10 min rest cycle required.`, regulation: 'OSH Act 2024 §15(2)', time: now });
+  }
+
+  if (pm25 >= 35) {
+    results.push({ id: 'pm25_critical', type: 'PM2.5', zone: sensorData.name, value: `${pm25} µg/m³`, status: 'CRITICAL', severity: 'CRITICAL', message: `PM2.5 ${pm25} µg/m³ ≥ 35 µg/m³ — N100 respirator mandatory. DOE notification required.`, regulation: 'EQA 1974 §22', time: now });
+  } else if (pm25 >= 15) {
+    results.push({ id: 'pm25_who', type: 'PM2.5', zone: sensorData.name, value: `${pm25} µg/m³`, status: 'WHO_BREACH', severity: 'WARNING', message: `PM2.5 ${pm25} µg/m³ exceeds WHO 15 µg/m³ guideline. N95 respirator mandatory for all workers.`, regulation: 'WHO AQG 2021', time: now });
+  }
+
+  if (aqi >= 100) {
+    results.push({ id: 'aqi_unhealthy', type: 'AQI', zone: sensorData.name, value: String(aqi), status: 'UNHEALTHY', severity: 'CRITICAL', message: `AQI ${aqi} ≥ 100 — reduce production 20–30% immediately. DOE notification required.`, regulation: 'EQA 1974 §22', time: now });
+  } else if (aqi >= 85) {
+    // Only warn when within 15 units of the 100 limit — genuinely "almost reached"
+    results.push({ id: 'aqi_watch', type: 'AQI', zone: sensorData.name, value: String(aqi), status: 'NEAR_LIMIT', severity: 'WARNING', message: `AQI ${aqi} is ${100 - aqi} units from the DOE 100 notification threshold. Prepare protocols now.`, regulation: 'EQA 1974 §22', time: now });
+  }
+
+  if (no2 >= 25) {
+    results.push({ id: 'no2_limit', type: 'NO2', zone: sensorData.name, value: `${no2} ppb`, status: 'EXCEEDED', severity: 'WARNING', message: `NO2 ${no2} ppb ≥ 25 ppb DOE guideline. Inspect all leak sources and ventilation systems.`, regulation: 'DOE Guideline', time: now });
+  }
+
+  return results;
+};
+
 function App() {
   const [data, setData] = useState(null);
   const [districts, setDistricts] = useState([]);
   const [trends, setTrends] = useState([]);
-  const [alerts, setAlerts] = useState([]);
+  const [serverAlerts, setServerAlerts] = useState([]);
+  const [activeAlerts, setActiveAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activePage, setActivePage] = useState('dashboard');
   const [selectedDistrict, setSelectedDistrict] = useState(null);
@@ -46,6 +120,11 @@ function App() {
   const [isLive, setIsLive] = useState(true);
   const [hazeLevel, setHazeLevel] = useState(0); // 0: None, 1: Moderate, 2: Unhealthy, 3: Hazardous
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [submissions, setSubmissions] = useState(DEMO_SUBMISSIONS);
+
+  const addSubmission = (newSub) => {
+    setSubmissions(prev => [newSub, ...prev]);
+  };
 
   const triggerHazeSimulation = () => {
     setHazeLevel(prev => (prev + 1) % 4);
@@ -144,7 +223,7 @@ function App() {
 
         if (dataJson) setData(dataJson);
         if (trendJson) setTrends(trendJson);
-        if (alertJson) setAlerts(alertJson);
+        if (alertJson) setServerAlerts(alertJson);
 
         if (dataJson) setLoading(false);
       } catch (error) {
@@ -157,6 +236,22 @@ function App() {
     const interval = setInterval(fetchData, 8000);
     return () => clearInterval(interval);
   }, [selectedDistrict]);
+
+  // Merge server alerts + client-side threshold alerts whenever data or serverAlerts changes
+  useEffect(() => {
+    const computed = computeThresholdAlerts(data);
+    // Deduplicate: computed alerts by id take precedence over server alerts with same type
+    const computedIds = new Set(computed.map(a => a.id));
+    const serverOnly = serverAlerts
+      .filter(a => !computedIds.has(a.id))
+      .map(a => ({ ...a, severity: a.status === 'DANGER' ? 'CRITICAL' : 'WARNING', message: `${a.type} at ${a.zone}: ${a.value} — status ${a.status}` }));
+    // Sort: CRITICAL first, then WARNING
+    const merged = [...computed, ...serverOnly].sort((a, b) => {
+      const order = { CRITICAL: 0, WARNING: 1, INFO: 2 };
+      return (order[a.severity] ?? 2) - (order[b.severity] ?? 2);
+    });
+    setActiveAlerts(merged);
+  }, [data, serverAlerts]);
 
   // Separate interval for heavy comparison data
   useEffect(() => {
@@ -220,8 +315,8 @@ function App() {
       );
       case 'sensors': return <SensorsPage districts={districts} />;
       case 'alerts': return <AlertsPage selectedDistrictId={selectedDistrict} />;
-      case 'reports': return <ReportsPage data={data} districts={districts} headerDistrict={selectedDistrict} />;
-      case 'compliance': return <CompliancePage districts={districts} data={allDistrictsData} />;
+      case 'reports': return <ReportsPage data={data} districts={districts} headerDistrict={selectedDistrict} addSubmission={addSubmission} />;
+      case 'compliance': return <CompliancePage districts={districts} data={allDistrictsData} submissions={submissions} setSubmissions={setSubmissions} />;
       case 'supply': return <SupplyChainPage />;
       case 'workers': return <WorkerGrid hazeLevel={hazeLevel} triggerHazeSimulation={triggerHazeSimulation} />;
       default: return <div>Page Not Found</div>;
@@ -243,13 +338,20 @@ function App() {
           districts={districts}
           onSelectDistrict={setSelectedDistrict}
           onLocateMe={() => handleLocateMe()}
-          alertCount={alerts.length}
-          onToggleAlerts={() => setShowAlerts(!showAlerts)}
+          alertCount={activeAlerts.length}
+          onToggleAlerts={() => setShowAlerts(prev => !prev)}
           showAlerts={showAlerts}
           isLive={isLive}
         />
 
-        {showAlerts && <AlertBanner alerts={alerts} onDismiss={() => setShowAlerts(false)} onNavigate={() => setActivePage('alerts')} />}
+        {showAlerts && (
+          <AlertPanel
+            alerts={activeAlerts}
+            onDismissAll={() => { setActiveAlerts([]); setShowAlerts(false); }}
+            onNavigate={() => setActivePage('alerts')}
+            onClose={() => setShowAlerts(false)}
+          />
+        )}
 
         {renderPage()}
       </main>
