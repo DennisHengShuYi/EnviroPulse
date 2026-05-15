@@ -3,7 +3,7 @@
 EnviroPulse is an IoT-anchored environmental compliance platform that prevents greenwashing by generating ESG reports directly from tamper-evident physical sensors installed at company facilities — making falsification structurally impossible.
 
 🔗 **Important Links**
-📄 EnviroPulse Documentation — [View Documentation](https://www.notion.so/EnviroPulse-Anti-Greenwashing-Platform-System-Design-361f0ca19eb1812c9fd4c082092ff442?source=copy_link)
+-📄 EnviroPulse Documentation — [View Documentation](https://www.notion.so/EnviroPulse-Anti-Greenwashing-Platform-System-Design-361f0ca19eb1812c9fd4c082092ff442?source=copy_link)
 - 🎤 [Pitch Deck](#) — View Slides
 
 👥 **Team Members**
