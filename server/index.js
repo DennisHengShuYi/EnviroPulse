@@ -14,7 +14,7 @@ const redis = new Redis({
 });
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 const cache = new NodeCache({ stdTTL: 120 }); // Cache for 2 minutes
 
 // Global System Configuration
@@ -589,22 +589,22 @@ const getSensorData = async (districtId = 'klcc', lat = null, lng = null) => {
         windDir: (realData?.windDirection || 0).toFixed(0)
       },
       pm25: { 
-        value: (realData?.pollutants.pm25 || 0).toFixed(2), 
+        value: (realData?.pollutants?.pm25 || 0).toFixed(2), 
         unit: 'µg/m³',
-        limitPercent: Math.floor(((realData?.pollutants.pm25 || 0) / systemConfig.PM2_5_EXCEEDANCE) * 100) + '%',
-        status: (realData?.pollutants.pm25 || 0) > systemConfig.PM2_5_EXCEEDANCE ? 'EXCEEDED' : 'NOMINAL'
+        limitPercent: Math.floor(((realData?.pollutants?.pm25 || 0) / systemConfig.PM2_5_EXCEEDANCE) * 100) + '%',
+        status: (realData?.pollutants?.pm25 || 0) > systemConfig.PM2_5_EXCEEDANCE ? 'EXCEEDED' : 'NOMINAL'
       }
     },
     pollutants: {
-      pm25: ((realData?.pollutants.pm25 || aqiValue * 0.35) + (Math.random() * 0.2 - 0.1)).toFixed(2),
-      pm10: ((realData?.pollutants.pm10 || aqiValue * 0.6) + (Math.random() * 0.4 - 0.2)).toFixed(2),
+      pm25: ((realData?.pollutants?.pm25 || aqiValue * 0.35) + (Math.random() * 0.2 - 0.1)).toFixed(2),
+      pm10: ((realData?.pollutants?.pm10 || aqiValue * 0.6) + (Math.random() * 0.4 - 0.2)).toFixed(2),
       no2: {
-        value: ((realData?.pollutants.no2 || 20) + (Math.random() * 0.5 - 0.25)).toFixed(2),
-        status: (realData?.pollutants.no2 || 20) > systemConfig.NO2_PEAK_LIMIT ? 'CRITICAL' : 'STABLE'
+        value: ((realData?.pollutants?.no2 || 20) + (Math.random() * 0.5 - 0.25)).toFixed(2),
+        status: (realData?.pollutants?.no2 || 20) > systemConfig.NO2_PEAK_LIMIT ? 'CRITICAL' : 'STABLE'
       },
-      so2: ((realData?.pollutants.so2 || 5) + (Math.random() * 0.1 - 0.05)).toFixed(2),
-      co: ((realData?.pollutants.co || 0.5) + (Math.random() * 0.02 - 0.01)).toFixed(2),
-      o3: ((realData?.pollutants.o3 || 40) + (Math.random() * 0.8 - 0.4)).toFixed(2)
+      so2: ((realData?.pollutants?.so2 || 5) + (Math.random() * 0.1 - 0.05)).toFixed(2),
+      co: ((realData?.pollutants?.co || 0.5) + (Math.random() * 0.02 - 0.01)).toFixed(2),
+      o3: ((realData?.pollutants?.o3 || 40) + (Math.random() * 0.8 - 0.4)).toFixed(2)
     },
     systemStatus: {
       feed: `${district.name}_STATION_DELTA`,
@@ -1127,8 +1127,8 @@ app.post('/api/advisor', async (req, res) => {
     return res.json(simulatedData);
   }
 
-  console.log(`[ADVISOR_REQUEST_START] ${sensorData.name} - Metrics: ${Object.keys(sensorData.metrics || {}).length}`);
-
+  console.log(`[ADVISOR_REQUEST_START] ${sensorData.name} - Role: ${requestedRole}, Model: ${AI_MODEL}, Key: ${aiClient.apiKey ? aiClient.apiKey.slice(0, 10) + '...' : 'MISSING'}`);
+  
   try {
     const allMetrics = Object.entries(sensorData.metrics || {})
       .filter(([_, m]) => m && m.value !== null && m.value !== undefined)
@@ -1267,7 +1267,7 @@ Output strictly JSON adhering to these exact parameters without markdown formatt
     cache.set(cacheKey, advisory, 1800);
     res.json(advisory);
   } catch (error) {
-    console.error('[ADVISOR_AI_ERROR]', error.message, error.status);
+    console.error('[ADVISOR_AI_ERROR]', error.name, error.message, 'Status:', error.status, 'Stack:', error.stack);
     const fallback = generateDynamicFallback('advisor', sensorData);
     res.json(requestedRole !== 'all' && fallback[requestedRole] ? { isFallback: true, [requestedRole]: fallback[requestedRole] } : fallback);
   }

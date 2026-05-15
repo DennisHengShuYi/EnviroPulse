@@ -23,11 +23,11 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371; // km
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
 
@@ -44,12 +44,8 @@ function App() {
   const [viewMode, setViewMode] = useState('3d');
   const [showAlerts, setShowAlerts] = useState(false);
   const [isLive, setIsLive] = useState(true);
-<<<<<<< HEAD
-  const [isHazeSimulated, setIsHazeSimulated] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-=======
   const [hazeLevel, setHazeLevel] = useState(0); // 0: None, 1: Moderate, 2: Unhealthy, 3: Hazardous
->>>>>>> c03c1b1fe6dab7570326751cf2ed848007228e19
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const triggerHazeSimulation = () => {
     setHazeLevel(prev => (prev + 1) % 4);
@@ -58,7 +54,7 @@ function App() {
   const handleLocateMe = (districtList) => {
     console.log('[GPS_SYNC] LocateMe triggered...');
     const listToUse = (districtList && districtList.length > 0) ? districtList : districts;
-    
+
     if (!navigator.geolocation) {
       console.error("Geolocation not supported");
       setSelectedDistrict('klcc');
@@ -76,7 +72,7 @@ function App() {
         const { latitude, longitude } = position.coords;
         console.log(`[GPS_SYNC] Real GPS: ${latitude}, ${longitude}`);
         setUserCoords({ lat: latitude, lng: longitude });
-        
+
         let nearest = listToUse[0];
         let minDist = Infinity;
 
@@ -139,17 +135,17 @@ function App() {
           setIsLive(false);
           return null;
         };
-        
+
         const [dataJson, trendJson, alertJson] = await Promise.all([
           parseJson(dataRes),
           parseJson(trendRes),
           parseJson(alertRes)
         ]);
-        
+
         if (dataJson) setData(dataJson);
         if (trendJson) setTrends(trendJson);
         if (alertJson) setAlerts(alertJson);
-        
+
         if (dataJson) setLoading(false);
       } catch (error) {
         console.error('Fetch error:', error);
@@ -158,7 +154,7 @@ function App() {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 8000); 
+    const interval = setInterval(fetchData, 8000);
     return () => clearInterval(interval);
   }, [selectedDistrict]);
 
@@ -187,78 +183,36 @@ function App() {
 
   const renderDashboard = () => (
     <div className="dashboard-grid-3col">
-      {/* Left Column */}
+      {/* Left Column — Live Conditions */}
       <div className="dashboard-column">
-<<<<<<< HEAD
-        <HeroMetrics data={data} isHazeSimulated={isHazeSimulated} />
-        <TrendChart data={trends} isHazeSimulated={isHazeSimulated} />
+        <HeroMetrics data={data} hazeLevel={hazeLevel} />
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <TrendChart data={trends} hazeLevel={hazeLevel} />
+        </div>
       </div>
 
-      {/* Center Column */}
+      {/* Center Column — Risk Assessment */}
       <div className="dashboard-column">
         <RiskCommandCenter data={data} />
         <ComplianceHeatmap history={trends} />
-=======
-        <HeroMetrics data={data} layout="vertical" hazeLevel={hazeLevel} />
-        <TrendChart data={trends} hazeLevel={hazeLevel} />
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', position: 'relative', overflow: 'hidden', height: '100%' }}>
-        <div className="widget" style={{ flex: 1, position: 'relative', overflow: 'hidden', padding: 0 }}>
-          <div style={{ position: 'absolute', top: '20px', right: '120px', zIndex: 2000, display: 'flex', gap: '10px' }}>
-            <button 
-              onClick={() => setViewMode(viewMode === '2d' ? '3d' : '2d')}
-              style={{ 
-                background: 'var(--accent-cyan)', 
-                color: '#000',
-                border: '1px solid var(--accent-cyan)',
-                padding: '8px 20px',
-                fontSize: '0.7rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-                borderRadius: '2px',
-                boxShadow: '0 0 15px rgba(0, 240, 255, 0.3)',
-                transition: 'all 0.3s ease'
-              }}
-            >
-              {viewMode === '2d' ? 'VIEW_3D_TWIN' : 'VIEW_2D_SATELLITE'}
-            </button>
-          </div>
-          
-          {viewMode === '2d' ? (
-            <MapHero onSelectDistrict={setSelectedDistrict} selectedId={selectedDistrict} userCoords={userCoords} />
-          ) : (
-            <City3DView 
-              data={data} 
-              allDistricts={allDistrictsData} 
-              userCoords={userCoords} 
-              homeDistrictId={homeDistrictId}
-              hazeLevel={hazeLevel}
-            />
-          )}
-        </div>
->>>>>>> c03c1b1fe6dab7570326751cf2ed848007228e19
-      </div>
-
-      {/* Right Column */}
-      <div className="dashboard-column">
-<<<<<<< HEAD
-        <AIAdvisory data={data} history={trends} />
-        <PollutantGrid pollutants={data.pollutants} />
-=======
-        <AIAdvisory data={data} />
         <PollutantGrid pollutants={data.pollutants} hazeLevel={hazeLevel} />
->>>>>>> c03c1b1fe6dab7570326751cf2ed848007228e19
+      </div>
+
+      {/* Right Column — AI Intelligence */}
+      <div className="dashboard-column">
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <AIAdvisory data={data} history={trends} />
+        </div>
       </div>
     </div>
   );
 
   const renderPage = () => {
-    switch(activePage) {
+    switch (activePage) {
       case 'dashboard': return renderDashboard();
       case 'analytics': return (
-        <AnalyticsPage 
-          onBack={() => setActivePage('dashboard')} 
+        <AnalyticsPage
+          onBack={() => setActivePage('dashboard')}
           selectedDistrictId={selectedDistrict}
           districts={districts}
           data={data}
@@ -268,7 +222,7 @@ function App() {
       case 'sensors': return <SensorsPage districts={districts} />;
       case 'alerts': return <AlertsPage selectedDistrictId={selectedDistrict} />;
       case 'reports': return <ReportsPage data={data} districts={districts} headerDistrict={selectedDistrict} />;
-      case 'compliance': return <CompliancePage districts={districts} data={data} />;
+      case 'compliance': return <CompliancePage districts={districts} data={allDistrictsData} />;
       case 'supply': return <SupplyChainPage />;
       case 'workers': return <WorkerGrid hazeLevel={hazeLevel} triggerHazeSimulation={triggerHazeSimulation} />;
       default: return <div>Page Not Found</div>;
@@ -277,17 +231,17 @@ function App() {
 
   return (
     <div className="dashboard-container">
-      <Sidebar 
-        activePage={activePage} 
-        setActivePage={setActivePage} 
+      <Sidebar
+        activePage={activePage}
+        setActivePage={setActivePage}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
-      
+
       <main className="main-content">
-        <Header 
-          districtName={selectedDistrict} 
-          districts={districts} 
+        <Header
+          districtName={selectedDistrict}
+          districts={districts}
           onSelectDistrict={setSelectedDistrict}
           onLocateMe={() => handleLocateMe()}
           alertCount={alerts.length}
@@ -295,9 +249,9 @@ function App() {
           showAlerts={showAlerts}
           isLive={isLive}
         />
-        
+
         {showAlerts && <AlertBanner alerts={alerts} onDismiss={() => setShowAlerts(false)} onNavigate={() => setActivePage('alerts')} />}
-        
+
         {renderPage()}
       </main>
     </div>

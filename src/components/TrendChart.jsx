@@ -77,18 +77,15 @@ const TrendChart = ({ data, hazeLevel }) => {
   const offset = getGradientOffset();
 
   return (
-    <div className="trend-area" style={{ background: '#070707', border: '1px solid rgba(255,255,255,0.05)', padding: '15px', borderRadius: '4px' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px' }}>
+    <div className="trend-area" style={{ background: '#070707', border: '1px solid rgba(255,255,255,0.05)', padding: '15px', borderRadius: '4px', height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px', flexShrink: 0 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <span style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--text-secondary)', letterSpacing: '1px' }}>COMPLIANCE_TREND_MONITOR</span>
-<<<<<<< HEAD
-=======
           {(activeMetric === 'pm25' || isHazeSimulated) && (
             <span style={{ fontSize: '0.55rem', color: '#ff3e3e', fontWeight: 800 }}>
               {isHazeSimulated ? `⚠️ HAZE LEVEL ${hazeLevel} SIMULATION - ECONOMIC IMPACT VIEW` : 'WHO AQG Exceedance Audit View Active'}
             </span>
           )}
->>>>>>> c03c1b1fe6dab7570326751cf2ed848007228e19
         </div>
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
           {metrics.map(m => (
@@ -114,7 +111,7 @@ const TrendChart = ({ data, hazeLevel }) => {
         </div>
       </div>
 
-      <div style={{ height: '220px', width: '100%', minWidth: 0, minHeight: 0 }}>
+      <div style={{ flex: 1, minHeight: '160px', width: '100%', minWidth: 0 }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={simulatedData} margin={{ top: 15, right: 10, left: 10, bottom: 10 }}>
             <defs>
@@ -152,6 +149,7 @@ const TrendChart = ({ data, hazeLevel }) => {
               dy={10}
             />
             <YAxis yAxisId="left" hide domain={['auto', 'auto']} />
+            <YAxis yAxisId="right" hide domain={[0, 100]} />
             <Tooltip content={<CustomTooltip />} />
             
             {/* Legend Overlay */}
@@ -161,6 +159,12 @@ const TrendChart = ({ data, hazeLevel }) => {
                   <div style={{ width: 8, height: 2, background: metrics.find(m => m.id === activeMetric).color }}></div>
                   <span style={{ color: 'var(--text-secondary)' }}>{activeMetric.toUpperCase()} Level</span>
                 </div>
+                {isHazeSimulated && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div style={{ width: 8, height: 2, border: '1px dashed var(--accent-gold)' }}></div>
+                    <span style={{ color: 'var(--accent-gold)' }}>Production Efficiency (%)</span>
+                  </div>
+                )}
               </div>
             </foreignObject>
 
@@ -192,13 +196,10 @@ const TrendChart = ({ data, hazeLevel }) => {
               strokeWidth={2.5}
             />
 
-<<<<<<< HEAD
-=======
             <Area 
               yAxisId="right"
               type="monotone" 
               dataKey={(d) => {
-                // Logic: AQI < 50 -> 100%. Heat Index 38 -> 40%.
                 const aqiVal = d.aqi || 0;
                 const heatVal = d.heat || 31;
                 
@@ -213,7 +214,6 @@ const TrendChart = ({ data, hazeLevel }) => {
               strokeDasharray="5 5"
               fill="transparent"
             />
->>>>>>> c03c1b1fe6dab7570326751cf2ed848007228e19
           </AreaChart>
         </ResponsiveContainer>
       </div>

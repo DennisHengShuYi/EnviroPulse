@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Brain, RefreshCw, AlertCircle, ShieldCheck, Maximize2, Minimize2, Thermometer, Factory, Activity, ChevronDown, ChevronUp, CheckCircle2, ArrowRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Brain, RefreshCw, Maximize2, Minimize2 } from 'lucide-react';
 
 const AIAdvisory = ({ data, history }) => {
   const [loading, setLoading] = useState(false);
   const [advisoryData, setAdvisoryData] = useState(null);
   const [error, setError] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [showCoT, setShowCoT] = useState(false);
 
   const activeRole = 'factoryMsme';
 
@@ -66,15 +65,16 @@ const AIAdvisory = ({ data, history }) => {
     position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 9999,
     background: 'rgba(5, 10, 20, 0.98)', padding: '40px', display: 'flex', flexDirection: 'column',
     backdropFilter: 'blur(10px)', overflowY: 'auto'
-  } : { 
-    display: 'flex', 
-    flexDirection: 'column', 
-    gap: '8px', 
-    padding: '12px', 
-    flex: 1,
+  } : {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    padding: '12px',
+    height: '100%',
     overflowY: 'auto',
     border: '1px solid rgba(0, 240, 255, 0.15)',
-    background: 'rgba(10, 10, 10, 0.6)'
+    background: 'rgba(10, 10, 10, 0.6)',
+    borderRadius: '4px',
   };
 
   return (
@@ -127,10 +127,33 @@ const AIAdvisory = ({ data, history }) => {
           </span>
         </div>
       ) : error ? (
-        <div style={{ height: '100px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '8px', color: 'var(--accent-red)' }}>
-          <AlertCircle size={18} />
-          <span style={{ fontSize: '0.6rem', fontWeight: 800 }}>{error}</span>
-          <button onClick={fetchAdvisory} className="btn-secondary" style={{ padding: '2px 8px', fontSize: '0.5rem' }}>RETRY</button>
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '160px', padding: '8px 0' }}>
+          {/* Top: structured pending state */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', flex: 1, justifyContent: 'center' }}>
+            <div className="marker-pulse" style={{ width: 36, height: 36, background: 'rgba(0, 240, 255, 0.08)', borderRadius: '50%', border: '1px solid rgba(0,240,255,0.2)' }} />
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '2px', color: 'var(--accent-cyan)' }}>FACTORY_ADVISORY</div>
+              <div style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--text-secondary)', marginTop: '4px', letterSpacing: '1px' }}>INFERENCE_PENDING</div>
+              <div style={{ fontSize: '0.5rem', color: 'rgba(255,255,255,0.2)', marginTop: '6px' }}>
+                Connecting to LLM inference engine...
+              </div>
+            </div>
+          </div>
+          {/* Bottom: retry */}
+          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            <button onClick={fetchAdvisory} style={{
+              background: 'rgba(0,240,255,0.08)',
+              border: '1px solid rgba(0,240,255,0.2)',
+              color: 'var(--accent-cyan)',
+              padding: '4px 16px',
+              fontSize: '0.55rem',
+              fontWeight: 800,
+              letterSpacing: '1px',
+              cursor: 'pointer',
+              borderRadius: '2px',
+              fontFamily: 'var(--font-mono)'
+            }}>↺ RETRY</button>
+          </div>
         </div>
       ) : advisoryData ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

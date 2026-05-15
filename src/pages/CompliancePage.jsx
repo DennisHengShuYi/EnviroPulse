@@ -163,7 +163,7 @@ const CompliancePage = ({ districts, data }) => {
             hash: res.hash,
           });
         } catch {
-          const targetNode = data?.find(d => d.id === sub.nodeId);
+          const targetNode = Array.isArray(data) ? data.find(d => d.id === sub.nodeId) : (data?.id === sub.nodeId ? data : null);
           const sensorPm25 = targetNode?.metrics?.pm25?.value !== undefined ? parseFloat(targetNode.metrics.pm25.value) : null;
           
           if (sensorPm25 === null) {
@@ -226,7 +226,7 @@ const CompliancePage = ({ districts, data }) => {
       if (!r.ok) throw new Error("API error");
       res = await r.json();
     } catch {
-      const targetNode = data?.find(d => d.id === sub.nodeId);
+      const targetNode = Array.isArray(data) ? data.find(d => d.id === sub.nodeId) : (data?.id === sub.nodeId ? data : null);
       const sensorPm25 = targetNode?.metrics?.pm25?.value !== undefined ? parseFloat(targetNode.metrics.pm25.value) : null;
       
       if (sensorPm25 === null) {
@@ -263,7 +263,7 @@ const CompliancePage = ({ districts, data }) => {
 
   const handleSubmitForm = (e) => {
     e.preventDefault();
-    const newSub = { ...form, id: `SUB-${Date.now()}`, nodeName: districts?.find(d => d.id === form.nodeId)?.name || form.nodeId, reportedPm25: parseFloat(form.reportedPm25), reportedAqi: parseFloat(form.reportedAqi), reportedStatus: 'PENDING' };
+    const newSub = { ...form, id: `SUB-${Date.now()}`, nodeName: Array.isArray(districts) ? districts.find(d => d.id === form.nodeId)?.name : form.nodeId, reportedPm25: parseFloat(form.reportedPm25), reportedAqi: parseFloat(form.reportedAqi), reportedStatus: 'PENDING' };
     setSubmissions(prev => [newSub, ...prev]);
     setShowForm(false);
     setForm({ company: '', zone: '', nodeId: '', date: '', reportedPm25: '', reportedAqi: '' });
