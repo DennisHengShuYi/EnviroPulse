@@ -72,18 +72,16 @@ const SensorsPage = ({ districts }) => {
   };
 
   return (
-    <div style={{
-      height: 'calc(100vh - 80px)',
-      overflowY: 'auto',
+    <div className="page-scroll-container" style={{
       padding: '2rem',
-      background: '#f8fafc', // Light gray background for the page
-      color: '#1e293b'      // Dark slate text
+      background: '#f8fafc',
+      color: '#1e293b'
     }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
 
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '1px', color: '#0f172a' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
+          <h2 style={{ fontSize: 'clamp(1rem, 3.5vw, 1.5rem)', fontWeight: 800, letterSpacing: '1px', color: '#0f172a', wordBreak: 'break-word' }}>
             STATION_NETWORK_OPERATIONS
           </h2>
           <div style={{
@@ -93,7 +91,8 @@ const SensorsPage = ({ districts }) => {
             fontSize: '0.75rem',
             color: '#0369a1',
             border: '1px solid #bae6fd',
-            fontWeight: 700
+            fontWeight: 700,
+            flexShrink: 0
           }}>
             ACTIVE_NODES: <span>{districts?.length || 0}</span>
           </div>
@@ -105,9 +104,10 @@ const SensorsPage = ({ districts }) => {
           background: '#ffffff',
           borderRadius: '12px',
           border: '1px solid #e2e8f0',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+          overflowX: 'auto'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', position: 'relative' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', position: 'relative', minWidth: '360px' }}>
             {/* Connector Line */}
             <div style={{
               position: 'absolute',
@@ -149,7 +149,6 @@ const SensorsPage = ({ districts }) => {
           background: '#ffffff',
           borderRadius: '12px',
           border: '1px solid #e2e8f0',
-          overflow: 'hidden',
           boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
         }}>
           <div style={{
@@ -162,7 +161,7 @@ const SensorsPage = ({ districts }) => {
           }}>
             STATION_DIAGNOSTICS_MATRIX
           </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', minWidth: '600px' }}>
             <thead>
               <tr style={{ textAlign: 'left', color: '#64748b', background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
                 <th style={{ padding: '15px 20px' }}>STATION_ID</th>

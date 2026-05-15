@@ -1,5 +1,5 @@
 # 🏭 EnviroPulse Terminal — Industrial Compliance Command Center
-VHack 2026 — Case Study: Anti-Greenwashing Statutory Intelligence
+Case Study: Anti-Greenwashing Statutory Intelligence
 
 EnviroPulse is an IoT-anchored environmental compliance platform that prevents greenwashing by generating ESG reports directly from tamper-evident physical sensors installed at company facilities — making falsification structurally impossible.
 

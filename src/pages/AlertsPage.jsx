@@ -58,17 +58,17 @@ const AlertsPage = ({ selectedDistrictId }) => {
   };
 
   return (
-    <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '30px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '2px' }}>ALERT_COMMAND_CENTER</h2>
-        <div style={{ display: 'flex', gap: '10px' }}>
+    <div style={{ padding: '2rem', paddingBottom: '80px', display: 'flex', flexDirection: 'column', gap: '30px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
+        <h2 style={{ fontSize: 'clamp(1rem, 3.5vw, 1.5rem)', fontWeight: 800, letterSpacing: '2px', wordBreak: 'break-word' }}>ALERT_COMMAND_CENTER</h2>
+        <div style={{ display: 'flex', gap: '10px', flexShrink: 0 }}>
           <div style={{ padding: '8px 15px', background: 'rgba(0, 255, 130, 0.1)', borderRadius: '4px', fontSize: '0.7rem', color: '#00ff82', border: '1px solid rgba(0,255,130,0.2)' }}>
             EWS_STATUS: <span style={{ fontWeight: 800 }}>READY</span>
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+      <div className="responsive-grid-2" style={{ gap: '30px' }}>
         {/* Threshold Configuration */}
         <div className="widget" style={{ padding: '25px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '25px' }}>

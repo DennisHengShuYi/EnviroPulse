@@ -51,6 +51,21 @@ body {
   height: 100vh;
 }
 
+@media (max-width: 1200px) {
+  .dashboard-container {
+    height: auto;
+    min-height: 100vh;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-container {
+    height: auto;
+    min-height: 100svh;
+    padding-bottom: 60px;
+  }
+}
+
 /* Sidebar Styles */
 .sidebar {
   width: 240px;
@@ -198,6 +213,14 @@ body {
   position: relative;
   min-height: 0; /* Critical for nested flex layouts */
   background: var(--bg-primary);
+}
+
+@media (max-width: 1200px) {
+  .main-content {
+    overflow: visible;
+    overflow-y: auto;
+    height: auto;
+  }
 }
 
 .dashboard-grid {
@@ -405,7 +428,7 @@ body {
   }
 }
 
-.header-group { display: flex; alignItems: center; gap: 1.5rem; }
+.header-group { display: flex; align-items: center; gap: 1.5rem; }
 @media (max-width: 768px) {
   .header-group { gap: 10px; width: 100%; justify-content: space-between; }
 }
@@ -419,9 +442,17 @@ body {
   .span-6 { grid-column: span 12; }
 }
 
+@media (max-width: 1200px) {
+  .analytics-container {
+    height: auto !important;
+    overflow-y: visible !important;
+    padding-bottom: 40px;
+  }
+}
+
 @media (max-width: 768px) {
   .analytics-grid { display: flex; flex-direction: column; }
-  .analytics-container { height: auto !important; padding: 1rem !important; }
+  .analytics-container { height: auto !important; padding: 1rem !important; padding-bottom: 80px !important; }
 }
 
 /* --- FLEX HELPERS --- */
@@ -454,6 +485,28 @@ body {
     display: flex;
     flex-direction: column;
     gap: 16px;
+  }
+}
+
+/* --- PAGE SCROLL CONTAINER --- */
+/* Used by pages that need a scrollable fixed-height area on desktop */
+.page-scroll-container {
+  height: calc(100vh - 80px);
+  overflow-y: auto;
+}
+
+@media (max-width: 1200px) {
+  .page-scroll-container {
+    height: auto;
+    overflow-y: visible;
+    padding-bottom: 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-scroll-container {
+    height: auto;
+    padding-bottom: 80px;
   }
 }
 

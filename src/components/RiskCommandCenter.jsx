@@ -27,13 +27,13 @@ const RiskCommandCenter = ({ data }) => {
       </div>
 
       {/* Gauge row — gauge left, breach status right */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
         <CircularGauge
           type="full"
           label="COMPOSITE_RISK"
           value={compositeScore}
           max={100}
-          size={200}
+          size={150}
           unit="pts"
         />
         <div style={{ flex: 1 }}>
