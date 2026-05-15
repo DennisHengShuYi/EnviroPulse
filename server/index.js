@@ -4,8 +4,14 @@ import dotenv from 'dotenv';
 import NodeCache from 'node-cache';
 import OpenAI from 'openai';
 import fs from 'fs';
+import { Redis } from '@upstash/redis';
 
 dotenv.config();
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 
 const app = express();
 const PORT = 3001;
@@ -187,6 +193,42 @@ const generateDynamicFallback = (category, sensorData) => {
           `Step 4 — Compiling final FNV-1a cryptographic proof packets for authoritative archival...`
         ],
         technicalReasoning: `Forensic audit matrix driven by unalterable ledger state verifications to ensure total transparency for regulatory oversight.`
+      },
+      factoryMsme: {
+        isFallback: true,
+        riskLevel,
+        workerSafetyStatus: temp > 38 ? 'DANGER' : temp > 33 ? 'CAUTION' : 'SAFE',
+        workerProtocolNow: temp > 33 ? "Execute mandatory 50/10 work-rest cycle." : "Standard operations continue.",
+        workerPPESpec: `N95 respirators required (PM2.5: ${pm25} µg/m³), hydration stations mandatory (Heat Index: ${temp}°C).`,
+        workerRestCycle: temp > 33 ? "50 min work / 10 min rest" : "Continuous",
+        workerActions: [
+          "Verify all workers have access to shaded rest areas.",
+          "Issue N95 masks for high particulate exposure zones.",
+          "Log mandatory rest periods in site safety journal.",
+          "Deploy mobile hydration units to all active lines."
+        ],
+        emissionStatus: aqi > 100 ? 'ELEVATED' : 'CONTROLLED',
+        primaryMitigationAction: aqi > 100 ? "Engage secondary scrubbing systems." : "Standard emission controls sufficient.",
+        emissionMitigationSteps: [
+          "Activate secondary wet scrubbers on main stack.",
+          "Inspect electrostatic precipitator for particulate bypass.",
+          "Reschedule high-emission batch processing to evening dispersion window.",
+          "Verify real-time boundary sensor synchronization."
+        ],
+        stackControlRecommendation: `Reduce throughput by 15% to align with current PM2.5 baseline of ${pm25} µg/m³.`,
+        productionAdjustment: "Switch to low-sulfur backup fuel if SO2 exceeds 15 µg/m³.",
+        doeNotificationStatus: aqi > 100 ? 'PENDING' : 'NOT REQUIRED',
+        eqaBreachIndicator: aqi > 150 ? 'BREACH' : 'CLEAN',
+        plainVerdict: `REGULATORY ALERT: Site metrics (${pm25} µg/m³) tracking near threshold limits.`,
+        regulatoryCitation: "Environmental Quality Act 1974 (Clean Air Regulations) & OSH Act 2024",
+        chainOfThought: [
+          `Step 1 — Evaluating stack emissions against local PM2.5 baseline (${pm25} µg/m³)...`,
+          `Step 2 — Assessing workforce heat stress risk at current ${temp}°C Heat Index...`,
+          `Step 3 — Calculating necessary emission reduction to avoid DOE audit flags...`,
+          `Step 4 — Cross-referencing OSH Act 2024 for mandatory site safety protocols...`,
+          `Step 5 — Generating combined worker-safety and emission-mitigation directive...`
+        ],
+        technicalReasoning: `Variance buffer narrowed due to ambient PM2.5 of ${pm25} µg/m³ exceeding seasonal norms.`
       }
     };
   } else if (category === 'prediction') {
@@ -307,6 +349,29 @@ const generateDynamicFallback = (category, sensorData) => {
           { window: "18:00–06:00", condition: "Continuous Hashing", risk: "LOW" }
         ],
         technicalReasoning: `Forward algorithmic assessment verifying cryptographic evidence generation streams to protect public ecosystem integrity.`
+      },
+      factoryMsme: {
+        isFallback: true,
+        riskLevel,
+        forecast48h: isPolluted 
+          ? `High particulate accumulation projected for the next 48 hours. Anticipate mandatory stack throttling to remain within the ${(pm25 * 0.8).toFixed(1)} – ${(pm25 * 1.2).toFixed(1)} µg/m³ compliance buffer.` 
+          : `Stable atmospheric dispersion forecasted. Factory can maintain optimal throughput while tracking against the current baseline of ${pm25} µg/m³.`,
+        predictedEvents: [
+          `08:00 — Pre-shift worker safety briefing (Heat Index: ${temp}°C)`,
+          `12:00 — Projected boundary sensor sync window`,
+          `15:00 — Peak load emission check`,
+          `18:00 — Automated submission alignment audit`
+        ],
+        chainOfThought: [
+          `Step 1 — Modeling stack load against projected 48-hour ambient particulate trends...`,
+          `Step 2 — Calculating workforce thermal exposure windows for upcoming shifts...`,
+          `Step 3 — Forecasting potential boundary exceedances based on wind persistence...`
+        ],
+        hourlyOutlook: [
+          { window: "Day 1", condition: isPolluted ? "Emission Throttling Required" : "Standard Throughput", risk: isPolluted ? "HIGH" : "LOW" },
+          { window: "Day 2", condition: "Optimized Compliance", risk: "LOW" }
+        ],
+        technicalReasoning: `Forward modeling indicates localized PM2.5 persistence at ${pm25} µg/m³ requires active load management.`
       }
     };
   }
@@ -461,6 +526,9 @@ const fetchRealTimeData = async (lat, lng) => {
   }
 };
 
+const lastLogTimes = {}; // Throttle Upstash logging to prevent spam
+const LOG_QUIET_WINDOW_MS = 15000; // 15s interval for continuous logging
+
 const getSensorData = async (districtId = 'klcc', lat = null, lng = null) => {
   let district;
   if (lat && lng) {
@@ -484,6 +552,15 @@ const getSensorData = async (districtId = 'klcc', lat = null, lng = null) => {
   
   const heatIndexF = calculateHeatIndex(cToF(liveTemp), liveHumid);
   const heatIndexC = fToC(heatIndexF);
+
+  // --- UPSTASH PERSISTENCE LOGGING ---
+  const now = Date.now();
+  if (!lastLogTimes[district.id] || (now - lastLogTimes[district.id]) > LOG_QUIET_WINDOW_MS) {
+    const sensorPm25 = parseFloat(realData?.pollutants?.pm25 || aqiValue * 0.35);
+    appendAuditEntry(district.id, sensorPm25, Math.floor(liveAqi), parseFloat(heatIndexC.toFixed(1)), 'LIVE_SYNC')
+      .catch(err => console.error(`[UPSTASH_SYNC_ERROR] ${err.message}`));
+    lastLogTimes[district.id] = now;
+  }
 
   console.log(`[DATA_SYNC] District: ${district.name}, Temp: ${liveTemp.toFixed(1)}°C, HI: ${heatIndexC.toFixed(1)}°C`);
 
@@ -989,7 +1066,7 @@ HEAT INDEX vs DOSH CATEGORY 1: ${sensorData.metrics?.heatIndex?.value} / 33 = ${
 AQI vs DOE NOTIFICATION: ${sensorData.metrics?.aqi?.value} / 50 = ${(sensorData.metrics?.aqi?.value / 50 * 100).toFixed(1)}% of threshold
 
 ${requestedRole === 'all' 
-  ? 'Generate 48-hour compliance risk predictions for 5 stakeholder roles. Each role must answer:\n"What compliance obligations will be triggered in the next 48 hours based on these exact readings?"'
+  ? 'Generate 48-hour compliance risk predictions for 6 stakeholder roles. Each role must answer:\n"What compliance obligations will be triggered in the next 48 hours based on these exact readings?"'
   : `Generate 48-hour compliance risk predictions ONLY for the "${requestedRole}" stakeholder role schema.\nAnswer what compliance obligations will be triggered in the next 48 hours based on these exact readings.`}
 
 Return this exact JSON structure:
@@ -1021,11 +1098,11 @@ Return this exact JSON structure:
 });
 
 app.post('/api/advisor', async (req, res) => {
-  const { sensorData, role } = req.body;
+  const { sensorData, history, role } = req.body;
   if (!sensorData) return res.status(400).json({ error: 'Missing sensor data' });
 
   const requestedRole = role || 'all';
-  const cacheKey = `advisor_v15_${sensorData.id}_${requestedRole}`;
+  const cacheKey = `advisor_v16_${sensorData.id}_${requestedRole}`;
   const cachedAdvisor = cache.get(cacheKey);
   if (cachedAdvisor) {
     console.log(`[ADVISOR_CACHE_HIT] ${sensorData.name} (${requestedRole})`);
@@ -1092,7 +1169,8 @@ HARD RULES:
 THRESHOLDS:
 - WHO PM2.5: 15 µg/m³ | DOE API notification: 50 | DOSH heat rest cycle: 33°C | 
   OSH 2024 STOP WORK: 40°C | Bursa E1 disclosure: PM2.5 > WHO limit | 
-  EQA 1974 Sec 22 notification: AQI > 50 | NCAAP quarterly exceedance tracking: PM2.5 > 15`
+  EQA 1974 Sec 22 notification: AQI > 50 | NCAAP quarterly exceedance tracking: PM2.5 > 15
+- factoryMsme role: This is a high-risk pollution source role. Output must contain two distinct logic blocks: Worker Safety (heat index vs DOSH) and Emission Mitigation (particulate control vs boundary limits). Every sentence must cite a real sensor number.`
           },
           {
             role: "user",
@@ -1111,8 +1189,13 @@ PRE-COMPUTED COMPLIANCE GAPS (use these in your output):
 - AQI buffer to EQA notification: ${(50 - sensorData.metrics?.aqi?.value).toFixed(0)} units remaining
 - Acceptable corporate PM2.5 submission range (±20%): ${(sensorData.pollutants?.pm25 * 0.8).toFixed(1)} – ${(sensorData.pollutants?.pm25 * 1.2).toFixed(1)} µg/m³
 
+HISTORICAL TRENDS (Last 12-24H buffer):
+${JSON.stringify((history || []).slice(-12))}
+
+You are speaking to the ${requestedRole} stakeholder. Use history to detect if pollution is rising or falling.
+
 ${requestedRole === 'all' 
-  ? 'Generate compliance advisory for 5 roles. Return pure JSON object containing keys: { construction, government, msme, esgFirm, doeAuditor }.' 
+  ? 'Generate compliance advisory for 5 roles. Return pure JSON object containing keys: { construction, government, factoryMsme, esgFirm, doeAuditor }.' 
   : `Generate compliance advisory ONLY for the "${requestedRole}" role schema. Return a pure JSON object for this role.`}
 Every role output must have "isFallback": false and "riskLevel" ("LOW", "MODERATE", "HIGH", "EXTREME").
 
@@ -1129,7 +1212,7 @@ Include these exact mandatory fields populated with connected sentences containi
 - bursaE1Status: whether PM2.5 at ${sensorData.pollutants?.pm25} µg/m³ creates a Bursa E1 disclosure obligation
 
 Role-specific mapping requirements:
-${requestedRole === 'all' || requestedRole === 'construction' ? `1. construction: must also supply "workRestCycle" (e.g. 45 min on / 15 min off based on DOSH threshold band), "submissionAlert" (copy of submissionWindowAlert), and "safetyPPE" (explicit PM2.5/Heat protection spec).\n` : ''}${requestedRole === 'all' || requestedRole === 'government' ? `2. government: must also supply "districtStatus", "escalationDecision", "policyAction", "ncaapScore" (numeric 0-100), "ncaapContext", "publicStatus", "populationAtRisk", "policyTrigger", "emergencyProtocol", "infrastructureImpact", and "escalationContact".\n` : ''}${requestedRole === 'all' || requestedRole === 'msme' ? `3. msme: write complianceVerdict and specificAction in plain conversational language that a non-technical business owner understands. Include exact acceptable PM2.5 range for submission. Also supply "bursaIndicator", "plainVerdict" (copy of complianceVerdict), "submissionRisk" ("LOW"/"ELEVATED"/"HIGH"), and "preSubmissionAction".\n` : ''}${requestedRole === 'all' || requestedRole === 'esgFirm' ? `4. esgFirm: must also supply "readinessScore" (numeric 0-100), "complianceRating" (e.g. TIER-1), "gri305Gap", "tcfdFlag", "investorMateriality", "environmentalPerformance", "mitigationStrategy", and "regulatoryContext".\n` : ''}${requestedRole === 'all' || requestedRole === 'doeAuditor' ? `5. doeAuditor: must also supply "verificationStatus" ("CLEAN"/"FLAGGED"), "eqaAssessment", "discrepancySignal", and "evidenceChainRef" (cryptographic hash evidence seal).\n` : ''}
+${requestedRole === 'all' || requestedRole === 'construction' ? `1. construction: must also supply "workRestCycle" (e.g. 45 min on / 15 min off based on DOSH threshold band), "submissionAlert" (copy of submissionWindowAlert), and "safetyPPE" (explicit PM2.5/Heat protection spec).\n` : ''}${requestedRole === 'all' || requestedRole === 'government' ? `2. government: must also supply "districtStatus", "escalationDecision", "policyAction", "ncaapScore" (numeric 0-100), "ncaapContext", "publicStatus", "populationAtRisk", "policyTrigger", "emergencyProtocol", "infrastructureImpact", and "escalationContact".\n` : ''}${requestedRole === 'all' || requestedRole === 'factoryMsme' ? `3. factoryMsme: Generate two distinct logic blocks: Worker Safety (workerSafetyStatus, workerProtocolNow, workerPPESpec, workerRestCycle, workerActions) and Emission Mitigation (emissionStatus, primaryMitigationAction, emissionMitigationSteps, stackControlRecommendation, productionAdjustment). Also supply doeNotificationStatus, eqaBreachIndicator, plainVerdict, and regulatoryCitation. Write in plain conversational language for a non-technical industrial manager.\n` : ''}${requestedRole === 'all' || requestedRole === 'esgFirm' ? `4. esgFirm: must also supply "readinessScore" (numeric 0-100), "complianceRating" (e.g. TIER-1), "gri305Gap", "tcfdFlag", "investorMateriality", "environmentalPerformance", "mitigationStrategy", and "regulatoryContext".\n` : ''}${requestedRole === 'all' || requestedRole === 'doeAuditor' ? `5. doeAuditor: must also supply "verificationStatus" ("CLEAN"/"FLAGGED"), "eqaAssessment", "discrepancySignal", and "evidenceChainRef" (cryptographic hash evidence seal).\n` : ''}
 Output strictly JSON adhering to these exact parameters without markdown formatting blocks.` + (requestedRole !== 'all' ? `\n\nCRITICAL INSTRUCTION: Output ONLY the pure flat JSON object for the "${requestedRole}" role schema directly. Must match this exact structure:\n` + JSON.stringify({
   isFallback: false,
   riskLevel: "LOW|MODERATE|HIGH|EXTREME",
@@ -1145,22 +1228,37 @@ Output strictly JSON adhering to these exact parameters without markdown formatt
   bursaE1Status: "...",
   ...(requestedRole === 'construction' ? { workRestCycle: "...", submissionAlert: "...", safetyPPE: "..." } : {}),
   ...(requestedRole === 'government' ? { districtStatus: "...", escalationDecision: "...", policyAction: "...", ncaapScore: 0, ncaapContext: "...", publicStatus: "...", populationAtRisk: "...", policyTrigger: "...", emergencyProtocol: "...", infrastructureImpact: "...", escalationContact: "..." } : {}),
-  ...(requestedRole === 'msme' ? { bursaIndicator: "...", plainVerdict: "...", submissionRisk: "LOW|ELEVATED|HIGH", preSubmissionAction: "..." } : {}),
+  ...(requestedRole === 'factoryMsme' ? { 
+    workerSafetyStatus: "SAFE|CAUTION|DANGER|STOP_WORK",
+    workerProtocolNow: "...",
+    workerPPESpec: "...",
+    workerRestCycle: "...",
+    workerActions: ["...", "...", "...", "..."],
+    emissionStatus: "CONTROLLED|MODERATE|ELEVATED|BREACH",
+    primaryMitigationAction: "...",
+    emissionMitigationSteps: ["...", "...", "..."],
+    stackControlRecommendation: "...",
+    productionAdjustment: "...",
+    doeNotificationStatus: "...",
+    eqaBreachIndicator: "...",
+  } : {}),
   ...(requestedRole === 'esgFirm' ? { readinessScore: 0, complianceRating: "...", gri305Gap: "...", tcfdFlag: "...", investorMateriality: "...", environmentalPerformance: "...", mitigationStrategy: "...", regulatoryContext: "..." } : {}),
-  ...(requestedRole === 'doeAuditor' ? { verificationStatus: "CLEAN|FLAGGED", eqaAssessment: "...", discrepancySignal: "...", evidenceChainRef: "..." } : {})
+  ...(requestedRole === 'doeAuditor' ? { verificationStatus: "CLEAN|FLAGGED", eqaAssessment: "...", discrepancySignal: "...", evidenceChainRef: "..." } : {}),
 }, null, 2) : '')
           }
         ],
         temperature: 0.1,
-        max_tokens: requestedRole !== 'all' ? 1200 : 4000
+        max_tokens: requestedRole === 'factoryMsme' ? 1800 : (requestedRole !== 'all' ? 1200 : 4000)
       }),
       timeoutPromise
     ]);
 
     console.log(`[ADVISOR_REQUEST_SUCCESS] ${sensorData.name} (${requestedRole})`);
 
-    const rawText = response.choices[0]?.message?.content;
+
+    const rawText = response.choices && response.choices[0] && response.choices[0].message ? response.choices[0].message.content : null;
     if (!rawText) throw new Error('AI returned an empty response');
+
 
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     let advisory = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
@@ -1414,8 +1512,7 @@ const fnv1a = (str) => {
   return h.toString(16).padStart(8, '0');
 };
 
-// In-memory append-only audit chain per node
-const auditChains = {}; // nodeId -> [{ ts, pm25, aqi, heat, hash, prevHash }]
+// Redis-backed persistent audit chain per node
 
 const DATA_DIR = './.data';
 const SCRUTINY_FILE = `${DATA_DIR}/scrutiny.json`;
@@ -1440,16 +1537,23 @@ const persistScrutinyCounts = async () => {
   }
 };
 
-const appendAuditEntry = (nodeId, pm25, aqi, heat, escalationTag = null) => {
-  if (!auditChains[nodeId]) auditChains[nodeId] = [];
-  const chain = auditChains[nodeId];
+const appendAuditEntry = async (nodeId, pm25, aqi, heat, escalationTag = null) => {
+  const key = `audit:${nodeId}`;
+  
+  // Fetch prevHash from Redis
+  const lastEntry = await redis.lindex(key, -1);
+  const prevHash = lastEntry ? (typeof lastEntry === 'string' ? JSON.parse(lastEntry).hash : lastEntry.hash) : '0000000000000000';
+  
   const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
-  const prevHash = chain.length > 0 ? chain[chain.length - 1].hash : '0000000000000000';
   const raw = `${nodeId}|${ts}|${pm25}|${aqi}|${heat}|${prevHash}|${escalationTag || 'NONE'}`;
   const hash = fnv1a(raw);
+  
   const entry = { ts, pm25, aqi, heat, hash, prevHash, escalationTag };
-  chain.push(entry);
-  if (chain.length > 200) chain.shift();
+  
+  // Persist to Redis
+  await redis.rpush(key, JSON.stringify(entry));
+  await redis.ltrim(key, -200, -1); // Enforce 200-entry cap
+  
   return entry;
 };
 
@@ -1482,7 +1586,7 @@ app.post('/api/compliance/verify', async (req, res) => {
     await persistScrutinyCounts();
 
     const ts = new Date().toISOString();
-    const auditEntry = appendAuditEntry(districtId, sensorPm25, sensorAqi, sensorHeat, escalationTag);
+    const auditEntry = await appendAuditEntry(districtId, sensorPm25, sensorAqi, sensorHeat, escalationTag);
 
     res.json({
       submissionId: `VRF-${Date.now()}`,
@@ -1515,20 +1619,21 @@ app.get('/api/audit/log/:nodeId', async (req, res) => {
   const limit = parseInt(req.query.limit) || 50;
 
   // Initialize immutable audit trail with exactly one verified empirical genesis baseline anchor
-  if (!auditChains[nodeId] || auditChains[nodeId].length === 0) {
+  const chainLen = await redis.llen(`audit:${nodeId}`);
+  if (chainLen === 0) {
     try {
       const sensorData = await getSensorData(nodeId);
       const pm25 = parseFloat(sensorData.metrics.pm25.value);
       const aqi = sensorData.metrics.aqi.value;
       const heat = parseFloat(sensorData.metrics.heatIndex.value);
-      appendAuditEntry(nodeId, pm25, aqi, heat, 'GENESIS_BASELINE');
+      await appendAuditEntry(nodeId, pm25, aqi, heat, 'GENESIS_BASELINE');
     } catch (err) {
       return res.status(404).json({ error: `Node ${nodeId} not found`, details: err.message });
     }
   }
 
-  const chain = auditChains[nodeId] || [];
-  const entries = chain.slice(-limit).reverse();
+  const rawChain = await redis.lrange(`audit:${nodeId}`, -limit, -1);
+  const entries = rawChain.map(s => typeof s === 'string' ? JSON.parse(s) : s).reverse();
 
   res.json({
     nodeId,
@@ -1560,11 +1665,16 @@ app.post('/api/compliance/escalate', async (req, res) => {
   });
 });
 
+
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`[SERVER_INIT] EnviroPulse Core running on port ${PORT}`);
+    redis.ping()
+      .then(() => console.log('[REDIS_CONNECTED]'))
+      .catch(err => console.log(`[REDIS_UNAVAILABLE] ${err.message}`));
   });
 }
+
 export default app;
 // Application re-initialized
 

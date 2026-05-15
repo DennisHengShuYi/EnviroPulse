@@ -190,10 +190,21 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
               <TrendingUp size={16} />
               <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '2px' }}>PREDICTIVE_INTELLIGENCE_ENGINE</span>
             </div>
-            <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>LOCATION: {selectedDistrict.name.toUpperCase()} | SCOPE: 24H_MULTI_ROLE_PREDICTION</span>
+            <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>
+              LOCATION: {selectedDistrict.name.toUpperCase()} | 
+              SCOPE: 24H_AUDIT | 
+              ROLE: <span style={{ color: roleColors[activeRole], fontWeight: 900 }}>{roleLabel}</span>
+            </span>
           </div>
         </div>
-
+        
+        {/* PDF Export Status Indicator */}
+        {exporting && (
+          <div style={{ background: 'rgba(0, 240, 255, 0.1)', border: '1px solid var(--accent-cyan)', padding: '4px 12px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div className="spin" style={{ width: 12, height: 12, border: '2px solid var(--accent-cyan)', borderTopColor: 'transparent', borderRadius: '50%' }}></div>
+            <span style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--accent-cyan)' }}>GENERATING_AUDIT_PDF: {roleLabel}...</span>
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '20px' }}>

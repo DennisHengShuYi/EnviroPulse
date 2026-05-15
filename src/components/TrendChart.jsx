@@ -64,11 +64,6 @@ const TrendChart = ({ data, isHazeSimulated }) => {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <span style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--text-secondary)', letterSpacing: '1px' }}>COMPLIANCE_TREND_MONITOR</span>
-          {(activeMetric === 'pm25' || isHazeSimulated) && (
-            <span style={{ fontSize: '0.55rem', color: '#ff3e3e', fontWeight: 800 }}>
-              {isHazeSimulated ? '⚠️ HAZE SIMULATION ACTIVE - ECONOMIC IMPACT VIEW' : 'WHO AQG Exceedance Audit View Active'}
-            </span>
-          )}
         </div>
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
           {metrics.map(m => (
@@ -132,15 +127,6 @@ const TrendChart = ({ data, isHazeSimulated }) => {
               dy={10}
             />
             <YAxis yAxisId="left" hide domain={['auto', 'auto']} />
-            <YAxis 
-              yAxisId="right" 
-              orientation="right" 
-              domain={[0, 100]} 
-              tick={{ fill: 'var(--accent-gold)', fontSize: 8, fontWeight: 800 }}
-              axisLine={false}
-              tickLine={false}
-              unit="%"
-            />
             <Tooltip content={<CustomTooltip />} />
             
             {/* Legend Overlay */}
@@ -149,10 +135,6 @@ const TrendChart = ({ data, isHazeSimulated }) => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <div style={{ width: 8, height: 2, background: metrics.find(m => m.id === activeMetric).color }}></div>
                   <span style={{ color: 'var(--text-secondary)' }}>{activeMetric.toUpperCase()} Level</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <div style={{ width: 8, height: 2, background: 'var(--accent-gold)' }}></div>
-                  <span style={{ color: 'var(--accent-gold)' }}>Economic Impact (Est. Productivity Loss)</span>
                 </div>
               </div>
             </foreignObject>
@@ -185,25 +167,6 @@ const TrendChart = ({ data, isHazeSimulated }) => {
               strokeWidth={2.5}
             />
 
-            <Area 
-              yAxisId="right"
-              type="monotone" 
-              dataKey={(d) => {
-                // Logic: AQI < 50 -> 100%. Heat Index 38 -> 40%.
-                const aqiVal = d.aqi || 0;
-                const heatVal = d.heat || 31;
-                
-                let prod = 100;
-                if (aqiVal > 50) prod -= (aqiVal - 50) * 0.4;
-                if (heatVal > 31) prod -= (heatVal - 31) * 8;
-                
-                return Math.max(10, Math.min(100, prod));
-              }} 
-              stroke="var(--accent-gold)" 
-              strokeWidth={2}
-              strokeDasharray="5 5"
-              fill="transparent"
-            />
           </AreaChart>
         </ResponsiveContainer>
       </div>

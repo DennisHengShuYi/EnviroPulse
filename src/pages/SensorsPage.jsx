@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Radio, Database, Cloud, Layout, CheckCircle2, Battery, Signal, Hash, Lock, Download, RefreshCw } from 'lucide-react';
+import { Radio, Database, Cloud, Layout, CheckCircle2, Battery, Signal, Hash, Lock, Download, RefreshCw, X } from 'lucide-react';
 
 const SensorsPage = ({ districts }) => {
   const [auditLog, setAuditLog] = useState([]);
-  const [selectedNode, setSelectedNode] = useState('klcc');
+  const [selectedNode, setSelectedNode] = useState(null);
   const [loadingAudit, setLoadingAudit] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchAuditLog = async (nodeId) => {
+    if (!nodeId) return;
     setLoadingAudit(true);
     try {
+      // Trigger a sensor data refresh to ensure Upstash logging is active for this node
+      fetch(`/api/sensors?id=${nodeId}`).catch(() => {});
+      
       const res = await fetch(`/api/audit/log/${nodeId}?limit=20`);
       const json = await res.json();
       if (json.entries) setAuditLog(json.entries);
@@ -21,18 +26,27 @@ const SensorsPage = ({ districts }) => {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchAuditLog(selectedNode);
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') setIsModalOpen(false);
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, []);
+
+  useEffect(() => {
+    if (selectedNode) {
+      fetchAuditLog(selectedNode);
+    }
   }, [selectedNode]);
 
   useEffect(() => {
-    if (!autoRefresh) return;
+    if (!autoRefresh || !selectedNode || !isModalOpen) return;
     const interval = setInterval(() => fetchAuditLog(selectedNode), 8000);
     return () => clearInterval(interval);
-  }, [selectedNode, autoRefresh]);
+  }, [selectedNode, autoRefresh, isModalOpen]);
 
   const handleExportLog = () => {
-    if (!auditLog.length) return;
+    if (!auditLog.length || !selectedNode) return;
     const lines = [`AUDIT_LOG — NODE: ${selectedNode.toUpperCase()} | Patent UI 2020000785 | EnviroPulse Node Network`];
     lines.push('─'.repeat(80));
     auditLog.forEach(e => {
@@ -45,6 +59,11 @@ const SensorsPage = ({ districts }) => {
     a.download = `audit_log_${selectedNode}_${Date.now()}.txt`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const openLog = (nodeId) => {
+    setSelectedNode(nodeId);
+    setIsModalOpen(true);
   };
 
   return (
@@ -102,6 +121,7 @@ const SensorsPage = ({ districts }) => {
                   const batt = 78 + (seed % 18);
                   const sig = 45 + (seed % 30);
                   const ping = 1 + (seed % 8);
+                  const isActive = selectedNode === d.id && isModalOpen;
                   return (
                     <tr key={i} style={{ borderTop: '1px solid rgba(255,255,255,0.02)', background: i % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
                       <td style={{ padding: '15px 20px', fontWeight: 800 }}>STN_{d.id.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()}</td>
@@ -127,11 +147,11 @@ const SensorsPage = ({ districts }) => {
                       <td style={{ padding: '15px 20px', color: 'var(--text-secondary)' }}>{ping}s AGO</td>
                       <td style={{ padding: '15px 20px' }}>
                         <button
-                          onClick={() => setSelectedNode(d.id)}
+                          onClick={() => openLog(d.id)}
                           style={{
-                            background: selectedNode === d.id ? 'rgba(0,240,255,0.15)' : 'transparent',
-                            border: `1px solid ${selectedNode === d.id ? 'var(--accent-cyan)' : 'rgba(255,255,255,0.1)'}`,
-                            color: selectedNode === d.id ? 'var(--accent-cyan)' : 'var(--text-secondary)',
+                            background: isActive ? 'rgba(0,240,255,0.15)' : 'transparent',
+                            border: `1px solid ${isActive ? 'var(--accent-cyan)' : 'rgba(255,255,255,0.1)'}`,
+                            color: isActive ? 'var(--accent-cyan)' : 'var(--text-secondary)',
                             padding: '4px 10px', fontSize: '0.6rem', fontWeight: 800, cursor: 'pointer', borderRadius: '2px',
                             display: 'flex', alignItems: 'center', gap: '5px'
                           }}
@@ -147,57 +167,92 @@ const SensorsPage = ({ districts }) => {
           </div>
         </div>
 
-        {/* Immutable Audit Trail */}
-        <div className="widget" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '15px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Lock size={14} style={{ color: 'var(--accent-gold)' }} />
-              <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>
-                AUDIT_LOG — NODE: <span style={{ color: 'var(--accent-cyan)' }}>{selectedNode.toUpperCase()}</span>
-              </span>
-              <span style={{ fontSize: '0.55rem', color: 'var(--text-secondary)' }}>READ-ONLY · APPEND-ONLY · Patent UI 2020000785</span>
-            </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <button
-                onClick={() => setAutoRefresh(!autoRefresh)}
-                style={{ background: autoRefresh ? 'rgba(0,240,255,0.1)' : 'transparent', border: `1px solid ${autoRefresh ? 'var(--accent-cyan)' : 'rgba(255,255,255,0.1)'}`, color: autoRefresh ? 'var(--accent-cyan)' : 'var(--text-secondary)', padding: '4px 10px', fontSize: '0.6rem', fontWeight: 800, cursor: 'pointer', borderRadius: '2px', display: 'flex', alignItems: 'center', gap: '5px' }}
-              >
-                <RefreshCw size={10} /> {autoRefresh ? 'LIVE' : 'PAUSED'}
-              </button>
-              <button
-                onClick={handleExportLog}
-                style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-secondary)', padding: '4px 10px', fontSize: '0.6rem', fontWeight: 800, cursor: 'pointer', borderRadius: '2px', display: 'flex', alignItems: 'center', gap: '5px' }}
-              >
-                <Download size={10} /> EXPORT_DOE
-              </button>
-            </div>
-          </div>
-
-          <div style={{ padding: '10px 20px', fontFamily: 'JetBrains Mono, monospace', fontSize: '0.65rem', maxHeight: '320px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            {loadingAudit && auditLog.length === 0 ? (
-              <div style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '20px' }}>FETCHING_AUDIT_CHAIN...</div>
-            ) : auditLog.length === 0 ? (
-              <div style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '20px' }}>NO_ENTRIES — Select a node to view its audit chain</div>
-            ) : auditLog.map((entry, i) => (
-              <div key={i} style={{ display: 'flex', gap: '12px', padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.02)', color: i === 0 ? '#fff' : '#888', alignItems: 'center' }}>
-                <span style={{ color: 'var(--text-secondary)', flexShrink: 0, minWidth: '145px' }}>[{entry.ts}]</span>
-                <span>PM2.5: <b style={{ color: '#00f0ff' }}>{entry.pm25}</b></span>
-                <span>|</span>
-                <span>AQI: <b style={{ color: entry.aqi > 100 ? '#ff3e3e' : entry.aqi > 50 ? '#ffb800' : '#00ff82' }}>{entry.aqi}</b></span>
-                <span>|</span>
-                <span>Heat: <b style={{ color: entry.heat > 40 ? '#ff3e3e' : 'var(--accent-gold)' }}>{entry.heat}°C</b></span>
-                <span>|</span>
-                <span style={{ color: 'var(--text-secondary)', fontSize: '0.58rem' }}>HASH: <span style={{ color: 'var(--accent-cyan)' }}>{entry.hash}</span></span>
-                {i === 0 && <span style={{ fontSize: '0.55rem', background: 'rgba(0,255,130,0.1)', color: '#00ff82', padding: '1px 6px', borderRadius: '2px', border: '1px solid rgba(0,255,130,0.2)' }}>LATEST</span>}
+        {/* Floating Modal for Audit Trail */}
+        {isModalOpen && selectedNode && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.85)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+            backdropFilter: 'blur(5px)'
+          }} onClick={() => setIsModalOpen(false)}>
+            <div 
+              className="widget" 
+              style={{ 
+                width: '90%', 
+                maxWidth: '900px', 
+                maxHeight: '80vh', 
+                overflow: 'hidden', 
+                display: 'flex', 
+                flexDirection: 'column',
+                boxShadow: '0 0 50px rgba(0,240,255,0.2)',
+                border: '1px solid rgba(0,240,255,0.3)'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ padding: '15px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.5)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Lock size={14} style={{ color: 'var(--accent-gold)' }} />
+                  <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>
+                    AUDIT_LOG — NODE: <span style={{ color: 'var(--accent-cyan)' }}>{selectedNode.toUpperCase()}</span>
+                  </span>
+                  <span style={{ fontSize: '0.55rem', color: 'var(--text-secondary)' }} className="hide-mobile">READ-ONLY · APPEND-ONLY · Patent UI 2020000785</span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button
+                    onClick={() => setAutoRefresh(!autoRefresh)}
+                    style={{ background: autoRefresh ? 'rgba(0,240,255,0.1)' : 'transparent', border: `1px solid ${autoRefresh ? 'var(--accent-cyan)' : 'rgba(255,255,255,0.1)'}`, color: autoRefresh ? 'var(--accent-cyan)' : 'var(--text-secondary)', padding: '4px 10px', fontSize: '0.6rem', fontWeight: 800, cursor: 'pointer', borderRadius: '2px', display: 'flex', alignItems: 'center', gap: '5px' }}
+                  >
+                    <RefreshCw size={10} /> {autoRefresh ? 'LIVE' : 'PAUSED'}
+                  </button>
+                  <button
+                    onClick={handleExportLog}
+                    style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-secondary)', padding: '4px 10px', fontSize: '0.6rem', fontWeight: 800, cursor: 'pointer', borderRadius: '2px', display: 'flex', alignItems: 'center', gap: '5px' }}
+                  >
+                    <Download size={10} /> EXPORT_DOE
+                  </button>
+                  <button
+                    onClick={() => setIsModalOpen(false)}
+                    style={{ background: 'rgba(255,62,62,0.1)', border: '1px solid #ff3e3e', color: '#ff3e3e', padding: '4px', cursor: 'pointer', borderRadius: '2px', marginLeft: '10px' }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
               </div>
-            ))}
-          </div>
 
-          <div style={{ padding: '10px 20px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>Verified by: EnviroPulse Node Network | Patent UI 2020000785</span>
-            <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>{auditLog.length} entries displayed</span>
+              <div style={{ padding: '20px', fontFamily: 'JetBrains Mono, monospace', fontSize: '0.65rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+                {loadingAudit && auditLog.length === 0 ? (
+                  <div style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '40px' }}>FETCHING_AUDIT_CHAIN...</div>
+                ) : auditLog.length === 0 ? (
+                  <div style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '40px' }}>NO_ENTRIES — Synchronizing with Upstash Cloud...</div>
+                ) : auditLog.map((entry, i) => (
+                  <div key={i} style={{ display: 'flex', gap: '12px', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.02)', color: i === 0 ? '#fff' : '#888', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--text-secondary)', flexShrink: 0, minWidth: '145px' }}>[{entry.ts}]</span>
+                    <span>PM2.5: <b style={{ color: '#00f0ff' }}>{entry.pm25}</b></span>
+                    <span>|</span>
+                    <span>AQI: <b style={{ color: entry.aqi > 100 ? '#ff3e3e' : entry.aqi > 50 ? '#ffb800' : '#00ff82' }}>{entry.aqi}</b></span>
+                    <span>|</span>
+                    <span>Heat: <b style={{ color: entry.heat > 40 ? '#ff3e3e' : 'var(--accent-gold)' }}>{entry.heat}°C</b></span>
+                    <span>|</span>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.58rem' }}>HASH: <span style={{ color: 'var(--accent-cyan)' }}>{entry.hash}</span></span>
+                    {i === 0 && <span style={{ fontSize: '0.55rem', background: 'rgba(0,255,130,0.1)', color: '#00ff82', padding: '1px 6px', borderRadius: '2px', border: '1px solid rgba(0,255,130,0.2)' }}>LATEST</span>}
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ padding: '10px 20px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.3)' }}>
+                <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>Verified by: EnviroPulse Node Network | Patent UI 2020000785</span>
+                <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>{auditLog.length} entries displayed</span>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
       </div>
     </div>
@@ -205,3 +260,4 @@ const SensorsPage = ({ districts }) => {
 };
 
 export default SensorsPage;
+

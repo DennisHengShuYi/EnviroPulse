@@ -365,19 +365,7 @@ const City3DView = ({ data, allDistricts, onSelectDistrict, userCoords, homeDist
       });
     }
 
-    // Smooth FlyTo Transition when district changes
-    if (map && data) {
-      const targetCenter = [parseFloat(data.lng), parseFloat(data.lat)];
 
-      map.flyTo({
-        center: targetCenter,
-        zoom: 15.5,
-        pitch: 65,
-        bearing: -17.6,
-        essential: true,
-        duration: 3500 // Smooth 3.5s cinematic flight
-      });
-    }
 
     // Update Local Beacon & Pinhead
     const bSource = map.getSource('beacon-source');

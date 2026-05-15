@@ -4,11 +4,11 @@ import Header from './components/Header';
 import AlertBanner from './components/AlertBanner';
 import HeroMetrics from './components/HeroMetrics';
 import PollutantGrid from './components/PollutantGrid';
-import MapHero from './components/MapHero';
 import AIAdvisory from './components/AIAdvisory';
 import TrendChart from './components/TrendChart';
-import City3DView from './components/City3DView';
 import WorkerGrid from './components/WorkerGrid';
+import RiskCommandCenter from './components/RiskCommandCenter';
+import ComplianceHeatmap from './components/ComplianceHeatmap';
 
 // Pages
 import AnalyticsPage from './pages/AnalyticsPage';
@@ -44,6 +44,7 @@ function App() {
   const [showAlerts, setShowAlerts] = useState(false);
   const [isLive, setIsLive] = useState(true);
   const [isHazeSimulated, setIsHazeSimulated] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const triggerHazeSimulation = () => {
     setIsHazeSimulated(prev => !prev);
@@ -180,50 +181,22 @@ function App() {
   }
 
   const renderDashboard = () => (
-    <div className="dashboard-grid">
+    <div className="dashboard-grid-3col">
+      {/* Left Column */}
       <div className="dashboard-column">
-        <HeroMetrics data={data} layout="vertical" isHazeSimulated={isHazeSimulated} />
+        <HeroMetrics data={data} isHazeSimulated={isHazeSimulated} />
         <TrendChart data={trends} isHazeSimulated={isHazeSimulated} />
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', position: 'relative', overflow: 'hidden', height: '100%' }}>
-        <div className="widget" style={{ flex: 1, position: 'relative', overflow: 'hidden', padding: 0 }}>
-          <div style={{ position: 'absolute', top: '20px', right: '120px', zIndex: 2000, display: 'flex', gap: '10px' }}>
-            <button 
-              onClick={() => setViewMode(viewMode === '2d' ? '3d' : '2d')}
-              style={{ 
-                background: 'var(--accent-cyan)', 
-                color: '#000',
-                border: '1px solid var(--accent-cyan)',
-                padding: '8px 20px',
-                fontSize: '0.7rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-                borderRadius: '2px',
-                boxShadow: '0 0 15px rgba(0, 240, 255, 0.3)',
-                transition: 'all 0.3s ease'
-              }}
-            >
-              {viewMode === '2d' ? 'VIEW_3D_TWIN' : 'VIEW_2D_SATELLITE'}
-            </button>
-          </div>
-          
-          {viewMode === '2d' ? (
-            <MapHero onSelectDistrict={setSelectedDistrict} selectedId={selectedDistrict} userCoords={userCoords} />
-          ) : (
-            <City3DView 
-              data={data} 
-              allDistricts={allDistrictsData} 
-              userCoords={userCoords} 
-              homeDistrictId={homeDistrictId}
-              isHazeSimulated={isHazeSimulated}
-            />
-          )}
-        </div>
+      {/* Center Column */}
+      <div className="dashboard-column">
+        <RiskCommandCenter data={data} />
+        <ComplianceHeatmap history={trends} />
       </div>
 
+      {/* Right Column */}
       <div className="dashboard-column">
-        <AIAdvisory data={data} />
+        <AIAdvisory data={data} history={trends} />
         <PollutantGrid pollutants={data.pollutants} />
       </div>
     </div>
@@ -252,7 +225,12 @@ function App() {
 
   return (
     <div className="dashboard-container">
-      <Sidebar activePage={activePage} setActivePage={setActivePage} />
+      <Sidebar 
+        activePage={activePage} 
+        setActivePage={setActivePage} 
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+      />
       
       <main className="main-content">
         <Header 

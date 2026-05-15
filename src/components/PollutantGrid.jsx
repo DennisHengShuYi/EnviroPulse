@@ -1,110 +1,104 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 
-const SVG_W = 100;  // viewBox width (%)
-const SVG_H = 36;   // viewBox height (px)
-const HISTORY = 20; // number of points
-
-/**
- * Sparkline that tracks real sensor values.
- * - Maintains a rolling buffer seeded from the live `realValue`
- * - Every 1.5 s it appends: realValue + small noise ± occasional spike
- * - Y-axis auto-scales to the visible window so the curve fills the chart
- */
-const Sparkline = ({ color, realValue }) => {
-  const numVal = parseFloat(realValue) || 0;
-  const noiseAmt = Math.max(numVal * 0.02, 0.05); // ±2% of real value
-
-  const nextPoint = (base) => {
-    const noise = (Math.random() - 0.5) * noiseAmt * 2;
-    const spike = Math.random() < 0.22 ? (Math.random() - 0.5) * base * 0.15 : 0;
-    return Math.max(0, base + noise + spike);
-  };
-
-  const [history, setHistory] = useState(() =>
-    Array.from({ length: HISTORY }, () => nextPoint(numVal))
-  );
-
-  // Sync when real value changes (district switch etc.)
-  useEffect(() => {
-    setHistory(Array.from({ length: HISTORY }, () => nextPoint(numVal)));
-  }, [numVal]);
-
-  // Animate: push new point, drop oldest
-  useEffect(() => {
-    const id = setInterval(() => {
-      setHistory(prev => [...prev.slice(1), nextPoint(numVal)]);
-    }, 1500);
-    return () => clearInterval(id);
-  }, [numVal]);
-
-  // Scale history values → SVG pixel y (inverted: high value = low y)
-  const min = Math.min(...history);
-  const max = Math.max(...history);
-  const range = max - min || 1;
-  const toY = v => SVG_H - 2 - ((v - min) / range) * (SVG_H - 4);
-
-  const pts = history
-    .map((v, i) => `${(i / (HISTORY - 1)) * SVG_W},${toY(v).toFixed(2)}`)
-    .join(' ');
-
-  const gradId = `sg${color.replace(/[^a-z0-9]/gi, '')}`;
+const MiniDonut = ({ percentage, color, size = 32 }) => {
+  const radius = (size / 2) - 3;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (Math.min(percentage, 100) / 100) * circumference;
 
   return (
-    <svg
-      viewBox={`0 0 ${SVG_W} ${SVG_H}`}
-      preserveAspectRatio="none"
-      width="100%"
-      height="36"
-      style={{ display: 'block', opacity: 0.75 }}
-    >
-      <defs>
-        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity={0.3} />
-          <stop offset="100%" stopColor={color} stopOpacity={0} />
-        </linearGradient>
-      </defs>
-      {/* Filled area under line */}
-      <polygon
-        fill={`url(#${gradId})`}
-        points={`0,${SVG_H} ${pts} ${SVG_W},${SVG_H}`}
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="rgba(255,255,255,0.05)"
+        strokeWidth="3"
       />
-      <polyline
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
         fill="none"
         stroke={color}
-        strokeWidth="1.5"
-        strokeLinejoin="round"
+        strokeWidth="3"
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
         strokeLinecap="round"
-        points={pts}
+        style={{ transition: 'stroke-dashoffset 1s ease-in-out' }}
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
       />
     </svg>
   );
 };
 
-const PollutantCard = ({ label, value, unit, limit, color, accentClass }) => {
-  const pct = Math.min(100, Math.round((parseFloat(value) / parseFloat(limit)) * 100));
+const Sparkline = ({ color }) => {
+  const [points, setPoints] = React.useState(() => Array.from({ length: 10 }, () => 20 + Math.random() * 20));
+  
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setPoints(prev => {
+        const next = [...prev.slice(1), 20 + Math.random() * 20];
+        return next;
+      });
+    }, 1500);
+    return () => clearInterval(interval);
+  }, []);
+
+  const pathData = points.map((p, i) => `${i * 10},${p}`).join(' L ');
 
   return (
-    <div className="widget" style={{ padding: '8px 12px', borderLeft: `2px solid ${color}`, minHeight: 'auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 800 }}>{label}</span>
-        <span className={accentClass} style={{ fontSize: '0.75rem', fontWeight: 800 }}>
-          {value} <small style={{ fontSize: '0.55rem', color: 'var(--text-secondary)' }}>{unit}</small>
-        </span>
+    <svg width="100%" height="30" viewBox="0 0 90 60" preserveAspectRatio="none" style={{ position: 'absolute', bottom: 0, left: 0, opacity: 0.2, pointerEvents: 'none' }}>
+      <path
+        d={`M 0,${points[0]} L ${pathData}`}
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        style={{ transition: 'all 1.5s linear' }}
+      />
+    </svg>
+  );
+};
+
+const PollutantCard = ({ label, value, unit, limit, color, accentClass, tier = 1 }) => {
+  const pct = Math.min(100, Math.round((parseFloat(value) / parseFloat(limit)) * 100));
+  const isCritical = pct > 80;
+
+  return (
+    <div className="widget" style={{ 
+      padding: tier === 1 ? '12px' : '8px 12px', 
+      borderLeft: `3px solid ${isCritical ? 'var(--accent-red)' : color}`, 
+      minHeight: tier === 1 ? '90px' : '60px', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      justifyContent: 'space-between',
+      position: 'relative',
+      overflow: 'hidden',
+      background: tier === 1 ? 'rgba(15,15,15,0.7)' : 'rgba(10,10,10,0.4)'
+    }}>
+      {tier === 1 && <Sparkline color={isCritical ? 'var(--accent-red)' : color} />}
+      
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative', zIndex: 2 }}>
+        <div>
+          <div style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', fontWeight: 800, letterSpacing: '0.5px' }}>{label}</div>
+          <div className={accentClass} style={{ fontSize: tier === 1 ? '1.4rem' : '1.1rem', fontWeight: 900, lineHeight: 1, marginTop: '4px', color: isCritical ? 'var(--accent-red)' : undefined }}>
+            {value}
+            <span style={{ fontSize: '0.5rem', color: 'var(--text-secondary)', fontWeight: 700, marginLeft: '4px' }}>{unit}</span>
+          </div>
+        </div>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+          <MiniDonut percentage={pct} color={isCritical ? 'var(--accent-red)' : color} size={tier === 1 ? 32 : 24} />
+          <div style={{ fontSize: '0.45rem', color: isCritical ? 'var(--accent-red)' : 'var(--text-secondary)', fontWeight: 800 }}>{pct}%</div>
+        </div>
       </div>
 
-      <div style={{ margin: '4px 0' }}>
-        <Sparkline color={color} realValue={value} />
-      </div>
-
-      <div style={{ marginTop: 'auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.5rem', color: 'var(--text-secondary)', marginBottom: '2px' }}>
-          <span>LIM: {limit}</span>
-          <span>{pct}%</span>
+      {tier === 1 && (
+        <div style={{ fontSize: '0.45rem', color: 'var(--text-secondary)', fontWeight: 700, opacity: 0.6, position: 'relative', zIndex: 2 }}>
+          REG_LIMIT: {limit} {unit}
         </div>
-        <div style={{ height: '2px', background: 'rgba(255,255,255,0.05)', borderRadius: '1px', overflow: 'hidden' }}>
-          <div style={{ width: `${pct}%`, height: '100%', background: color, opacity: 0.6 }} />
-        </div>
-      </div>
+      )}
     </div>
   );
 };
@@ -113,16 +107,21 @@ const PollutantGrid = ({ pollutants }) => {
   if (!pollutants) return null;
 
   const config = [
-    { label: 'PM2.5', value: pollutants.pm25,                          unit: 'µg/m³', limit: '15', color: 'var(--accent-salmon)', accentClass: 'salmon' },
-    { label: 'PM10',  value: pollutants.pm10,                          unit: 'µg/m³', limit: '45', color: 'var(--accent-gold)',   accentClass: 'gold'   },
-    { label: 'NO₂',  value: pollutants.no2?.value || pollutants.no2,  unit: 'ppb',   limit: '21', color: pollutants.no2?.status === 'CRITICAL' ? 'var(--accent-red)' : 'var(--accent-cyan)', accentClass: pollutants.no2?.status === 'CRITICAL' ? 'red' : 'cyan' },
-    { label: 'SO₂',  value: pollutants.so2,                           unit: 'ppb',   limit: '15', color: 'var(--accent-red)',    accentClass: 'red'    },
-    { label: 'CO',   value: pollutants.co,                            unit: 'mg/m³', limit: '4',  color: '#fff',                accentClass: ''       },
-    { label: 'O₃',  value: pollutants.o3,                            unit: 'ppb',   limit: '51', color: '#b19cd9',             accentClass: ''       },
+    { label: 'PM2.5', value: pollutants.pm25, unit: 'µg/m³', limit: '15', color: 'var(--accent-salmon)', accentClass: 'salmon', tier: 1 },
+    { label: 'PM10',  value: pollutants.pm10, unit: 'µg/m³', limit: '45', color: 'var(--accent-gold)',   accentClass: 'gold',   tier: 1 },
+    { label: 'NO2',   value: pollutants.no2?.value || pollutants.no2, unit: 'ppb', limit: '21', color: 'var(--accent-cyan)', accentClass: 'cyan', tier: 1 },
+    { label: 'SO2',   value: pollutants.so2, unit: 'ppb', limit: '15', color: 'var(--accent-red)', accentClass: 'red', tier: 2 },
+    { label: 'CO',    value: pollutants.co, unit: 'mg/m³', limit: '4', color: '#fff', accentClass: '', tier: 2 },
+    { label: 'O3',    value: pollutants.o3, unit: 'ppb', limit: '51', color: '#b19cd9', accentClass: '', tier: 2 },
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+    <div style={{ 
+      display: 'grid', 
+      gridTemplateColumns: '1fr 1fr', 
+      gap: '10px',
+      marginTop: '10px'
+    }}>
       {config.map((p, idx) => (
         <PollutantCard key={idx} {...p} />
       ))}
