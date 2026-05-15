@@ -7,7 +7,7 @@ import {
   FileText, 
   User,
   Users,
-  FileSearch,
+  ShieldCheck,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -19,7 +19,7 @@ const Sidebar = ({ activePage, setActivePage, isCollapsed, onToggleCollapse }) =
     { id: 'sensors', label: 'SENSORS', icon: Activity },
     { id: 'reports', label: 'REPORTS', icon: FileText },
     { id: 'supply', label: 'SUPPLY_CHAIN', icon: Truck },
-    { id: 'compliance', label: 'COMPLIANCE_INTEL', icon: FileSearch },
+    { id: 'compliance', label: 'COMPLIANCE_INTEL', icon: ShieldCheck },
     { id: 'workers', label: 'WORKER_RISK', icon: Users },
   ];
 
@@ -45,7 +45,7 @@ const Sidebar = ({ activePage, setActivePage, isCollapsed, onToggleCollapse }) =
             onClick={() => setActivePage(item.id)}
             title={isCollapsed ? item.label : ''}
           >
-            <item.icon size={18} />
+            <item.icon size={20} />
             {!isCollapsed && <span>{item.label}</span>}
           </div>
         ))}

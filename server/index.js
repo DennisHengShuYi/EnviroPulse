@@ -130,6 +130,7 @@ const generateDynamicFallback = (category, sensorData) => {
   const uv = parseFloat(sensorData.metrics?.temp?.uv) || 8;
   const windSpeed = parseFloat(sensorData.metrics?.temp?.wind?.replace(' km/h', '')) || 10;
   const windDir = parseFloat(sensorData.metrics?.temp?.windDir) || 0;
+  const no2 = parseFloat(sensorData.pollutants?.no2?.value || sensorData.pollutants?.no2) || 0;
 
   const riskLevel = aqi > 150 || temp > 36 ? 'EXTREME' : aqi > 100 || temp > 33 ? 'HIGH' : aqi > 50 ? 'MODERATE' : 'LOW';
   

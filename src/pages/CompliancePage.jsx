@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ShieldCheck, AlertTriangle, Upload, Hash, Building2, MapPin, FileSearch, Download, ExternalLink, FileText, CheckSquare, Square } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, Upload, Hash, Building2, MapPin, FileSearch, Download, ExternalLink, FileText } from 'lucide-react';
 import jsPDF from 'jspdf';
 
 const THRESHOLD_PCT = 20; // configurable discrepancy threshold
@@ -85,9 +85,6 @@ const CompliancePage = ({ districts, data }) => {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ company: '', zone: '', nodeId: '', date: '', reportedPm25: '', reportedAqi: '' });
   const [threshold, setThreshold] = useState(THRESHOLD_PCT);
-  const [mode, setMode] = useState('AUDITOR');
-  const [selectedCompanyId, setSelectedCompanyId] = useState('SUB-001');
-  const [completedItems, setCompletedItems] = useState({});
   const [toast, setToast] = useState(null);
 
   const getDynamicChecklist = (sub, res) => {
@@ -347,251 +344,7 @@ const CompliancePage = ({ districts, data }) => {
     a.click();
   };
 
-  const handleGenerateBursaReport = async (sub) => {
-    const res = results[sub.id];
-    if (!res) {
-      alert('Please run VERIFY on this submission first before generating the report.');
-      return;
-    }
 
-    setToast({ message: `Fetching live IFRS S1/S2 disclosure metrics for ${sub.company}...`, type: 'success' });
-
-    let statsData = {
-      pm25Compliance: 96,
-      doeCompliance: 85,
-      heatSafeDays: 95,
-      currentPm25: 12.5,
-      currentAqi: 45,
-      currentHeatIndex: 32.5
-    };
-
-    let esgData = {
-      performanceScore: "85/100 (A-)",
-      complianceStatement: {
-        pm25: "WHO PM2.5 limit compliance status verified.",
-        api: "Malaysia DOE API baseline synchronization status normal."
-      },
-      narrative: "Executive environmental overview confirms robust localized environmental risk mitigation. Framework structure adheres to IFRS S2 climate risk metrics.",
-      anomalies: [
-        { title: "Thermal Baseline Stability", details: "Consistent with Industrial profile.", severity: "CYAN" }
-      ]
-    };
-
-    try {
-      const statsRes = await fetch(`/api/analytics/esg-stats?id=${sub.nodeId}`);
-      const statsJson = await statsRes.json();
-      statsData = { ...statsData, ...statsJson };
-
-      const currentAqi = statsData.currentAqi !== undefined ? statsData.currentAqi : 45;
-      const currentHeatIndex = statsData.currentHeatIndex !== undefined ? statsData.currentHeatIndex : 32.5;
-
-      const esgRes = await fetch('/api/analytics/esg', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sensorData: {
-            name: sub.zone,
-            type: 'Industrial',
-            metrics: {
-              aqi: { value: currentAqi },
-              temp: { value: currentHeatIndex }
-            }
-          },
-          stats: {
-            pm25Compliance: statsData.pm25Compliance,
-            doeCompliance: statsData.doeCompliance,
-            heatSafeDays: statsData.heatSafeDays
-          }
-        })
-      });
-      const esgJson = await esgRes.json();
-      esgData = { ...esgData, ...esgJson };
-    } catch (err) {
-      console.warn('API fetch failed during PDF generation, using safe fallback data:', err);
-    }
-
-    setToast({ message: `Generating A4 IFRS-Compliant PDF report for ${sub.company}...`, type: 'success' });
-
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    pdf.setFillColor(255, 255, 255);
-    pdf.rect(0, 0, 210, 297, 'F');
-
-    // Title Section
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(14);
-    pdf.setTextColor(15, 23, 42);
-    pdf.text("BURSA MALAYSIA SUSTAINABILITY DISCLOSURE", 15, 20);
-    
-    pdf.setFontSize(8);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(100, 116, 139);
-    pdf.text(`Document Ref: IFRS-S1/S2-2026-MY | Entity: ${sub.company}`, 15, 25);
-    
-    pdf.setDrawColor(226, 232, 240);
-    pdf.line(15, 28, 195, 28);
-    
-    // Header Info
-    pdf.setFontSize(9);
-    pdf.setTextColor(71, 85, 105);
-    pdf.text(`Zone: ${sub.zone}   |   Assigned Array: ${sub.nodeName}   |   Date: ${sub.date}`, 15, 34);
-    pdf.text(`Performance Rating: ${esgData.performanceScore || 'Verified Copy'}`, 15, 40);
-
-    // 1. Governance
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(15, 23, 42);
-    pdf.text("1. Governance", 15, 50);
-    
-    pdf.setFontSize(8.5);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(51, 65, 85);
-    const govText = esgData.complianceStatement ? `${esgData.complianceStatement.pm25 || ''} ${esgData.complianceStatement.api || ''}`.trim() : 'Oversight maps strictly under IFRS S1 directives.';
-    const splitGov = pdf.splitTextToSize(govText, 180);
-    pdf.text(splitGov, 15, 55);
-
-    // 2. Strategy
-    let currentY = 55 + (splitGov.length * 4) + 6;
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(15, 23, 42);
-    pdf.text("2. Strategy", 15, currentY);
-    
-    pdf.setFontSize(8.5);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(51, 65, 85);
-    const stratText = esgData.narrative || 'Adheres to IFRS S2 climate risk metrics and adaptation logic.';
-    const splitStrat = pdf.splitTextToSize(stratText, 180);
-    pdf.text(splitStrat, 15, currentY + 5);
-
-    // 3. Risk Management
-    currentY = currentY + 5 + (splitStrat.length * 4) + 6;
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(15, 23, 42);
-    pdf.text("3. Risk Management", 15, currentY);
-    
-    pdf.setFontSize(8.5);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(51, 65, 85);
-    let riskY = currentY + 5;
-    if (esgData.anomalies && esgData.anomalies.length > 0) {
-      esgData.anomalies.forEach(anom => {
-        const bulletText = `• ${anom.title}: ${anom.details}`;
-        const splitBullet = pdf.splitTextToSize(bulletText, 180);
-        pdf.text(splitBullet, 15, riskY);
-        riskY += (splitBullet.length * 4);
-      });
-    } else {
-      pdf.text("• Continuous sensor telemetry filtration and boundary threshold enforcement operational.", 15, riskY);
-      riskY += 4;
-    }
-
-    // 4. Metrics & Targets
-    currentY = riskY + 6;
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(15, 23, 42);
-    pdf.text("4. Metrics & Targets", 15, currentY);
-    
-    const metrics = [
-      { label: "PM2.5 Compliance", val: `${statsData.pm25Compliance}%` },
-      { label: "DOE API Compliance", val: `${statsData.doeCompliance}%` },
-      { label: "Heat Safe Days", val: `${statsData.heatSafeDays}%` },
-      { label: "Current PM2.5", val: `${statsData.currentPm25} ug/m3` }
-    ];
-    
-    metrics.forEach((m, idx) => {
-      const cardX = 15 + (idx * 45);
-      pdf.setFillColor(248, 250, 252);
-      pdf.setDrawColor(226, 232, 240);
-      pdf.rect(cardX, currentY + 3, 42, 14, 'FD');
-      
-      pdf.setFontSize(7);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(100, 116, 139);
-      pdf.text(m.label, cardX + 3, currentY + 8);
-      
-      pdf.setFontSize(9);
-      pdf.setTextColor(15, 23, 42);
-      pdf.text(m.val, cardX + 3, currentY + 14);
-    });
-
-    // Comparative Table below Metrics & Targets
-    currentY = currentY + 24;
-    pdf.setFontSize(9);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(71, 85, 105);
-    pdf.text("Comparative Audit Verification Table", 15, currentY);
-    
-    const tableY = currentY + 4;
-    pdf.setFillColor(15, 23, 42);
-    pdf.rect(15, tableY, 180, 7, 'F');
-    
-    pdf.setFontSize(8);
-    pdf.setTextColor(255, 255, 255);
-    pdf.text("Metric", 18, tableY + 5);
-    pdf.text("Reported Value", 70, tableY + 5);
-    pdf.text("Sensor Verified Value", 120, tableY + 5);
-    pdf.text("Status", 165, tableY + 5);
-
-    const rows = [
-      {
-        metric: "PM2.5 Concentration",
-        rep: `${sub.reportedPm25} ug/m3`,
-        ver: `${res.sensorPm25 !== undefined ? res.sensorPm25 : statsData.currentPm25} ug/m3`,
-        status: res.flagged ? "Variance Flagged" : "Verified Aligned"
-      },
-      {
-        metric: "Compliance Score",
-        rep: "N/A",
-        ver: `${statsData.pm25Compliance}%`,
-        status: "Active Feeds"
-      },
-      {
-        metric: "DOE AQI Status",
-        rep: `${sub.reportedAqi}`,
-        ver: `${statsData.currentAqi}`,
-        status: Math.abs(sub.reportedAqi - statsData.currentAqi) > 20 ? "Review Rec." : "Synchronized"
-      }
-    ];
-
-    rows.forEach((r, idx) => {
-      const rowY = tableY + 7 + (idx * 7);
-      if (idx % 2 === 1) {
-        pdf.setFillColor(248, 250, 252);
-        pdf.rect(15, rowY, 180, 7, 'F');
-      }
-      pdf.setDrawColor(226, 232, 240);
-      pdf.line(15, rowY + 7, 195, rowY + 7);
-      
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(15, 23, 42);
-      pdf.text(r.metric, 18, rowY + 5);
-      pdf.text(r.rep, 70, rowY + 5);
-      pdf.text(r.ver, 120, rowY + 5);
-      
-      pdf.setFont('helvetica', 'bold');
-      if (r.status.includes("Flagged") || r.status.includes("Rec.")) {
-        pdf.setTextColor(185, 28, 28);
-      } else {
-        pdf.setTextColor(4, 120, 87);
-      }
-      pdf.text(r.status, 165, rowY + 5);
-    });
-
-    const footY = 280;
-    pdf.setFontSize(7);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(148, 163, 184);
-    pdf.text(`Cryptographic Audit Seal: SHA-256 #${res.hash || '8a9f4773'}`, 15, footY);
-    pdf.text("Disclosures aligned with Bursa Malaysia Centralised Sustainability Intelligence (CSI) platform guidelines.", 15, footY + 4);
-    
-    pdf.save(`BURSA_REPORT_${sub.company.replace(/\s+/g, '_')}.pdf`);
-
-    setTimeout(() => {
-      setToast(null);
-    }, 3000);
-  };
 
 
   const inputStyle = { width: '100%', background: 'var(--bg-secondary)', border: '1px solid rgba(0,0,0,0.1)', color: 'var(--text-primary)', padding: '8px 10px', fontSize: '0.7rem', borderRadius: '3px', fontFamily: 'inherit' };
@@ -605,7 +358,7 @@ const CompliancePage = ({ districts, data }) => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--accent-cyan)', marginBottom: '5px' }}>
-              <FileSearch size={24} />
+              <ShieldCheck size={24} />
               <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '2px' }}>COMPLIANCE_INTELLIGENCE_UNIT</span>
             </div>
             <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900 }}>ANTI-GREENWASHING AUDIT ENGINE</h1>
@@ -633,24 +386,7 @@ const CompliancePage = ({ districts, data }) => {
           </div>
         </div>
 
-        {/* VIEW MODE SWITCHER */}
-        <div style={{ display: 'flex', borderBottom: '1px solid rgba(0,0,0,0.1)', gap: '10px' }}>
-          <button
-            onClick={() => setMode('AUDITOR')}
-            style={{ background: mode === 'AUDITOR' ? 'rgba(0,240,255,0.1)' : 'transparent', color: mode === 'AUDITOR' ? 'var(--accent-cyan)' : 'var(--text-secondary)', border: 'none', borderBottom: mode === 'AUDITOR' ? '2px solid var(--accent-cyan)' : '2px solid transparent', padding: '12px 20px', fontWeight: 900, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', letterSpacing: '1px' }}
-          >
-            <ShieldCheck size={16} /> REGULATOR AUDITOR MODE (OVERVIEW)
-          </button>
-          <button
-            onClick={() => setMode('COMPANY')}
-            style={{ background: mode === 'COMPANY' ? 'rgba(255,184,0,0.1)' : 'transparent', color: mode === 'COMPANY' ? 'var(--accent-gold)' : 'var(--text-secondary)', border: 'none', borderBottom: mode === 'COMPANY' ? '2px solid var(--accent-gold)' : '2px solid transparent', padding: '12px 20px', fontWeight: 900, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', letterSpacing: '1px' }}
-          >
-            <Building2 size={16} /> MSME COMPANY PORTAL (SELF-CHECK)
-          </button>
-        </div>
 
-        {mode === 'AUDITOR' && (
-          <>
             {/* Submission Form */}
 
         {showForm && (
@@ -866,86 +602,7 @@ const CompliancePage = ({ districts, data }) => {
             ))}
           </div>
         </div>
-          </>
-        )}
 
-        {mode === 'COMPANY' && (() => {
-          const selSub = submissions.find(s => s.id === selectedCompanyId) || submissions[0] || DEMO_SUBMISSIONS[0];
-          const r = results[selSub.id];
-          return (
-            <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div className="widget" style={{ padding: '20px', background: 'rgba(255,184,0,0.03)', borderLeft: '4px solid var(--accent-gold)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                  <div>
-                    <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>ACTIVE LOGGED-IN MSME ENTITY</span>
-                    <select
-                      value={selectedCompanyId}
-                      onChange={e => setSelectedCompanyId(e.target.value)}
-                      style={{ background: 'var(--bg-secondary)', border: '1px solid rgba(255,184,0,0.3)', color: 'var(--accent-gold)', padding: '6px 12px', fontSize: '0.85rem', fontWeight: 900, borderRadius: '3px' }}
-                    >
-                      {submissions.map(s => <option key={s.id} value={s.id}>{s.company} ({s.zone})</option>)}
-                    </select>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <span style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', display: 'block' }}>ESTIMATED MONTHLY SCORE</span>
-                    <span style={{ fontSize: '1.4rem', fontWeight: 900, color: r?.flagged ? '#ffb800' : '#00ff82' }}>
-                      {r?.variance !== undefined ? `${Math.max(15, Math.round(100 - (r.variance * 0.35)))}%` : (r?.flagged ? '72%' : '94%')}
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{ padding: '15px', background: r?.flagged ? 'rgba(255,62,62,0.08)' : 'rgba(0,255,130,0.08)', borderRadius: '4px', border: `1px solid ${r?.flagged ? 'rgba(255,62,62,0.2)' : 'rgba(0,255,130,0.2)'}`, marginBottom: '20px' }}>
-                  <div style={{ fontSize: '0.6rem', fontWeight: 900, color: r?.flagged ? '#ff3e3e' : '#00ff82', marginBottom: '6px' }}>PLAIN-LANGUAGE COMPLIANCE PREVIEW</div>
-                  <p style={{ margin: 0, fontSize: '0.75rem', lineHeight: 1.6 }}>
-                    Your reported PM2.5 was <b>{selSub.reportedPm25} µg/m³</b>. Our district node sensor recorded <b>{r?.sensorPm25 !== undefined ? r.sensorPm25 : 47} µg/m³</b> on the same day. 
-                    {r?.flagged ? (
-                      <span style={{ color: '#ff3e3e', fontWeight: 800 }}> This discrepancy exceeds the permitted variance threshold and WILL BE FLAGGED by automated regulatory verification engines upon submission.</span>
-                    ) : (
-                      <span style={{ color: '#00ff82', fontWeight: 800 }}> Data closely aligns with background ambient distributions. Verification successful. Ready for Bursa repository export.</span>
-                    )}
-                  </p>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>
-                    Assigned Verification Array: <b style={{ color: 'var(--text-primary)' }}>{selSub.nodeName}</b>
-                  </div>
-                  <button
-                    onClick={() => handleGenerateBursaReport(selSub)}
-                    style={{ background: 'var(--accent-gold)', color: '#000', border: 'none', padding: '10px 20px', fontWeight: 900, fontSize: '0.75rem', cursor: 'pointer', borderRadius: '3px', display: 'flex', alignItems: 'center', gap: '8px' }}
-                  >
-                    <FileText size={14} /> GENERATE MY BURSA REPORT
-                  </button>
-                </div>
-              </div>
-
-              {/* Resolution Checklist */}
-              <div className="widget" style={{ padding: '20px' }}>
-                <div style={{ fontSize: '0.7rem', fontWeight: 900, marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CheckSquare size={16} className="gold" />
-                  PRE-SUBMISSION RESOLUTION CHECKLIST
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {getDynamicChecklist(selSub, r).map(item => {
-                    const isDone = completedItems[`${selectedCompanyId}-${item.id}`];
-                    return (
-                      <div
-                        key={item.id}
-                        onClick={() => toggleChecklist(item.id)}
-                        style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', background: isDone ? 'rgba(255,255,255,0.02)' : 'rgba(255,184,0,0.05)', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '4px', cursor: 'pointer', opacity: isDone ? 0.6 : 1 }}
-                      >
-                        {isDone ? <CheckSquare size={14} style={{ color: '#00ff82' }} /> : <Square size={14} style={{ color: 'var(--accent-gold)' }} />}
-                        <span style={{ fontSize: '0.72rem', textDecoration: isDone ? 'line-through' : 'none', color: isDone ? 'var(--text-secondary)' : '#fff', fontWeight: isDone ? 400 : 800 }}>
-                          {item.text}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          );
-        })()}
 
         {toast && (
           <div style={{
