@@ -48,7 +48,7 @@ const Sidebar = ({ activePage, setActivePage, isCollapsed, onToggleCollapse, tie
               title={isCollapsed ? item.label : ''}
               style={{ opacity: isDisabled ? 0.3 : 1, cursor: isDisabled ? 'not-allowed' : 'pointer', filter: isDisabled ? 'grayscale(100%)' : 'none' }}
             >
-              <item.icon size={24} />
+              <item.icon size={28} style={{ flexShrink: 0 }} />
               {!isCollapsed && <span>{item.label}</span>}
               {!isCollapsed && isDisabled && <div style={{ marginLeft: 'auto', fontSize: '0.65rem', border: '1px solid var(--accent-gold)', color: 'var(--accent-gold)', padding: '2px 4px', borderRadius: '4px' }}>PRO</div>}
             </div>
@@ -58,7 +58,7 @@ const Sidebar = ({ activePage, setActivePage, isCollapsed, onToggleCollapse, tie
 
       <div className="sidebar-footer" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1rem' }}>
         <div className="nav-link" title={isCollapsed ? 'SYS_ADMIN_01' : ''}>
-          <User size={18} />
+          <User size={22} style={{ flexShrink: 0 }} />
           {!isCollapsed && <span>SYS_ADMIN_01</span>}
         </div>
         
