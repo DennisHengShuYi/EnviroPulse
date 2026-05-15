@@ -551,6 +551,43 @@ body {
   }
 }
 
+/* --- RISK GAUGE ROW (RiskCommandCenter) --- */
+.risk-gauge-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.risk-gauge-text {
+  flex: 1;
+}
+
+@media (max-width: 1200px) {
+  .risk-gauge-row {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .risk-gauge-text {
+    flex: unset;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+/* --- KPI GRID CENTERING (HeroMetrics) --- */
+@media (max-width: 1200px) {
+  .kpi-grid-center {
+    max-width: 560px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
 /* --- HERO METRICS --- */
 .hero-metrics {
   display: grid;

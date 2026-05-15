@@ -26,8 +26,8 @@ const RiskCommandCenter = ({ data }) => {
         RISK_COMMAND_CENTER
       </div>
 
-      {/* Gauge row — gauge left, breach status right */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
+      {/* Gauge row — centered on tablet/mobile, side-by-side on desktop */}
+      <div className="risk-gauge-row">
         <CircularGauge
           type="full"
           label="COMPOSITE_RISK"
@@ -36,7 +36,7 @@ const RiskCommandCenter = ({ data }) => {
           size={150}
           unit="pts"
         />
-        <div style={{ flex: 1 }}>
+        <div className="risk-gauge-text">
           <div style={{ fontSize: '0.6rem', fontWeight: 900, letterSpacing: '1.5px', color: 'var(--text-primary)', marginBottom: '6px' }}>COMPOSITE_RISK</div>
           <div style={{ fontSize: '1.8rem', fontWeight: 900, color: compositeScore >= 70 ? 'var(--accent-red)' : compositeScore >= 40 ? 'var(--accent-gold)' : 'var(--accent-cyan)', fontFamily: 'monospace', lineHeight: 1 }}>
             {compositeScore}<span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 700, marginLeft: '4px' }}>/ 100</span>

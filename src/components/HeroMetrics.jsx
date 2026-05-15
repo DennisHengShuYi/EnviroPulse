@@ -83,7 +83,7 @@ const HeroMetrics = ({ data, hazeLevel }) => {
       </div>
 
       {/* Row 2: 2x2 KPI Tiles */}
-      <div className="responsive-grid-2">
+      <div className="responsive-grid-2 kpi-grid-center">
         {kpiMetrics.map((m, i) => {
           const cleanValue = typeof m.value === 'string' ? m.value.split(' ')[0] : m.value;
           return (
