@@ -44,10 +44,10 @@ function App() {
   const [viewMode, setViewMode] = useState('3d');
   const [showAlerts, setShowAlerts] = useState(false);
   const [isLive, setIsLive] = useState(true);
-  const [isHazeSimulated, setIsHazeSimulated] = useState(false);
+  const [hazeLevel, setHazeLevel] = useState(0); // 0: None, 1: Moderate, 2: Unhealthy, 3: Hazardous
 
   const triggerHazeSimulation = () => {
-    setIsHazeSimulated(prev => !prev);
+    setHazeLevel(prev => (prev + 1) % 4);
   };
 
   const handleLocateMe = (districtList) => {
@@ -183,8 +183,8 @@ function App() {
   const renderDashboard = () => (
     <div className="dashboard-grid">
       <div className="dashboard-column">
-        <HeroMetrics data={data} layout="vertical" isHazeSimulated={isHazeSimulated} />
-        <TrendChart data={trends} isHazeSimulated={isHazeSimulated} />
+        <HeroMetrics data={data} layout="vertical" hazeLevel={hazeLevel} />
+        <TrendChart data={trends} hazeLevel={hazeLevel} />
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', position: 'relative', overflow: 'hidden', height: '100%' }}>
@@ -217,7 +217,7 @@ function App() {
               allDistricts={allDistrictsData} 
               userCoords={userCoords} 
               homeDistrictId={homeDistrictId}
-              isHazeSimulated={isHazeSimulated}
+              hazeLevel={hazeLevel}
             />
           )}
         </div>
@@ -225,7 +225,7 @@ function App() {
 
       <div className="dashboard-column">
         <AIAdvisory data={data} />
-        <PollutantGrid pollutants={data.pollutants} />
+        <PollutantGrid pollutants={data.pollutants} hazeLevel={hazeLevel} />
       </div>
     </div>
   );
@@ -247,7 +247,7 @@ function App() {
       case 'reports': return <ReportsPage data={data} districts={districts} headerDistrict={selectedDistrict} />;
       case 'compliance': return <CompliancePage districts={districts} data={data} />;
       case 'supply': return <SupplyChainPage />;
-      case 'workers': return <WorkerGrid isHazeSimulated={isHazeSimulated} triggerHazeSimulation={triggerHazeSimulation} />;
+      case 'workers': return <WorkerGrid hazeLevel={hazeLevel} triggerHazeSimulation={triggerHazeSimulation} />;
       default: return <div>Page Not Found</div>;
     }
   };

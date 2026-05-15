@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-const City3DView = ({ data, allDistricts, onSelectDistrict, userCoords, homeDistrictId, isHazeSimulated }) => {
+const City3DView = ({ data, allDistricts, onSelectDistrict, userCoords, homeDistrictId, hazeLevel }) => {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -430,13 +430,21 @@ const City3DView = ({ data, allDistricts, onSelectDistrict, userCoords, homeDist
       canvas.height = canvas.clientHeight;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const windDirRad = isHazeSimulated ? (225 * Math.PI) / 180 : (data.metrics.temp.windDir * Math.PI) / 180;
-      const windSpeed = isHazeSimulated ? 25 : (parseFloat(data.metrics.temp.wind) || 5);
+      const windDirRad = hazeLevel > 0 ? (225 * Math.PI) / 180 : (data.metrics.temp.windDir * Math.PI) / 180;
+      const windSpeed = hazeLevel > 0 ? (5 + hazeLevel * 10) : (parseFloat(data.metrics.temp.wind) || 5);
       
       // 1. ANIMATED WIND ARROWS (NATIONWIDE)
       windOffsetRef.current += windSpeed * 0.1;
       const gridSize = 120;
-      ctx.strokeStyle = isHazeSimulated ? 'rgba(239, 68, 68, 0.4)' : 'rgba(0, 100, 255, 0.3)';
+      
+      const getWindColor = () => {
+        if (hazeLevel === 0) return 'rgba(0, 100, 255, 0.3)';
+        if (hazeLevel === 1) return 'rgba(255, 184, 0, 0.3)';
+        if (hazeLevel === 2) return 'rgba(255, 60, 60, 0.4)';
+        return 'rgba(239, 68, 68, 0.6)';
+      };
+
+      ctx.strokeStyle = getWindColor();
       ctx.lineWidth = 1;
 
       for (let x = -gridSize; x < canvas.width + gridSize; x += gridSize) {
@@ -455,23 +463,22 @@ const City3DView = ({ data, allDistricts, onSelectDistrict, userCoords, homeDist
       }
 
       // 2. POLLUTION PLUMES (DRIVEN BY LIVE DISTRICT DATA)
-      if (pListRef.current.length < 2000) {
+      if (pListRef.current.length < 3000) {
         const activeEmitters = (allDistricts || [])
-          .filter(d => d.aqi > 50)
-          .map(d => ({ lat: d.lat, lng: d.lng, strength: (d.aqi - 50) / 100 }));
+          .filter(d => d.aqi > 50 || hazeLevel > 0)
+          .map(d => ({ lat: d.lat, lng: d.lng, strength: hazeLevel > 0 ? (hazeLevel / 3) : (d.aqi - 50) / 100 }));
 
         activeEmitters.forEach(s => {
           const pos = mapRef.current.project([s.lng, s.lat]);
           if (pos.x > -400 && pos.x < canvas.width + 400 && pos.y > -400 && pos.y < canvas.height + 400) {
-            // Increased spawn chance for "heavy" look
-            const spawnChance = isHazeSimulated ? 0.95 : (s.strength ? Math.min(s.strength * 0.8, 0.6) : 0.2);
+            const spawnChance = hazeLevel > 0 ? (0.4 + hazeLevel * 0.2) : (s.strength ? Math.min(s.strength * 0.8, 0.6) : 0.2);
             if (Math.random() < spawnChance) {
               pListRef.current.push({
                 x: pos.x, y: pos.y, life: 1.0,
                 vx: Math.sin(windDirRad) * (windSpeed * 0.35),
                 vy: -Math.cos(windDirRad) * (windSpeed * 0.35),
                 jitter: Math.random() * 2.5 - 1.25,
-                size: isHazeSimulated ? 25 : (6 + (s.strength ? s.strength * 15 : 8)) // Larger, more impactful sources
+                size: hazeLevel > 0 ? (10 + hazeLevel * 8) : (6 + (s.strength ? s.strength * 15 : 8))
               });
             }
           }
@@ -484,15 +491,19 @@ const City3DView = ({ data, allDistricts, onSelectDistrict, userCoords, homeDist
         p.x += p.vx + Math.cos(windDirRad) * p.jitter * (1-p.life) * 2;
         p.y += p.vy + Math.sin(windDirRad) * p.jitter * (1-p.life) * 2;
         
-        // High visibility alpha (0.7) and vibrant orange/red tones
-        const alpha = p.life * 0.7; 
+        const alpha = p.life * (hazeLevel > 0 ? 0.8 : 0.7); 
         const currentSize = p.size * (1 + (1-p.life) * 5);
         
         const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, currentSize);
-        // Vibrant, high-impact core
-        const r = 255;
-        const g = 80 + (100 * (1-p.life));
-        const b = 20 * (1-p.life);
+        
+        const getPlumeColor = () => {
+          if (hazeLevel === 0) return { r: 255, g: 80 + (100 * (1-p.life)), b: 20 * (1-p.life) };
+          if (hazeLevel === 1) return { r: 255, g: 180, b: 50 };
+          if (hazeLevel === 2) return { r: 255, g: 60, b: 0 };
+          return { r: 150, g: 0, b: 50 }; // Purple/Dark Red for Hazardous
+        };
+
+        const { r, g, b } = getPlumeColor();
         
         grad.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${alpha})`);
         grad.addColorStop(0.3, `rgba(${r}, ${g}, ${b}, ${alpha * 0.6})`);

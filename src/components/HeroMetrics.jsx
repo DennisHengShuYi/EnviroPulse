@@ -1,19 +1,45 @@
 import React from 'react';
 import { Thermometer, Wind, CloudRain, Droplets, ShieldAlert } from 'lucide-react';
 
-const HeroCard = ({ label, value, unit, status, thresholdLabel, details, icon: Icon, colorClass, compact, isHazeSimulated }) => {
+const HeroCard = ({ label, value, unit, status, thresholdLabel, details, icon: Icon, colorClass, compact, hazeLevel }) => {
   const getStatusColor = (status) => {
-    if (isHazeSimulated) return 'badge-danger';
-    if (status === 'DANGER' || status === 'UNHEALTHY' || status === 'BREACH') return 'badge-danger';
+    if (hazeLevel === 3) return 'badge-danger';
+    if (hazeLevel === 2) return 'badge-danger';
+    if (hazeLevel === 1) return 'badge-warning';
+    if (status === 'DANGER' || status === 'UNHEALTHY' || status === 'BREACH' || status === 'CRITICAL') return 'badge-danger';
     if (status === 'CAUTION' || status === 'MODERATE' || status === 'SENSITIVE' || status === 'WARNING') return 'badge-warning';
     return 'badge-safe';
   };
 
-  const simulatedValue = isHazeSimulated ? (label.includes('PM2.5') ? '152.4' : (label.includes('AQI') ? '184' : value)) : value;
-  const simulatedStatus = isHazeSimulated ? 'CRITICAL' : status;
+  const getSimulatedData = () => {
+    if (hazeLevel === 0) return { val: value, stat: status };
+    
+    if (label.includes('PM2.5')) {
+      if (hazeLevel === 1) return { val: '52.4', stat: 'MODERATE' };
+      if (hazeLevel === 2) return { val: '155.8', stat: 'UNHEALTHY' };
+      if (hazeLevel === 3) return { val: '382.1', stat: 'HAZARDOUS' };
+    }
+    if (label.includes('AQI')) {
+      if (hazeLevel === 1) return { val: '78', stat: 'MODERATE' };
+      if (hazeLevel === 2) return { val: '184', stat: 'UNHEALTHY' };
+      if (hazeLevel === 3) return { val: '412', stat: 'HAZARDOUS' };
+    }
+    if (label.includes('THERMAL')) {
+      if (hazeLevel >= 2) return { val: (parseFloat(value) + 2).toFixed(1), stat: 'BREACH' };
+    }
+    return { val: value, stat: hazeLevel > 1 ? 'CRITICAL' : (hazeLevel === 1 ? 'WARNING' : status) };
+  };
+
+  const { val: simulatedValue, stat: simulatedStatus } = getSimulatedData();
 
   return (
-    <div className={`hero-card ${isHazeSimulated ? 'animate-pulse border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)]' : ''}`} style={{ padding: compact ? '8px 12px' : '20px', marginBottom: compact ? '8px' : '0', border: isHazeSimulated ? '2px solid #ef4444' : '1px solid rgba(255,255,255,0.05)', background: '#070707' }}>
+    <div className={`hero-card ${hazeLevel > 0 ? 'animate-pulse' : ''}`} style={{ 
+      padding: compact ? '8px 12px' : '20px', 
+      marginBottom: compact ? '8px' : '0', 
+      border: hazeLevel === 3 ? '2px solid #ef4444' : (hazeLevel > 0 ? '1px solid var(--accent-gold)' : '1px solid rgba(255,255,255,0.05)'), 
+      background: '#070707',
+      boxShadow: hazeLevel === 3 ? '0 0 20px rgba(239,68,68,0.2)' : 'none'
+    }}>
       <div className="badge-container">
         <span className={`badge ${getStatusColor(simulatedStatus)}`} style={{ fontSize: compact ? '0.5rem' : '0.65rem', fontWeight: 900 }}>{simulatedStatus}</span>
       </div>
@@ -50,7 +76,7 @@ const HeroCard = ({ label, value, unit, status, thresholdLabel, details, icon: I
   );
 };
 
-const HeroMetrics = ({ data, layout, isHazeSimulated }) => {
+const HeroMetrics = ({ data, layout, hazeLevel }) => {
   if (!data) return null;
 
   const isVertical = layout === 'vertical';
@@ -66,7 +92,7 @@ const HeroMetrics = ({ data, layout, isHazeSimulated }) => {
         icon={Thermometer}
         colorClass="red"
         compact={isVertical}
-        isHazeSimulated={isHazeSimulated}
+        hazeLevel={hazeLevel}
       />
       <HeroCard 
         label="DOE API BASELINE SCORE" 
@@ -77,7 +103,7 @@ const HeroMetrics = ({ data, layout, isHazeSimulated }) => {
         icon={Wind}
         colorClass="cyan"
         compact={isVertical}
-        isHazeSimulated={isHazeSimulated}
+        hazeLevel={hazeLevel}
       />
       <HeroCard 
         label="AMBIENT CORE BASELINE" 
@@ -89,7 +115,7 @@ const HeroMetrics = ({ data, layout, isHazeSimulated }) => {
         icon={CloudRain}
         colorClass="gold"
         compact={isVertical}
-        isHazeSimulated={isHazeSimulated}
+        hazeLevel={hazeLevel}
       />
       <HeroCard 
         label="PM2.5 BASELINE CONC." 
@@ -100,7 +126,7 @@ const HeroMetrics = ({ data, layout, isHazeSimulated }) => {
         icon={Droplets}
         colorClass="salmon"
         compact={isVertical}
-        isHazeSimulated={isHazeSimulated}
+        hazeLevel={hazeLevel}
       />
     </div>
   );

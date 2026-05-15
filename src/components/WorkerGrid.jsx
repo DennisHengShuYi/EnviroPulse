@@ -181,7 +181,7 @@ const DOSHComplianceTable = ({ blur, workers }) => {
   );
 };
 
-const WorkerGrid = ({ isHazeSimulated, triggerHazeSimulation }) => {
+const WorkerGrid = ({ hazeLevel, triggerHazeSimulation }) => {
   const [role, setRole] = useState('Site Manager'); // Site Manager | Auditor/DOE
   const [mode, setMode] = useState('Premium'); // Basic | Premium
   const [showWhatsApp, setShowWhatsApp] = useState(false);
@@ -190,26 +190,50 @@ const WorkerGrid = ({ isHazeSimulated, triggerHazeSimulation }) => {
   const isAuditor = role === 'Auditor/DOE';
   const isBasic = mode === 'Basic';
 
-  // Force all workers to CRITICAL during haze
-  const activeWorkers = isHazeSimulated 
-    ? workers.map(w => ({ ...w, risk: 'CRITICAL', riskColor: 'red', isCritical: true }))
-    : workers;
+  // Graduated risk based on hazeLevel
+  const activeWorkers = workers.map(w => {
+    if (hazeLevel === 0) return w;
+    
+    let newRisk = w.risk;
+    let newIsCritical = w.isCritical;
+
+    if (hazeLevel === 1) {
+      // Moderate: Sensitive groups affected
+      if (w.conditions.length > 0 || w.age > 50) {
+        newRisk = 'HIGH';
+      }
+    } else if (hazeLevel === 2) {
+      // Unhealthy: Most workers affected
+      if (w.conditions.length > 0 || w.age > 40) {
+        newRisk = 'CRITICAL';
+        newIsCritical = true;
+      } else {
+        newRisk = 'HIGH';
+      }
+    } else if (hazeLevel === 3) {
+      // Hazardous: All stop work
+      newRisk = 'CRITICAL';
+      newIsCritical = true;
+    }
+
+    return { ...w, risk: newRisk, isCritical: newIsCritical };
+  });
 
   // Trigger WhatsApp alerts
   useEffect(() => {
-    if (isHazeSimulated && !isBasic) {
+    if (hazeLevel > 0 && !isBasic) {
+      let severity = hazeLevel === 1 ? 'MODERATE' : (hazeLevel === 2 ? 'UNHEALTHY' : 'HAZARDOUS');
+      let action = hazeLevel === 3 ? 'IMMEDIATE Site-wide shutdown' : (hazeLevel === 2 ? 'Limited outdoor activity' : 'Sensitive groups withdrawn');
+      
       setWhatsAppMessage(
         <div className="space-y-2">
-          <p>⚠️ <strong>KECEMASAN:</strong> Multiple workers (Ahmad Razif, Jakaria bin Daud) reached <strong>CRITICAL</strong> risk levels due to HAZE.</p>
-          <p>Immediate site-wide shutdown initiated. [Hash: 0x92c7...]</p>
+          <p>⚠️ <strong>ALERT ({severity}):</strong> Air quality has reached {severity} levels.</p>
+          <p><strong>ACTION:</strong> {action} initiated. [Hash: 0x{Math.random().toString(16).slice(2, 8).toUpperCase()}...]</p>
         </div>
       );
       setShowWhatsApp(true);
-    } else if (!isHazeSimulated && activeWorkers.some(w => w.risk === 'CRITICAL') && !isBasic) {
-      setWhatsAppMessage(null); // Reset to default
-      setShowWhatsApp(true);
     }
-  }, [isHazeSimulated, isBasic]);
+  }, [hazeLevel, isBasic]);
 
   return (
     <div className="bg-[#0a0f1e] overflow-y-auto relative min-h-screen" style={{ height: 'calc(100vh - 80px)' }}>
@@ -264,9 +288,9 @@ const WorkerGrid = ({ isHazeSimulated, triggerHazeSimulation }) => {
             {!isAuditor && (
               <button 
                 onClick={triggerHazeSimulation}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${isHazeSimulated ? 'bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.4)] hover:bg-red-600' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'}`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${hazeLevel > 0 ? 'bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.4)] hover:bg-red-600' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'}`}
               >
-                <Wind size={14} /> {isHazeSimulated ? 'Stop Simulation' : 'Simulate Haze'}
+                <Wind size={14} /> {hazeLevel > 0 ? `Haze Level ${hazeLevel} (Click to change)` : 'Simulate Haze'}
               </button>
             )}
           </div>
