@@ -1,5 +1,6 @@
 import React from 'react';
 import { 
+  Truck,
   LayoutDashboard, 
   BarChart2, 
   Activity, 
@@ -17,6 +18,7 @@ const Sidebar = ({ activePage, setActivePage, isCollapsed, onToggleCollapse }) =
     { id: 'analytics', label: 'ANALYTICS', icon: BarChart2 },
     { id: 'sensors', label: 'SENSORS', icon: Activity },
     { id: 'reports', label: 'REPORTS', icon: FileText },
+    { id: 'supply', label: 'SUPPLY_CHAIN', icon: Truck },
     { id: 'compliance', label: 'COMPLIANCE_INTEL', icon: ShieldCheck },
     { id: 'workers', label: 'WORKER_RISK', icon: Users },
   ];

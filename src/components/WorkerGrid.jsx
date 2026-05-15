@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, AlertTriangle, Clock, MapPin, Lock, FileText, Wind, Eye, Users, Shield } from 'lucide-react';
-import ImmutableAuditLog from './ImmutableAuditLog';
-import BursaReportModal from './BursaReportModal';
 import WhatsAppAlert from './WhatsAppAlert';
 
 const workers = [
@@ -183,36 +181,59 @@ const DOSHComplianceTable = ({ blur, workers }) => {
   );
 };
 
-const WorkerGrid = ({ isHazeSimulated, triggerHazeSimulation }) => {
+const WorkerGrid = ({ hazeLevel, triggerHazeSimulation }) => {
   const [role, setRole] = useState('Site Manager'); // Site Manager | Auditor/DOE
   const [mode, setMode] = useState('Premium'); // Basic | Premium
-  const [showBursaModal, setShowBursaModal] = useState(false);
   const [showWhatsApp, setShowWhatsApp] = useState(false);
   const [whatsAppMessage, setWhatsAppMessage] = useState(null);
 
   const isAuditor = role === 'Auditor/DOE';
   const isBasic = mode === 'Basic';
 
-  // Force all workers to CRITICAL during haze
-  const activeWorkers = isHazeSimulated 
-    ? workers.map(w => ({ ...w, risk: 'CRITICAL', riskColor: 'red', isCritical: true }))
-    : workers;
+  // Graduated risk based on hazeLevel
+  const activeWorkers = workers.map(w => {
+    if (hazeLevel === 0) return w;
+    
+    let newRisk = w.risk;
+    let newIsCritical = w.isCritical;
+
+    if (hazeLevel === 1) {
+      // Moderate: Sensitive groups affected
+      if (w.conditions.length > 0 || w.age > 50) {
+        newRisk = 'HIGH';
+      }
+    } else if (hazeLevel === 2) {
+      // Unhealthy: Most workers affected
+      if (w.conditions.length > 0 || w.age > 40) {
+        newRisk = 'CRITICAL';
+        newIsCritical = true;
+      } else {
+        newRisk = 'HIGH';
+      }
+    } else if (hazeLevel === 3) {
+      // Hazardous: All stop work
+      newRisk = 'CRITICAL';
+      newIsCritical = true;
+    }
+
+    return { ...w, risk: newRisk, isCritical: newIsCritical };
+  });
 
   // Trigger WhatsApp alerts
   useEffect(() => {
-    if (isHazeSimulated && !isBasic) {
+    if (hazeLevel > 0 && !isBasic) {
+      let severity = hazeLevel === 1 ? 'MODERATE' : (hazeLevel === 2 ? 'UNHEALTHY' : 'HAZARDOUS');
+      let action = hazeLevel === 3 ? 'IMMEDIATE Site-wide shutdown' : (hazeLevel === 2 ? 'Limited outdoor activity' : 'Sensitive groups withdrawn');
+      
       setWhatsAppMessage(
         <div className="space-y-2">
-          <p>⚠️ <strong>KECEMASAN:</strong> Multiple workers (Ahmad Razif, Jakaria bin Daud) reached <strong>CRITICAL</strong> risk levels due to HAZE.</p>
-          <p>Immediate site-wide shutdown initiated. [Hash: 0x92c7...]</p>
+          <p>⚠️ <strong>ALERT ({severity}):</strong> Air quality has reached {severity} levels.</p>
+          <p><strong>ACTION:</strong> {action} initiated. [Hash: 0x{Math.random().toString(16).slice(2, 8).toUpperCase()}...]</p>
         </div>
       );
       setShowWhatsApp(true);
-    } else if (!isHazeSimulated && activeWorkers.some(w => w.risk === 'CRITICAL') && !isBasic) {
-      setWhatsAppMessage(null); // Reset to default
-      setShowWhatsApp(true);
     }
-  }, [isHazeSimulated, isBasic]);
+  }, [hazeLevel, isBasic]);
 
   return (
     <div className="bg-[#0a0f1e] overflow-y-auto relative min-h-screen" style={{ height: 'calc(100vh - 80px)' }}>
@@ -267,23 +288,14 @@ const WorkerGrid = ({ isHazeSimulated, triggerHazeSimulation }) => {
             {!isAuditor && (
               <button 
                 onClick={triggerHazeSimulation}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${isHazeSimulated ? 'bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.4)] hover:bg-red-600' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'}`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${hazeLevel > 0 ? 'bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.4)] hover:bg-red-600' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'}`}
               >
-                <Wind size={14} /> {isHazeSimulated ? 'Stop Simulation' : 'Simulate Haze'}
+                <Wind size={14} /> {hazeLevel > 0 ? `Haze Level ${hazeLevel} (Click to change)` : 'Simulate Haze'}
               </button>
             )}
           </div>
         </div>
 
-        {/* Top Action Row */}
-        <div className="mb-8 flex justify-end">
-          <button 
-            onClick={() => setShowBursaModal(true)}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${isHazeSimulated ? 'bg-cyan-500 text-black animate-bounce shadow-[0_0_30px_rgba(6,182,212,0.6)]' : 'bg-slate-800 text-cyan-500 border border-cyan-500/20 hover:bg-slate-700'}`}
-          >
-            <FileText size={16} /> Generate Bursa CSI Report
-          </button>
-        </div>
 
         {/* Main Grid Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -292,14 +304,9 @@ const WorkerGrid = ({ isHazeSimulated, triggerHazeSimulation }) => {
           ))}
         </div>
 
-        {/* Audit Log (Stage 3) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-12 items-start">
-          <div className="lg:col-span-2">
-            <DOSHComplianceTable blur={isBasic} workers={activeWorkers} />
-          </div>
-          <div className="lg:col-span-1">
-            <ImmutableAuditLog blur={isBasic} isHazeSimulated={isHazeSimulated} />
-          </div>
+        {/* Compliance Table (Stage 3) */}
+        <div className="mt-12">
+          <DOSHComplianceTable blur={isBasic} workers={activeWorkers} />
         </div>
 
         {/* Footer Audit Log Footer (Stage 2) */}
@@ -319,7 +326,6 @@ const WorkerGrid = ({ isHazeSimulated, triggerHazeSimulation }) => {
       </div>
 
       {/* New Components */}
-      <BursaReportModal isOpen={showBursaModal} onClose={() => setShowBursaModal(false)} />
       <WhatsAppAlert isTriggered={showWhatsApp} onClose={() => setShowWhatsApp(false)} message={whatsAppMessage} />
     </div>
   );

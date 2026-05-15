@@ -16,6 +16,7 @@ import SensorsPage from './pages/SensorsPage';
 import ReportsPage from './pages/ReportsPage';
 import AlertsPage from './pages/AlertsPage';
 import CompliancePage from './pages/CompliancePage';
+import SupplyChainPage from './pages/SupplyChainPage';
 
 // Helper to calculate distance between two coordinates
 const getDistance = (lat1, lon1, lat2, lon2) => {
@@ -43,11 +44,15 @@ function App() {
   const [viewMode, setViewMode] = useState('3d');
   const [showAlerts, setShowAlerts] = useState(false);
   const [isLive, setIsLive] = useState(true);
+<<<<<<< HEAD
   const [isHazeSimulated, setIsHazeSimulated] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+=======
+  const [hazeLevel, setHazeLevel] = useState(0); // 0: None, 1: Moderate, 2: Unhealthy, 3: Hazardous
+>>>>>>> c03c1b1fe6dab7570326751cf2ed848007228e19
 
   const triggerHazeSimulation = () => {
-    setIsHazeSimulated(prev => !prev);
+    setHazeLevel(prev => (prev + 1) % 4);
   };
 
   const handleLocateMe = (districtList) => {
@@ -184,6 +189,7 @@ function App() {
     <div className="dashboard-grid-3col">
       {/* Left Column */}
       <div className="dashboard-column">
+<<<<<<< HEAD
         <HeroMetrics data={data} isHazeSimulated={isHazeSimulated} />
         <TrendChart data={trends} isHazeSimulated={isHazeSimulated} />
       </div>
@@ -192,12 +198,57 @@ function App() {
       <div className="dashboard-column">
         <RiskCommandCenter data={data} />
         <ComplianceHeatmap history={trends} />
+=======
+        <HeroMetrics data={data} layout="vertical" hazeLevel={hazeLevel} />
+        <TrendChart data={trends} hazeLevel={hazeLevel} />
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', position: 'relative', overflow: 'hidden', height: '100%' }}>
+        <div className="widget" style={{ flex: 1, position: 'relative', overflow: 'hidden', padding: 0 }}>
+          <div style={{ position: 'absolute', top: '20px', right: '120px', zIndex: 2000, display: 'flex', gap: '10px' }}>
+            <button 
+              onClick={() => setViewMode(viewMode === '2d' ? '3d' : '2d')}
+              style={{ 
+                background: 'var(--accent-cyan)', 
+                color: '#000',
+                border: '1px solid var(--accent-cyan)',
+                padding: '8px 20px',
+                fontSize: '0.7rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                borderRadius: '2px',
+                boxShadow: '0 0 15px rgba(0, 240, 255, 0.3)',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              {viewMode === '2d' ? 'VIEW_3D_TWIN' : 'VIEW_2D_SATELLITE'}
+            </button>
+          </div>
+          
+          {viewMode === '2d' ? (
+            <MapHero onSelectDistrict={setSelectedDistrict} selectedId={selectedDistrict} userCoords={userCoords} />
+          ) : (
+            <City3DView 
+              data={data} 
+              allDistricts={allDistrictsData} 
+              userCoords={userCoords} 
+              homeDistrictId={homeDistrictId}
+              hazeLevel={hazeLevel}
+            />
+          )}
+        </div>
+>>>>>>> c03c1b1fe6dab7570326751cf2ed848007228e19
       </div>
 
       {/* Right Column */}
       <div className="dashboard-column">
+<<<<<<< HEAD
         <AIAdvisory data={data} history={trends} />
         <PollutantGrid pollutants={data.pollutants} />
+=======
+        <AIAdvisory data={data} />
+        <PollutantGrid pollutants={data.pollutants} hazeLevel={hazeLevel} />
+>>>>>>> c03c1b1fe6dab7570326751cf2ed848007228e19
       </div>
     </div>
   );
@@ -218,7 +269,8 @@ function App() {
       case 'alerts': return <AlertsPage selectedDistrictId={selectedDistrict} />;
       case 'reports': return <ReportsPage data={data} districts={districts} headerDistrict={selectedDistrict} />;
       case 'compliance': return <CompliancePage districts={districts} data={data} />;
-      case 'workers': return <WorkerGrid isHazeSimulated={isHazeSimulated} triggerHazeSimulation={triggerHazeSimulation} />;
+      case 'supply': return <SupplyChainPage />;
+      case 'workers': return <WorkerGrid hazeLevel={hazeLevel} triggerHazeSimulation={triggerHazeSimulation} />;
       default: return <div>Page Not Found</div>;
     }
   };

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
-const TrendChart = ({ data, isHazeSimulated }) => {
+const TrendChart = ({ data, hazeLevel }) => {
+  const isHazeSimulated = hazeLevel > 0;
   const [activeMetric, setActiveMetric] = useState('pm25');
 
   const metrics = [
@@ -9,6 +10,22 @@ const TrendChart = ({ data, isHazeSimulated }) => {
     { id: 'aqi', label: 'DOE API', color: '#00f0ff' },
     { id: 'heat', label: 'HEAT INDEX', color: '#ff3e3e' },
   ];
+
+  const simulatedData = React.useMemo(() => {
+    if (hazeLevel === 0) return data;
+    return data.map((d, i) => {
+      if (i < data.length - 8) return d; // Only spike the end
+      const spikeFactor = i - (data.length - 8);
+      const levelMultiplier = hazeLevel * 5;
+      
+      return {
+        ...d,
+        pm25: d.pm25 + (spikeFactor * levelMultiplier * 3),
+        aqi: d.aqi + (spikeFactor * levelMultiplier * 2),
+        heat: d.heat + (spikeFactor * (hazeLevel > 1 ? 0.5 : 0.1))
+      };
+    });
+  }, [data, hazeLevel]);
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -46,9 +63,9 @@ const TrendChart = ({ data, isHazeSimulated }) => {
   };
 
   // Compute offset where y = 15 falls in the dataset range
-  const getGradientOffset = () => {
-    if ((activeMetric !== 'pm25' && !isHazeSimulated) || !data || !data.length) return 0;
-    const vals = data.map(i => i[activeMetric] || 0);
+    const getGradientOffset = () => {
+    if ((activeMetric !== 'pm25' && !isHazeSimulated) || !simulatedData || !simulatedData.length) return 0;
+    const vals = simulatedData.map(i => i[activeMetric] || 0);
     const dataMax = Math.max(...vals);
     const dataMin = Math.min(...vals);
     const threshold = activeMetric === 'pm25' ? 15 : (activeMetric === 'aqi' ? 100 : 35);
@@ -64,6 +81,14 @@ const TrendChart = ({ data, isHazeSimulated }) => {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <span style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--text-secondary)', letterSpacing: '1px' }}>COMPLIANCE_TREND_MONITOR</span>
+<<<<<<< HEAD
+=======
+          {(activeMetric === 'pm25' || isHazeSimulated) && (
+            <span style={{ fontSize: '0.55rem', color: '#ff3e3e', fontWeight: 800 }}>
+              {isHazeSimulated ? `⚠️ HAZE LEVEL ${hazeLevel} SIMULATION - ECONOMIC IMPACT VIEW` : 'WHO AQG Exceedance Audit View Active'}
+            </span>
+          )}
+>>>>>>> c03c1b1fe6dab7570326751cf2ed848007228e19
         </div>
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
           {metrics.map(m => (
@@ -91,7 +116,7 @@ const TrendChart = ({ data, isHazeSimulated }) => {
 
       <div style={{ height: '220px', width: '100%', minWidth: 0, minHeight: 0 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 15, right: 10, left: 10, bottom: 10 }}>
+          <AreaChart data={simulatedData} margin={{ top: 15, right: 10, left: 10, bottom: 10 }}>
             <defs>
               <linearGradient id="colorMetric" x1="0" y1="0" x2="0" y2="1">
                 {activeMetric === 'pm25' ? (
@@ -167,6 +192,28 @@ const TrendChart = ({ data, isHazeSimulated }) => {
               strokeWidth={2.5}
             />
 
+<<<<<<< HEAD
+=======
+            <Area 
+              yAxisId="right"
+              type="monotone" 
+              dataKey={(d) => {
+                // Logic: AQI < 50 -> 100%. Heat Index 38 -> 40%.
+                const aqiVal = d.aqi || 0;
+                const heatVal = d.heat || 31;
+                
+                let prod = 100;
+                if (aqiVal > 50) prod -= (aqiVal - 50) * 0.4;
+                if (heatVal > 31) prod -= (heatVal - 31) * 8;
+                
+                return Math.max(5, Math.min(100, prod));
+              }} 
+              stroke="var(--accent-gold)" 
+              strokeWidth={2}
+              strokeDasharray="5 5"
+              fill="transparent"
+            />
+>>>>>>> c03c1b1fe6dab7570326751cf2ed848007228e19
           </AreaChart>
         </ResponsiveContainer>
       </div>

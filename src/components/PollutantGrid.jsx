@@ -32,6 +32,7 @@ const MiniDonut = ({ percentage, color, size = 32 }) => {
   );
 };
 
+<<<<<<< HEAD
 const Sparkline = ({ color }) => {
   const [points, setPoints] = React.useState(() => Array.from({ length: 10 }, () => 20 + Math.random() * 20));
   
@@ -91,6 +92,54 @@ const PollutantCard = ({ label, value, unit, limit, color, accentClass, tier = 1
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
           <MiniDonut percentage={pct} color={isCritical ? 'var(--accent-red)' : color} size={tier === 1 ? 32 : 24} />
           <div style={{ fontSize: '0.45rem', color: isCritical ? 'var(--accent-red)' : 'var(--text-secondary)', fontWeight: 800 }}>{pct}%</div>
+=======
+const PollutantCard = ({ label, value, unit, limit, color, accentClass, hazeLevel }) => {
+  const getSimulatedValue = () => {
+    if (hazeLevel === 0) return value;
+    const base = parseFloat(value);
+    if (label === 'PM2.5') {
+      if (hazeLevel === 1) return (base * 4).toFixed(1);
+      if (hazeLevel === 2) return (base * 10).toFixed(1);
+      if (hazeLevel === 3) return (base * 25).toFixed(1);
+    }
+    if (label === 'PM10') {
+      if (hazeLevel === 1) return (base * 2).toFixed(1);
+      if (hazeLevel === 2) return (base * 5).toFixed(1);
+      if (hazeLevel === 3) return (base * 12).toFixed(1);
+    }
+    return (base * (1 + hazeLevel * 0.5)).toFixed(1);
+  };
+
+  const simulatedValue = getSimulatedValue();
+  const pct = Math.min(100, Math.round((parseFloat(simulatedValue) / parseFloat(limit)) * 100));
+
+  return (
+    <div className="widget" style={{ 
+      padding: '8px 12px', 
+      borderLeft: `2px solid ${color}`, 
+      minHeight: 'auto',
+      borderColor: hazeLevel > 0 && pct > 80 ? 'var(--accent-red)' : color,
+      background: hazeLevel > 0 && pct > 100 ? 'rgba(255,0,0,0.05)' : '#0a0a0a'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 800 }}>{label}</span>
+        <span className={accentClass} style={{ fontSize: '0.75rem', fontWeight: 800, color: hazeLevel > 0 && pct > 100 ? '#ff4444' : '' }}>
+          {simulatedValue} <small style={{ fontSize: '0.55rem', color: 'var(--text-secondary)' }}>{unit}</small>
+        </span>
+      </div>
+
+      <div style={{ margin: '4px 0' }}>
+        <Sparkline color={color} realValue={simulatedValue} />
+      </div>
+
+      <div style={{ marginTop: 'auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.5rem', color: 'var(--text-secondary)', marginBottom: '2px' }}>
+          <span>LIM: {limit}</span>
+          <span style={{ color: pct > 100 ? '#ff4444' : '' }}>{pct}%</span>
+        </div>
+        <div style={{ height: '2px', background: 'rgba(255,255,255,0.05)', borderRadius: '1px', overflow: 'hidden' }}>
+          <div style={{ width: `${pct}%`, height: '100%', background: pct > 100 ? '#ff4444' : color, opacity: 0.6 }} />
+>>>>>>> c03c1b1fe6dab7570326751cf2ed848007228e19
         </div>
       </div>
 
@@ -103,7 +152,7 @@ const PollutantCard = ({ label, value, unit, limit, color, accentClass, tier = 1
   );
 };
 
-const PollutantGrid = ({ pollutants }) => {
+const PollutantGrid = ({ pollutants, hazeLevel }) => {
   if (!pollutants) return null;
 
   const config = [
@@ -123,7 +172,7 @@ const PollutantGrid = ({ pollutants }) => {
       marginTop: '10px'
     }}>
       {config.map((p, idx) => (
-        <PollutantCard key={idx} {...p} />
+        <PollutantCard key={idx} {...p} hazeLevel={hazeLevel} />
       ))}
     </div>
   );
