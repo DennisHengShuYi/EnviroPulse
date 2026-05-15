@@ -1,0 +1,7 @@
+(node:35428) Warning: Setting the NODE_TLS_REJECT_UNAUTHORIZED environment variable to '0' makes TLS connections and HTTPS requests insecure by disabling certificate verification.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[API_ERROR] DOMException [AbortError]: This operation was aborted
+    at node:internal/deps/undici/undici:13510:13
+    at async fetchRealTimeData (file:///C:/Users/den51/.gemini/antigravity/UMDT-fix/server/index.js:499:24)
+    at async getSensorData (file:///C:/Users/den51/.gemini/antigravity/UMDT-fix/server/index.js:587:20)
+    at async file:///C:/Users/den51/.gemini/antigravity/UMDT-fix/server/index.js:927:23

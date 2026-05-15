@@ -1,7 +1,20 @@
 {
   "permissions": {
     "allow": [
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/)",
+      "Bash(node -e ' *)",
+      "Bash(curl -s http://localhost:3001/api/districts)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(f'Server up — {len\\(d\\)} districts'\\)\")",
+      "Bash(curl -s -X POST http://localhost:3001/api/advisor -H 'Content-Type: application/json' -d '{ *)",
+      "Bash(python3 -c ' *)",
+      "Bash(cat /tmp/server2.log 2>/dev/null | tail -30)",
+      "Read(//tmp/**)",
+      "Bash(node server/index.js)",
+      "Bash(curl -s -X POST http://localhost:3001/api/advisor -H 'Content-Type: application/json' -d '{\"role\":\"factoryMsme\",\"sensorData\":{\"id\":\"klcc\",\"name\":\"KLCC\",\"type\":\"Urban core\",\"region\":\"CENTRAL\",\"metrics\":{\"heatIndex\":{\"value\":\"38.2\",\"unit\":\"°C\",\"status\":\"CAUTION\"},\"aqi\":{\"value\":65,\"status\":\"MODERATE\"},\"temp\":{\"value\":\"31.5\",\"unit\":\"°C\",\"rh\":\"67%\",\"uv\":\"7.8\",\"wind\":\"4.8 km/h\",\"windDir\":\"315\"},\"pm25\":{\"value\":\"22.75\",\"unit\":\"µg/m³\",\"limitPercent\":\"65%\",\"status\":\"NOMINAL\"}},\"pollutants\":{\"pm25\":\"22.75\",\"pm10\":\"35.2\",\"no2\":\"12.1\",\"so2\":\"8.4\",\"co\":\"0.8\",\"o3\":\"45.2\"}},\"history\":[]}')",
+      "PowerShell(Get-Process -Name \"node\" -ErrorAction SilentlyContinue)",
+      "PowerShell(Stop-Process -Force)",
+      "PowerShell(Test-NetConnection -ComputerName localhost -Port 3001 -InformationLevel Quiet -WarningAction SilentlyContinue)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(f'Server OK — {len\\(d\\)} districts'\\)\")"
     ]
   }
 }

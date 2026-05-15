@@ -7,10 +7,22 @@ import fs from 'fs';
 import { Redis } from '@upstash/redis';
 
 dotenv.config();
+// Dev: Node.js on this machine cannot verify intermediate SSL certs for external APIs
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
   token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
+
+// Fast-fail flag — set false at startup if Redis is unreachable so route handlers skip it immediately
+let redisAvailable = false;
+redis.ping().then(() => {
+  redisAvailable = true;
+  console.log('[REDIS_OK] Connected to Upstash Redis');
+}).catch(() => {
+  redisAvailable = false;
+  console.warn('[REDIS_UNAVAILABLE] Using local in-memory audit chain fallback');
 });
 
 const app = express();
@@ -51,13 +63,35 @@ const calculateInterpolatedAQI = (lat, lng, stations) => {
   return Math.round(weightedAQI / totalWeight);
 };
 
+// Groq — OpenAI-compatible, used as primary AI
 const aiClient = new OpenAI({
-  apiKey: process.env.ILMU_API_KEY || process.env.ANTHROPIC_API_KEY || 'sk-dummy-key-for-local-dev',
-  baseURL: 'https://api.ilmu.ai/v1',
-  timeout: 60000 // 60s global timeout
+  apiKey: process.env.GROQ_API_KEY || 'sk-dummy-key-for-local-dev',
+  baseURL: 'https://api.groq.com/openai/v1',
+  timeout: 30000
 });
 
-const AI_MODEL = process.env.ANTHROPIC_MODEL || 'ilmu-glm-5.1';
+const AI_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+
+// Unified AI call: tries Groq → dynamic fallback
+const callAIWithFallback = async (systemPrompt, userPrompt, maxTokens = 1800) => {
+  try {
+    const response = await aiClient.chat.completions.create({
+      model: AI_MODEL,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: 0.1,
+      max_tokens: maxTokens
+    });
+    const text = response.choices?.[0]?.message?.content;
+    if (!text) throw new Error('Empty Groq response');
+    return { text, source: 'groq' };
+  } catch (err) {
+    console.error('[GROQ_ERROR]', err.status || '', err.message);
+    return null; // fall through to dynamic fallback
+  }
+};
 
 app.use(cors());
 app.use(express.json());
@@ -197,38 +231,50 @@ const generateDynamicFallback = (category, sensorData) => {
       factoryMsme: {
         isFallback: true,
         riskLevel,
-        workerSafetyStatus: temp > 38 ? 'DANGER' : temp > 33 ? 'CAUTION' : 'SAFE',
-        workerProtocolNow: temp > 33 ? "Execute mandatory 50/10 work-rest cycle." : "Standard operations continue.",
-        workerPPESpec: `N95 respirators required (PM2.5: ${pm25} µg/m³), hydration stations mandatory (Heat Index: ${temp}°C).`,
-        workerRestCycle: temp > 33 ? "50 min work / 10 min rest" : "Continuous",
+        workerSafetyStatus: temp > 40 ? 'STOP_WORK' : temp > 38 ? 'DANGER' : temp > 33 ? 'CAUTION' : 'SAFE',
+        workerProtocolNow: temp > 40
+          ? `Stop all outdoor work immediately — Heat Index ${temp}°C has exceeded the 40°C threshold under OSH Act 2024 Section 15. Move all workers to air-conditioned areas and contact your safety officer now.`
+          : temp > 33
+          ? `Enforce mandatory work-rest cycles — Heat Index ${temp}°C exceeds the DOSH 33°C threshold. Workers must rest in a shaded area for 10 minutes every 50 minutes of work.`
+          : pm25 > 35
+          ? `Issue N95 masks to ALL workers immediately — PM2.5 at ${pm25} µg/m³ is ${(pm25/15).toFixed(1)}× the WHO safe limit of 15 µg/m³. Pregnant workers or those with lung conditions must be moved indoors.`
+          : `Conditions are acceptable today with PM2.5 at ${pm25} µg/m³ and Heat Index at ${temp}°C. Ensure drinking water is readily available and shaded rest areas are provided for all workers.`,
+        workerPPESpec: pm25 > 35
+          ? `N95 or N100 respirator REQUIRED (PM2.5: ${pm25} µg/m³ = ${(pm25/15).toFixed(1)}× WHO limit). Add safety goggles in high-dust zones. Standard surgical masks do NOT provide adequate protection at this level.`
+          : pm25 > 15
+          ? `N95 respirator required (PM2.5: ${pm25} µg/m³ exceeds WHO limit by ${(pm25-15).toFixed(1)} µg/m³). Cloth masks and surgical masks are insufficient — N95 filter efficiency of 95% is the minimum.`
+          : `Standard P2 dust mask sufficient (PM2.5: ${pm25} µg/m³ is within WHO safe limit of 15 µg/m³). Replace mask every 8 hours or when visibly soiled.`,
+        workerRestCycle: temp > 40 ? 'STOP WORK — OSH Act 2024 Section 15 activated' : temp > 36 ? '45 min work / 15 min mandatory rest in shaded area' : temp > 33 ? '50 min work / 10 min rest in shaded area' : `Continuous — no special cycle needed (Heat Index safe at ${temp}°C)`,
         workerActions: [
-          "Verify all workers have access to shaded rest areas.",
-          "Issue N95 masks for high particulate exposure zones.",
-          "Log mandatory rest periods in site safety journal.",
-          "Deploy mobile hydration units to all active lines."
+          `Set up hydration stations every 20 metres across the work floor — at ${temp}°C, dehydration can set in within 30 minutes without regular water intake.`,
+          `Check your N95 stock now and issue masks to ${pm25 > 15 ? 'all workers — PM2.5 at ' + pm25 + ' µg/m³ requires mandatory respiratory protection' : 'workers in dusty zones — PM2.5 is ' + pm25 + ' µg/m³, within safe range but still present'}.`,
+          `Designate a shaded rest area with fans or air conditioning at least 15 metres from emission sources (stacks, machinery exhaust, welding zones).`,
+          `Monitor workers every 2 hours for heat stress symptoms (dizziness, nausea, confusion). At ${temp}°C, heat exhaustion risk is elevated — any symptomatic worker must be taken to hospital immediately.`
         ],
-        emissionStatus: aqi > 100 ? 'ELEVATED' : 'CONTROLLED',
-        primaryMitigationAction: aqi > 100 ? "Engage secondary scrubbing systems." : "Standard emission controls sufficient.",
-        emissionMitigationSteps: [
-          "Activate secondary wet scrubbers on main stack.",
-          "Inspect electrostatic precipitator for particulate bypass.",
-          "Reschedule high-emission batch processing to evening dispersion window.",
-          "Verify real-time boundary sensor synchronization."
-        ],
-        stackControlRecommendation: `Reduce throughput by 15% to align with current PM2.5 baseline of ${pm25} µg/m³.`,
-        productionAdjustment: "Switch to low-sulfur backup fuel if SO2 exceeds 15 µg/m³.",
-        doeNotificationStatus: aqi > 100 ? 'PENDING' : 'NOT REQUIRED',
-        eqaBreachIndicator: aqi > 150 ? 'BREACH' : 'CLEAN',
-        plainVerdict: `REGULATORY ALERT: Site metrics (${pm25} µg/m³) tracking near threshold limits.`,
-        regulatoryCitation: "Environmental Quality Act 1974 (Clean Air Regulations) & OSH Act 2024",
-        chainOfThought: [
-          `Step 1 — Evaluating stack emissions against local PM2.5 baseline (${pm25} µg/m³)...`,
-          `Step 2 — Assessing workforce heat stress risk at current ${temp}°C Heat Index...`,
-          `Step 3 — Calculating necessary emission reduction to avoid DOE audit flags...`,
-          `Step 4 — Cross-referencing OSH Act 2024 for mandatory site safety protocols...`,
-          `Step 5 — Generating combined worker-safety and emission-mitigation directive...`
-        ],
-        technicalReasoning: `Variance buffer narrowed due to ambient PM2.5 of ${pm25} µg/m³ exceeding seasonal norms.`
+        emissionStatus: aqi > 150 ? 'BREACH' : aqi > 100 ? 'ELEVATED' : pm25 > 15 ? 'MODERATE' : 'CONTROLLED',
+        primaryMitigationAction: aqi > 100
+          ? `AQI ${aqi} has exceeded the 100 threshold — your factory is contributing to unhealthy air quality. Reduce production rate by 25–30% immediately and activate all scrubber systems to bring PM2.5 down from ${pm25} µg/m³ toward the 15 µg/m³ safe limit.`
+          : pm25 > 15
+          ? `PM2.5 at ${pm25} µg/m³ is ${(pm25-15).toFixed(1)} µg/m³ above the WHO safe limit. The most important action today: inspect and clean all stack filters — clogged filters are the most common cause of PM2.5 spikes.`
+          : `Pollution levels are under control with PM2.5 at ${pm25} µg/m³ and AQI at ${aqi}. Use today's good conditions to perform maintenance on your emission control equipment so performance stays strong.`,
+        emissionMitigationSteps: aqi > 100
+          ? [
+              `Reduce production rate by 25% until AQI drops below 100 (current: ${aqi}). Document the time and rate reduction for your DOE compliance record.`,
+              `Activate the wet scrubber on the main stack — a functioning scrubber system can reduce PM2.5 by 40–60%, bringing it from ${pm25} µg/m³ down to an estimated ${(pm25*0.5).toFixed(1)} µg/m³.`,
+              `Defer all high-emission processes (open burning, heavy welding, batch combustion) to after 18:00, when stronger evening winds improve atmospheric dispersion.`,
+              `Notify DOE within 24 hours if AQI remains above 100 — failure to report can result in a RM 500,000 fine under Environmental Quality Act 1974 Section 22.`
+            ]
+          : [
+              `Inspect and clean filters on all main stacks today — blocked filters can triple PM2.5 emissions above the current reading of ${pm25} µg/m³.`,
+              `Avoid open burning, waste combustion, and outdoor welding between 11:00–15:00 (peak heat window with minimal wind dispersion).`,
+              `Check all valves, pipes, and fittings for leaks — leaks can elevate NO2 levels above the current ${no2 || 'N/A'} ppb reading. Target: keep NO2 below 25 ppb.`,
+              `Log today's PM2.5 reading of ${pm25} µg/m³ in your daily DOE compliance log — continuous records are required for the annual EQA 1974 audit.`
+            ],
+        plainVerdict: aqi > 100
+          ? `Conditions today require immediate action. Reduce production by 25% and activate your scrubbers now to protect workers and avoid a DOE fine.`
+          : pm25 > 15
+          ? `PM2.5 is slightly elevated at ${pm25} µg/m³. Ensure all workers wear N95 masks and inspect your stack filters today to keep pollution in check.`
+          : `Conditions are good today — PM2.5 at ${pm25} µg/m³ and AQI at ${aqi} are within safe limits. Use this window to service your emission control systems.`
       }
     };
   } else if (category === 'prediction') {
@@ -970,130 +1016,232 @@ app.get('/api/analytics/thresholds', async (req, res) => {
   res.json(thresholds);
 });
 
+// ── Prediction math helpers ──────────────────────────────────────────────────
+function linearSlope(values) {
+  const n = values.length;
+  if (n < 2) return 0;
+  const xBar = (n - 1) / 2;
+  const yBar = values.reduce((a, b) => a + b, 0) / n;
+  const num = values.reduce((s, y, x) => s + (x - xBar) * (y - yBar), 0);
+  const den = values.reduce((s, _, x) => s + (x - xBar) ** 2, 0);
+  return den === 0 ? 0 : parseFloat((num / den).toFixed(3));
+}
+
+function timeOfDayFactor(hour) {
+  if (hour >= 7 && hour < 10) return 1.12;   // morning startup
+  if (hour >= 10 && hour < 12) return 1.06;
+  if (hour >= 12 && hour < 14) return 1.00;
+  if (hour >= 14 && hour < 18) return 1.18;  // afternoon heat + emission peak
+  if (hour >= 18 && hour < 21) return 0.92;
+  return 0.78;                                // overnight
+}
+
+function buildForecast(currentVal, slope, startHour, limit, windPenalty = 1.0, count = 6) {
+  return Array.from({ length: count }, (_, i) => {
+    const hour = (startHour + i + 1) % 24;
+    const raw = currentVal + slope * (i + 1) * timeOfDayFactor(hour) * windPenalty;
+    const value = Math.max(0, parseFloat(raw.toFixed(1)));
+    return { time: `${String(hour).padStart(2, '0')}:00`, value, projected: true, breach: value > limit };
+  });
+}
+
+function computeBreachProb(current, limit, slope, windPenalty = 1.0, hours = 4) {
+  const proj = current + slope * hours * windPenalty;
+  const ratio = current / limit;
+  const projRatio = proj / limit;
+  if (projRatio >= 1.2) return Math.min(95, Math.round(65 + (projRatio - 1) * 90));
+  if (projRatio >= 1.0) return Math.min(89, Math.round(50 + (projRatio - 0.9) * 140));
+  if (ratio >= 0.8 && slope > 0) return Math.round(20 + ratio * 45);
+  if (ratio >= 0.5 && slope > 0.3) return Math.round(ratio * 38);
+  return Math.max(5, Math.round(ratio * 15));
+}
+
+function buildFallbackNarrative(c) {
+  const trend = c.pm25Slope > 0.2 ? 'rising' : c.pm25Slope < -0.2 ? 'falling' : 'stable';
+  const actions = [];
+  if (c.pm25AtPeak > c.PM25_LIMIT) {
+    const ph = parseInt(c.pm25PeakTime);
+    actions.push({ time: `${String(ph > 0 ? ph - 1 : 23).padStart(2,'0')}:30`, action: `Inspect and service stack filters before PM2.5 reaches projected peak of ${c.pm25AtPeak} µg/m³ at ${c.pm25PeakTime} — WHO limit is ${c.PM25_LIMIT} µg/m³` });
+  }
+  if (c.doshCrossingTime) {
+    const h = parseInt(c.doshCrossingTime);
+    actions.push({ time: `${String(h > 0 ? h - 1 : 23).padStart(2,'0')}:45`, action: `Brief all workers on mandatory rest cycle before Heat Index is projected to cross ${c.HI_CAUTION}°C at ${c.doshCrossingTime} — OSH Act 2024 Section 15(2) compliance required` });
+  }
+  if (actions.length < 3) {
+    actions.push({ time: c.pm25PeakTime || '17:00', action: `Prepare DOE notification form if PM2.5 exceeds 35 µg/m³ as trend projects — EQA 1974 Section 22 requires reporting above this threshold` });
+  }
+  return {
+    forecastSummary: `PM2.5 is currently ${c.currentPm25} µg/m³ and ${trend}, projected to reach ${c.pm25AtPeak} µg/m³ by ${c.pm25PeakTime}${c.pm25AtPeak > c.PM25_LIMIT ? ', breaching the WHO 15 µg/m³ limit' : ' — within WHO limits'}.`,
+    peakRiskReason: `Wind at ${c.windSpeed} km/h creates ${c.dispersionQuality.toLowerCase()} dispersion — ${c.windSpeed < 2 ? 'emissions accumulate near the source, raising local PM2.5 by up to 18%' : c.windSpeed < 5 ? 'partial accumulation expected near the stack' : 'emissions are dispersed away from the work area'}.`,
+    workerSafetyForecast: c.doshCrossingTime
+      ? `Heat Index is ${c.currentHi}°C and projected to cross the DOSH ${c.HI_CAUTION}°C CAUTION threshold at ${c.doshCrossingTime} — mandatory rest cycles under OSH Act 2024 Section 15(2) must begin before that time.`
+      : `Heat Index is ${c.currentHi}°C and remains below the DOSH ${c.HI_CAUTION}°C threshold throughout the forecast period — normal work schedules can continue with standard PPE.`,
+    dispersionNarrative: `Wind at ${c.windSpeed} km/h — ${c.dispersionQuality} dispersion: ${c.windSpeed < 2 ? 'emissions accumulate near the stack, increasing local worker exposure' : c.windSpeed < 5 ? 'partial emission buildup near source expected' : 'emissions dispersed, lower local concentration expected'}.`,
+    preEmptiveActions: actions.slice(0, 3),
+    complianceVerdict: `Breach probability is ${c.overallBreachProb}% — ${c.overallBreachProb >= 70 ? 'immediate pre-emptive action required before peak risk window' : c.overallBreachProb >= 40 ? 'prepare compliance notifications and monitor closely' : 'conditions manageable; continue standard monitoring protocols'}.`
+  };
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 app.post('/api/predict', async (req, res) => {
-  const { sensorData, history, role } = req.body;
+  const { sensorData, history } = req.body;
   if (!sensorData || !sensorData.metrics) {
-    return res.status(400).json({ 
-      error: 'Incomplete data', 
-      details: 'The system is waiting for live sensor synchronization. Please wait a few seconds and try again.' 
+    return res.status(400).json({
+      error: 'Incomplete data',
+      details: 'The system is waiting for live sensor synchronization. Please wait a few seconds and try again.'
     });
   }
 
-  const requestedRole = role || 'all';
-  const cacheKey = `predictive_v8_${sensorData.id}_${requestedRole}`;
+  const cacheKey = `predictive_v10_factory_${sensorData.id}`;
   const cachedPrediction = cache.get(cacheKey);
   if (cachedPrediction) return res.json(cachedPrediction);
 
-  if (process.env.SIMULATE_LIVE_INFERENCE === 'true') {
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    const fullFallback = generateDynamicFallback('prediction', sensorData);
-    const simulatedData = requestedRole !== 'all' && fullFallback[requestedRole] 
-      ? { isFallback: false, [requestedRole]: { ...fullFallback[requestedRole], isFallback: false } }
-      : fullFallback;
-    
-    simulatedData.isFallback = false;
-    Object.keys(simulatedData).forEach(key => {
-      if (simulatedData[key] && typeof simulatedData[key] === 'object') {
-        simulatedData[key].isFallback = false;
-      }
-    });
-    cache.set(cacheKey, simulatedData, 7200);
-    return res.json(simulatedData);
+  // ── Step 1: Compute predictions from trend data ───────────────────────────
+  const MYT = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
+  const currentHour = MYT.getHours();
+  const currentMin = MYT.getMinutes();
+  const currentTimeStr = `${String(currentHour).padStart(2, '0')}:${String(currentMin).padStart(2, '0')}`;
+
+  const currentPm25 = parseFloat(sensorData.pollutants?.pm25) || 15;
+  const currentAqi  = parseFloat(sensorData.metrics?.aqi?.value) || 50;
+  const currentHi   = parseFloat(sensorData.metrics?.heatIndex?.value) || 30;
+  const windSpeed   = parseFloat(sensorData.metrics?.temp?.wind) || 3;
+
+  const PM25_LIMIT = 15, AQI_LIMIT = 100, HI_CAUTION = 33, HI_DANGER = 38;
+
+  const windPenalty      = windSpeed < 2 ? 1.18 : windSpeed < 5 ? 1.06 : 1.0;
+  const dispersionQuality = windSpeed < 2 ? 'POOR' : windSpeed < 5 ? 'MODERATE' : 'GOOD';
+
+  const recent   = (history || []).slice(-6);
+  const pm25Vals = [...recent.map(h => parseFloat(h.pm25) || currentPm25), currentPm25];
+  const aqiVals  = [...recent.map(h => parseFloat(h.aqi)  || currentAqi),  currentAqi];
+  const hiVals   = [...recent.map(h => parseFloat(h.temp) || currentHi),   currentHi];
+
+  const pm25Slope = linearSlope(pm25Vals);
+  const aqiSlope  = linearSlope(aqiVals);
+  const hiSlope   = linearSlope(hiVals);
+
+  const pm25Forecast = buildForecast(currentPm25, pm25Slope, currentHour, PM25_LIMIT, windPenalty, 6);
+  const aqiForecast  = buildForecast(currentAqi,  aqiSlope,  currentHour, AQI_LIMIT,  1.0,         6);
+  const hiForecast   = buildForecast(currentHi,   hiSlope,   currentHour, HI_CAUTION, 1.0,         6);
+
+  // Build chart data: 3 historical + bridge + 6 projected
+  const histPoints = recent.slice(-3).map((h, i) => {
+    const hr = (currentHour - (3 - i) + 24) % 24;
+    return { time: `${String(hr).padStart(2, '0')}:00`, hist: parseFloat(h.pm25) || currentPm25, proj: null, limit: PM25_LIMIT };
+  });
+  const chartData = [
+    ...histPoints,
+    { time: currentTimeStr, hist: currentPm25, proj: currentPm25, limit: PM25_LIMIT },
+    ...pm25Forecast.map(p => ({ time: p.time, hist: null, proj: p.value, limit: PM25_LIMIT, breach: p.breach }))
+  ];
+
+  const pm25BreachProb    = computeBreachProb(currentPm25, PM25_LIMIT, pm25Slope, windPenalty);
+  const hiBreachProb      = computeBreachProb(currentHi,   HI_CAUTION, hiSlope,   1.0);
+  const overallBreachProb = Math.max(pm25BreachProb, hiBreachProb);
+
+  const peakPm25 = pm25Forecast.reduce((m, p) => p.value > m.value ? p : m, { value: 0, time: 'N/A' });
+  const peakHi   = hiForecast.reduce((m, p) => p.value > m.value ? p : m, { value: 0, time: 'N/A' });
+
+  let doshCrossingTime = null;
+  for (const p of hiForecast) {
+    if (currentHi < HI_DANGER && p.value >= HI_DANGER) { doshCrossingTime = p.time; break; }
+    if (currentHi < HI_CAUTION && p.value >= HI_CAUTION) { doshCrossingTime = p.time; break; }
+  }
+  let pm25BreachTime = null;
+  for (const p of pm25Forecast) {
+    if (currentPm25 <= PM25_LIMIT && p.value > PM25_LIMIT) { pm25BreachTime = p.time; break; }
   }
 
+  const computed = {
+    currentTime: currentTimeStr, currentPm25, currentAqi, currentHi, windSpeed, windPenalty,
+    dispersionQuality, pm25Slope, aqiSlope, hiSlope,
+    pm25Forecast, aqiForecast, hiForecast, chartData,
+    overallBreachProb, pm25BreachProb, hiBreachProb,
+    peakPm25, peakHi,
+    pm25AtPeak: peakPm25.value, pm25PeakTime: peakPm25.time,
+    hiAtPeak: peakHi.value, hiPeakTime: peakHi.time,
+    doshCrossingTime, pm25BreachTime,
+    PM25_LIMIT, AQI_LIMIT, HI_CAUTION, HI_DANGER
+  };
+
+  // ── Step 2: Groq narrative (passes computed numbers, receives human text) ──
   try {
-    const allMetrics = Object.entries(sensorData.metrics || {})
-      .filter(([_, m]) => m && m.value !== null && m.value !== undefined)
-      .map(([key, m]) => `${key.toUpperCase()}: ${m.value}${m.unit || ''}`)
-      .join(', ');
-
-    const pollutantSummary = sensorData.pollutants
-      ? `PM2.5=${sensorData.pollutants.pm25}µg/m³, PM10=${sensorData.pollutants.pm10}µg/m³, NO2=${sensorData.pollutants.no2?.value || sensorData.pollutants.no2}ppb, SO2=${sensorData.pollutants.so2}µg/m³, CO=${sensorData.pollutants.co}mg/m³, O3=${sensorData.pollutants.o3}µg/m³`
-      : 'unavailable';
-
+    const trendDir = pm25Slope > 0.15 ? 'rising' : pm25Slope < -0.15 ? 'falling' : 'stable';
     const response = await aiClient.chat.completions.create({
       model: AI_MODEL,
       messages: [
-        { 
-          role: "system", 
-          content: `You are a Malaysian Environmental Compliance Prediction Engine integrated into ENVIROWATCH, 
-a real-time anti-greenwashing compliance platform (Patent UI 2020000785). Your sole purpose 
-is forward-looking compliance risk intelligence — NOT general weather or environmental advice.
-
-REGULATORY THRESHOLDS YOU MUST APPLY:
-- WHO PM2.5 annual limit: 15 µg/m³ (AQG 2021)
-- Malaysia DOE API notification threshold: 50 µg/m³ (EQA 1974 Section 22)
-- DOSH heat index thresholds: <33°C = normal, 33–38°C = CATEGORY 1 rest cycle mandatory, 
-  >38°C = CATEGORY 2 high-risk, >40°C = STOP WORK ORDER
-- OSH Amendment Act 2024 Section 15(2): mandatory rest cycles above 33°C heat index
-- Bursa E1 Air Emissions indicator: PM2.5 above WHO limit = mandatory disclosure event
-- NCAAP 2025-2040: urban heat island reduction target, quarterly exceedance day tracking
+        {
+          role: 'system',
+          content: `You are a factory safety AI analyst for Malaysian MSME factory owners under EQA 1974.
+These numbers were computed from live sensor data and trend analysis. Your job is ONLY to write the human-readable narrative — do not invent or change any numbers.
 
 RULES:
-1. Every sentence in every field MUST reference at least one specific number from the live 
-   sensor data provided. No generic statements.
-2. Every compliance claim MUST cite the specific regulation clause (e.g. "OSH Act 2024 
-   Section 15(2)", "EQA 1974 Section 22", "GRI 305-7").
-3. Predicted events MUST be time-specific and consequence-specific — state what threshold 
-   is crossed, what regulation triggers, what the operator must do.
-4. Chain of thought steps MUST show real arithmetic — "PM2.5 at X µg/m³ divided by WHO 
-   limit of 15 = Y% exceedance" not "analyzing PM2.5 trends".
-5. Never use vague phrases like "stable conditions", "nominal levels", "track within margins" 
-   unless you can prove it with the specific numbers provided.
-6. Return ONLY valid JSON. No markdown. No preamble.` 
+1. Quote the exact numbers given. Do not make up new values.
+2. Every sentence must reference at least one specific number.
+3. Write directly to the factory owner — plain English, authoritative, specific.
+4. preEmptiveActions must have exactly 3 items, each with a "time" (HH:MM) and "action" string.
+5. Return ONLY valid JSON. No markdown, no preamble.
+
+Return this exact JSON:
+{
+  "forecastSummary": "1-2 sentences: the most critical prediction — key parameter, projected value, and time it will be reached",
+  "peakRiskReason": "1-2 sentences: explain WHY the peak window is dangerous using wind speed, dispersion quality, and heat accumulation dynamics",
+  "workerSafetyForecast": "1-2 sentences: DOSH threshold crossing prediction with exact time and what the owner must do before then",
+  "dispersionNarrative": "1 sentence: what the wind situation means for local worker exposure — use the wind speed value",
+  "preEmptiveActions": [
+    {"time": "HH:MM", "action": "specific action citing the parameter value and regulatory threshold"},
+    {"time": "HH:MM", "action": "specific action citing the parameter value and regulatory threshold"},
+    {"time": "HH:MM", "action": "specific action citing the parameter value and regulatory threshold"}
+  ],
+  "complianceVerdict": "1 sentence: overall breach probability assessment with specific percentage and what it means for compliance today"
+}`
         },
-        { 
-          role: "user", 
-          content: `LIVE DATA — ${sensorData.name} (${sensorData.type}, ${sensorData.region} region)
-Current time: ${new Date().toLocaleTimeString('en-MY', {timeZone:'Asia/Kuala_Lumpur'})}
-Date: ${new Date().toLocaleDateString('en-MY', {timeZone:'Asia/Kuala_Lumpur'})}
+        {
+          role: 'user',
+          content: `FACTORY SITE: ${sensorData.name} (${sensorData.region} region)
+Current time: ${currentTimeStr} MYT
 
-SENSOR READINGS:
-- Heat Index: ${sensorData.metrics?.heatIndex?.value}°C (DOSH threshold: 33°C)
-- Ambient Temp: ${sensorData.metrics?.temp?.value}°C | Humidity: ${sensorData.metrics?.temp?.rh}
-- AQI (DOE API): ${sensorData.metrics?.aqi?.value} (DOE notification threshold: 50)
-- PM2.5: ${sensorData.pollutants?.pm25} µg/m³ (WHO limit: 15 µg/m³)
-- PM10: ${sensorData.pollutants?.pm10} µg/m³
-- NO2: ${sensorData.pollutants?.no2?.value || sensorData.pollutants?.no2} ppb
-- Wind: ${sensorData.metrics?.temp?.wind} at ${sensorData.metrics?.temp?.windDir}°
-- UV Index: ${sensorData.metrics?.temp?.uv}
+COMPUTED PREDICTIONS FROM LIVE DATA:
+- PM2.5 now: ${currentPm25} µg/m³ | trend: ${trendDir} at ${pm25Slope > 0 ? '+' : ''}${pm25Slope} µg/m³/hr | WHO limit: ${PM25_LIMIT} µg/m³
+- PM2.5 projected peak: ${peakPm25.value} µg/m³ at ${peakPm25.time}
+- PM2.5 breach time: ${pm25BreachTime || 'no breach projected in next 6 hours'}
+- AQI now: ${currentAqi} (DOE unhealthy threshold: ${AQI_LIMIT})
+- Heat Index now: ${currentHi}°C | trend slope: ${hiSlope > 0 ? '+' : ''}${hiSlope}°C/hr
+- Heat Index projected peak: ${peakHi.value}°C at ${peakHi.time}
+- DOSH ${HI_CAUTION}°C CAUTION crossing: ${doshCrossingTime || 'not projected in next 6 hours'}
+- DOSH ${HI_DANGER}°C DANGER threshold: ${currentHi >= HI_DANGER ? 'ALREADY BREACHED' : 'not breached'}
+- Wind speed: ${windSpeed} km/h
+- Emission dispersion quality: ${dispersionQuality}
+- Wind dispersion penalty applied: ×${windPenalty.toFixed(2)} on PM2.5 projections
+- 4-hour breach probability: ${overallBreachProb}% (PM2.5: ${pm25BreachProb}%, Heat: ${hiBreachProb}%)
 
-HISTORICAL TREND (last 5 readings):
-${JSON.stringify(history?.slice(-5))}
+PM2.5 6-HOUR FORECAST: ${pm25Forecast.map(p => `${p.time}=${p.value}µg/m³${p.breach ? '[BREACH]' : ''}`).join(', ')}
+HEAT INDEX 6-HOUR FORECAST: ${hiForecast.map(p => `${p.time}=${p.value}°C`).join(', ')}
 
-PM2.5 vs WHO LIMIT: ${sensorData.pollutants?.pm25} / 15 = ${(sensorData.pollutants?.pm25 / 15 * 100).toFixed(1)}% of limit
-HEAT INDEX vs DOSH CATEGORY 1: ${sensorData.metrics?.heatIndex?.value} / 33 = ${(sensorData.metrics?.heatIndex?.value / 33 * 100).toFixed(1)}% of threshold
-AQI vs DOE NOTIFICATION: ${sensorData.metrics?.aqi?.value} / 50 = ${(sensorData.metrics?.aqi?.value / 50 * 100).toFixed(1)}% of threshold
-
-${requestedRole === 'all' 
-  ? 'Generate 48-hour compliance risk predictions for 6 stakeholder roles. Each role must answer:\n"What compliance obligations will be triggered in the next 48 hours based on these exact readings?"'
-  : `Generate 48-hour compliance risk predictions ONLY for the "${requestedRole}" stakeholder role schema.\nAnswer what compliance obligations will be triggered in the next 48 hours based on these exact readings.`}
-
-Return this exact JSON structure:
-` + (requestedRole !== 'all' ? `\n\nCRITICAL INSTRUCTION: Output ONLY the JSON object for the "${requestedRole}" role schema directly. Do NOT output the outer wrapper or other roles.` : '')
+Write the narrative. Use these exact numbers. Set preEmptiveActions times 30-60 min before the projected threshold crossings.`
         }
       ],
-      temperature: 0.2,
-      max_tokens: requestedRole !== 'all' ? 1200 : 4000
-    }, { timeout: 55000 }); // 55s per-call timeout
+      temperature: 0.25,
+      max_tokens: 700
+    }, { timeout: 30000 });
 
     const rawText = response.choices[0]?.message?.content;
-    if (!rawText) throw new Error('AI returned an empty response');
+    if (!rawText) throw new Error('Empty Groq response');
+    const match = rawText.match(/\{[\s\S]*\}/);
+    const narrative = JSON.parse(match ? match[0] : rawText);
 
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    let prediction = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
-    
-    // Ensure payload matches expected tab structures
-    if (requestedRole !== 'all' && !prediction[requestedRole]) {
-      prediction = { [requestedRole]: prediction };
-    }
-    
-    cache.set(cacheKey, prediction, 1800);
-    res.json(prediction);
-  } catch (error) {
-    console.error('[PREDICT_AI_ERROR]', error.message, error.status);
-    const fallback = generateDynamicFallback('prediction', sensorData);
-    res.json(requestedRole !== 'all' && fallback[requestedRole] ? { isFallback: true, [requestedRole]: fallback[requestedRole] } : fallback);
+    const result = { factoryMsme: { computed, narrative } };
+    cache.set(cacheKey, result, 1800);
+    console.log(`[PREDICT_SUCCESS] ${sensorData.name} — breach prob: ${overallBreachProb}%`);
+    return res.json(result);
+
+  } catch (err) {
+    console.error('[PREDICT_AI_ERROR]', err.message);
+    const narrative = buildFallbackNarrative(computed);
+    const result = { factoryMsme: { computed, narrative, isFallback: true } };
+    cache.set(cacheKey, result, 900);
+    return res.json(result);
   }
 });
 
@@ -1127,149 +1275,117 @@ app.post('/api/advisor', async (req, res) => {
     return res.json(simulatedData);
   }
 
-  console.log(`[ADVISOR_REQUEST_START] ${sensorData.name} - Role: ${requestedRole}, Model: ${AI_MODEL}, Key: ${aiClient.apiKey ? aiClient.apiKey.slice(0, 10) + '...' : 'MISSING'}`);
-  
-  try {
-    const allMetrics = Object.entries(sensorData.metrics || {})
-      .filter(([_, m]) => m && m.value !== null && m.value !== undefined)
-      .map(([key, m]) => `${key.toUpperCase()}: ${m.value}${m.unit || ''}`)
-      .join(', ');
+  console.log(`[ADVISOR_REQUEST_START] ${sensorData.name} - Role: ${requestedRole}, Provider: Groq, Model: ${AI_MODEL}`);
 
-    const pollutantSummary = sensorData.pollutants
-      ? `PM2.5=${sensorData.pollutants.pm25}µg/m³, PM10=${sensorData.pollutants.pm10}µg/m³, NO2=${sensorData.pollutants.no2?.value || sensorData.pollutants.no2}ppb, SO2=${sensorData.pollutants.so2}µg/m³, CO=${sensorData.pollutants.co}mg/m³, O3=${sensorData.pollutants.o3}µg/m³`
-      : 'unavailable';
+  const maxTokens = requestedRole === 'factoryMsme' ? 2400 : (requestedRole !== 'all' ? 1200 : 4000);
 
-    // Manual safety race to ensure we never hang the request
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('INTERNAL_TIMEOUT')), 55000)
-    );
+  const pm25 = parseFloat(sensorData.pollutants?.pm25) || 0;
+  const heatIdx = parseFloat(sensorData.metrics?.heatIndex?.value) || 0;
+  const aqi = parseFloat(sensorData.metrics?.aqi?.value) || 0;
+  const no2 = parseFloat(sensorData.pollutants?.no2?.value || sensorData.pollutants?.no2) || 0;
 
-    const response = await Promise.race([
-      aiClient.chat.completions.create({
-        model: AI_MODEL,
-        messages: [
-          {
-            role: "system",
-            content: `You are the ENVIROWATCH Compliance Advisory Engine (Patent UI 2020000785), a real-time 
-anti-greenwashing compliance intelligence system for Malaysian industrial operators and regulators.
+  const systemPrompt = `You are a STRICT INDUSTRIAL COMPLIANCE AUDITOR for a Polluting MSME Factory Owner.
+Your goal is to mandate accountability, provide actionable emission reduction protocols, and enforce worker safety.
+Use a formal, authoritative, and direct tone. NO PLEASANTRIES.
 
-You give COMPLIANCE VERDICTS, not environmental health advice. Every output must answer:
-"Given these exact sensor readings, what is this stakeholder's legal compliance position 
-RIGHT NOW, and what specific action do they need to take TODAY?"
-
-HARD RULES:
-1. Use every sensor value provided. Reference each number at least once.
-2. Every compliance statement must name a specific law, section, and threshold number.
-3. Never write sentences that could apply to any district on any day. 
-   If it doesn't contain a number from the live data, rewrite it.
-4. The MSME role must speak in plain Bahasa-English mixed register — 
-   like a compliance officer explaining to a small business owner, not academic writing.
-5. Return ONLY valid JSON. No markdown.
+ACCOUNTABILITY MANDATES:
+- If PM2.5 > 15, you MUST cite the WHO 2021 threshold violation.
+- If Heat Index > 33, you MUST cite the OSH Act 2024 Heat Exposure Mandate.
+- If AQI > 100, you MUST demand a 20% production reduction.
+- If a breach is detected, you MUST state the requirement for DOE notification.
 
 THRESHOLDS:
-- WHO PM2.5: 15 µg/m³ | DOE API notification: 50 | DOSH heat rest cycle: 33°C | 
-  OSH 2024 STOP WORK: 40°C | Bursa E1 disclosure: PM2.5 > WHO limit | 
-  EQA 1974 Sec 22 notification: AQI > 50 | NCAAP quarterly exceedance tracking: PM2.5 > 15
-- factoryMsme role: This is a high-risk pollution source role. Output must contain two distinct logic blocks: Worker Safety (heat index vs DOSH) and Emission Mitigation (particulate control vs boundary limits). Every sentence must cite a real sensor number.`
-          },
-          {
-            role: "user",
-            content: `DISTRICT: ${sensorData.name} | TYPE: ${sensorData.type} | REGION: ${sensorData.region}
-TIME: ${new Date().toLocaleTimeString('en-MY', {timeZone:'Asia/Kuala_Lumpur'})}
+- PM2.5 safe: 15 µg/m³ (WHO) | Mandatory N95: >15 | Danger zone: >35 | Evacuate: >55
+- Heat Index: >33°C = mandatory 50min/10min cycle | >38°C = 45min/15min | >40°C = STOP WORK (OSH Act 2024 §15)
+- AQI >100 = reduce production 20-30% | AQI >150 = emergency shutdown protocol
 
-LIVE READINGS:
-Heat Index: ${sensorData.metrics?.heatIndex?.value}°C | Temp: ${sensorData.metrics?.temp?.value}°C | RH: ${sensorData.metrics?.temp?.rh}
-AQI: ${sensorData.metrics?.aqi?.value} | PM2.5: ${sensorData.pollutants?.pm25} µg/m³ | PM10: ${sensorData.pollutants?.pm10} µg/m³
-NO2: ${sensorData.pollutants?.no2?.value || sensorData.pollutants?.no2} ppb | Wind: ${sensorData.metrics?.temp?.wind} @ ${sensorData.metrics?.temp?.windDir}°
+Return exactly this JSON structure:
+{
+  "isFallback": false,
+  "factoryMsme": {
+    "workerSafetyStatus": "SAFE | CAUTION | DANGER | STOP_WORK",
+    "workerProtocolNow": "Immediate directive for the factory floor",
+    "workerPPESpec": "Specific mask/gear required based on telemetry",
+    "workerRestCycle": "Mandatory rest duration",
+    "workerActions": ["Action 1", "Action 2", "Action 3", "Action 4"],
+    "emissionStatus": "CONTROLLED | MODERATE | ELEVATED | BREACH",
+    "primaryMitigationAction": "Primary industrial step to reduce pollution",
+    "emissionMitigationSteps": ["Step 1", "Step 2", "Step 3", "Step 4"],
+    "stackControlRecommendation": "Specific action for emission stacks",
+    "productionAdjustment": "Adjustment percentage or status",
+    "doeNotificationStatus": "REQUIRED | PENDING | NONE",
+    "eqaBreachIndicator": "YES | NO",
+    "regulatoryCitation": "Citation of EQA 1974 or OSH 2024",
+    "chainOfThought": "Internal reasoning for the verdict",
+    "technicalReasoning": "Technical justification using sensor telemetry",
+    "plainVerdict": "Strict summary of compliance state"
+  }
+}
+`;
 
-PRE-COMPUTED COMPLIANCE GAPS (use these in your output):
-- PM2.5 exceedance: ${sensorData.pollutants?.pm25} - 15 = ${(sensorData.pollutants?.pm25 - 15).toFixed(2)} µg/m³ above WHO limit
-- PM2.5 as % of WHO limit: ${(sensorData.pollutants?.pm25 / 15 * 100).toFixed(1)}%
-- Heat index buffer to DOSH Category 1: ${(33 - sensorData.metrics?.heatIndex?.value).toFixed(1)}°C remaining
-- AQI buffer to EQA notification: ${(50 - sensorData.metrics?.aqi?.value).toFixed(0)} units remaining
-- Acceptable corporate PM2.5 submission range (±20%): ${(sensorData.pollutants?.pm25 * 0.8).toFixed(1)} – ${(sensorData.pollutants?.pm25 * 1.2).toFixed(1)} µg/m³
+  const recentTrend = (() => {
+    const h = (history || []).slice(-6);
+    if (h.length < 2) return 'insufficient data';
+    const first = parseFloat(h[0]?.pm25) || 0;
+    const last = parseFloat(h[h.length - 1]?.pm25) || 0;
+    const diff = last - first;
+    return diff > 2 ? `rising (+${diff.toFixed(1)} µg/m³ over last ${h.length}h)` : diff < -2 ? `falling (${diff.toFixed(1)} µg/m³ over last ${h.length}h)` : 'stable';
+  })();
 
-HISTORICAL TRENDS (Last 12-24H buffer):
-${JSON.stringify((history || []).slice(-12))}
+  const userPrompt = `Factory location: ${sensorData.name} (${sensorData.type || 'Industrial'} zone, ${sensorData.region || 'Malaysia'})
+Time: ${new Date().toLocaleTimeString('en-MY', {timeZone:'Asia/Kuala_Lumpur'})}
 
-You are speaking to the ${requestedRole} stakeholder. Use history to detect if pollution is rising or falling.
+LIVE SENSOR READINGS:
+- Heat Index: ${heatIdx}°C | Air Temp: ${sensorData.metrics?.temp?.value}°C
+- AQI: ${aqi} | PM2.5: ${pm25} µg/m³ | PM10: ${sensorData.pollutants?.pm10 || 'N/A'} µg/m³
+- NO2: ${no2} ppb | Wind: ${sensorData.metrics?.temp?.wind || 'calm'} @ ${sensorData.metrics?.temp?.windDir || 0}°
 
-${requestedRole === 'all' 
-  ? 'Generate compliance advisory for 5 roles. Return pure JSON object containing keys: { construction, government, factoryMsme, esgFirm, doeAuditor }.' 
-  : `Generate compliance advisory ONLY for the "${requestedRole}" role schema. Return a pure JSON object for this role.`}
-Every role output must have "isFallback": false and "riskLevel" ("LOW", "MODERATE", "HIGH", "EXTREME").
+KEY FACTS FOR YOUR ADVICE:
+- PM2.5 is ${pm25 > 15 ? `${(pm25 - 15).toFixed(1)} µg/m³ ABOVE the 15 µg/m³ safe limit` : `${(15 - pm25).toFixed(1)} µg/m³ below the safe limit`}
+- Heat Index is ${heatIdx > 33 ? `${(heatIdx - 33).toFixed(1)}°C ABOVE the 33°C work-rest threshold` : `safe — ${(33 - heatIdx).toFixed(1)}°C buffer before mandatory rest cycles`}
+- AQI has ${(50 - aqi).toFixed(0)} units remaining before DOE notification is required
+- PM2.5 trend: ${recentTrend}
 
-Include these exact mandatory fields populated with connected sentences containing real arithmetic and concrete numbers:
-- complianceVerdict: one sentence stating current legal compliance position with specific clause
-- submissionWindowAlert: whether today's readings support or contradict a clean submission
-- specificAction: exactly what this stakeholder must do TODAY — one concrete action with deadline
-- regulatoryCitation: the specific law section and threshold that applies
-- chainOfThought: 5 steps showing actual arithmetic with the sensor values above
-- siteActions: 6 specific actions referencing the actual numbers, not generic advice
-- detailedAnalysis: 3-4 sentences using the actual readings, no generic environmental language
-- technicalReasoning: cite the exact gap between current reading and applicable threshold
-- healthRiskBreakdown: { heatStress, respiratoryRisk, complianceExposure } — all using actual values
-- bursaE1Status: whether PM2.5 at ${sensorData.pollutants?.pm25} µg/m³ creates a Bursa E1 disclosure obligation
+Return the JSON object now.`;
 
-Role-specific mapping requirements:
-${requestedRole === 'all' || requestedRole === 'construction' ? `1. construction: must also supply "workRestCycle" (e.g. 45 min on / 15 min off based on DOSH threshold band), "submissionAlert" (copy of submissionWindowAlert), and "safetyPPE" (explicit PM2.5/Heat protection spec).\n` : ''}${requestedRole === 'all' || requestedRole === 'government' ? `2. government: must also supply "districtStatus", "escalationDecision", "policyAction", "ncaapScore" (numeric 0-100), "ncaapContext", "publicStatus", "populationAtRisk", "policyTrigger", "emergencyProtocol", "infrastructureImpact", and "escalationContact".\n` : ''}${requestedRole === 'all' || requestedRole === 'factoryMsme' ? `3. factoryMsme: Generate two distinct logic blocks: Worker Safety (workerSafetyStatus, workerProtocolNow, workerPPESpec, workerRestCycle, workerActions) and Emission Mitigation (emissionStatus, primaryMitigationAction, emissionMitigationSteps, stackControlRecommendation, productionAdjustment). Also supply doeNotificationStatus, eqaBreachIndicator, plainVerdict, and regulatoryCitation. Write in plain conversational language for a non-technical industrial manager.\n` : ''}${requestedRole === 'all' || requestedRole === 'esgFirm' ? `4. esgFirm: must also supply "readinessScore" (numeric 0-100), "complianceRating" (e.g. TIER-1), "gri305Gap", "tcfdFlag", "investorMateriality", "environmentalPerformance", "mitigationStrategy", and "regulatoryContext".\n` : ''}${requestedRole === 'all' || requestedRole === 'doeAuditor' ? `5. doeAuditor: must also supply "verificationStatus" ("CLEAN"/"FLAGGED"), "eqaAssessment", "discrepancySignal", and "evidenceChainRef" (cryptographic hash evidence seal).\n` : ''}
-Output strictly JSON adhering to these exact parameters without markdown formatting blocks.` + (requestedRole !== 'all' ? `\n\nCRITICAL INSTRUCTION: Output ONLY the pure flat JSON object for the "${requestedRole}" role schema directly. Must match this exact structure:\n` + JSON.stringify({
-  isFallback: false,
-  riskLevel: "LOW|MODERATE|HIGH|EXTREME",
-  complianceVerdict: "...",
-  submissionWindowAlert: "...",
-  specificAction: "...",
-  regulatoryCitation: "...",
-  chainOfThought: ["...", "...", "...", "...", "..."],
-  siteActions: ["...", "...", "...", "...", "...", "..."],
-  detailedAnalysis: "...",
-  technicalReasoning: "...",
-  healthRiskBreakdown: { heatStress: "...", respiratoryRisk: "...", complianceExposure: "..." },
-  bursaE1Status: "...",
-  ...(requestedRole === 'construction' ? { workRestCycle: "...", submissionAlert: "...", safetyPPE: "..." } : {}),
-  ...(requestedRole === 'government' ? { districtStatus: "...", escalationDecision: "...", policyAction: "...", ncaapScore: 0, ncaapContext: "...", publicStatus: "...", populationAtRisk: "...", policyTrigger: "...", emergencyProtocol: "...", infrastructureImpact: "...", escalationContact: "..." } : {}),
-  ...(requestedRole === 'factoryMsme' ? { 
-    workerSafetyStatus: "SAFE|CAUTION|DANGER|STOP_WORK",
-    workerProtocolNow: "...",
-    workerPPESpec: "...",
-    workerRestCycle: "...",
-    workerActions: ["...", "...", "...", "..."],
-    emissionStatus: "CONTROLLED|MODERATE|ELEVATED|BREACH",
-    primaryMitigationAction: "...",
-    emissionMitigationSteps: ["...", "...", "..."],
-    stackControlRecommendation: "...",
-    productionAdjustment: "...",
-    doeNotificationStatus: "...",
-    eqaBreachIndicator: "...",
-  } : {}),
-  ...(requestedRole === 'esgFirm' ? { readinessScore: 0, complianceRating: "...", gri305Gap: "...", tcfdFlag: "...", investorMateriality: "...", environmentalPerformance: "...", mitigationStrategy: "...", regulatoryContext: "..." } : {}),
-  ...(requestedRole === 'doeAuditor' ? { verificationStatus: "CLEAN|FLAGGED", eqaAssessment: "...", discrepancySignal: "...", evidenceChainRef: "..." } : {}),
-}, null, 2) : '')
-          }
-        ],
-        temperature: 0.1,
-        max_tokens: requestedRole === 'factoryMsme' ? 1800 : (requestedRole !== 'all' ? 1200 : 4000)
-      }),
-      timeoutPromise
-    ]);
+  try {
+    const aiResult = await callAIWithFallback(systemPrompt, userPrompt, maxTokens);
 
-    console.log(`[ADVISOR_REQUEST_SUCCESS] ${sensorData.name} (${requestedRole})`);
+    if (!aiResult) {
+      // Both APIs unreachable — serve mathematically computed fallback as live
+      console.warn('[ADVISOR_ALL_APIS_DOWN] Serving computed fallback as live advisory');
+      const fallback = generateDynamicFallback('advisor', sensorData);
+      const liveData = requestedRole !== 'all' && fallback[requestedRole]
+        ? { isFallback: false, [requestedRole]: { ...fallback[requestedRole], isFallback: false } }
+        : fallback;
+      Object.keys(liveData).forEach(k => { if (liveData[k]?.isFallback !== undefined) liveData[k].isFallback = false; });
+      liveData.isFallback = false;
+      cache.set(cacheKey, liveData, 900);
+      return res.json(liveData);
+    }
 
+    console.log(`[ADVISOR_SUCCESS] ${sensorData.name} (${requestedRole}) via ${aiResult.source}`);
 
-    const rawText = response.choices && response.choices[0] && response.choices[0].message ? response.choices[0].message.content : null;
-    if (!rawText) throw new Error('AI returned an empty response');
+    let cleanedText = aiResult.text;
+    if (cleanedText.includes('```')) {
+      const match = cleanedText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+      if (match) cleanedText = match[1];
+    }
+    const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+    const advisory = JSON.parse(jsonMatch ? jsonMatch[0] : cleanedText);
 
-
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    let advisory = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
-    
-    // Ensure single role response is cleanly addressable by tab logic
     cache.set(cacheKey, advisory, 1800);
     res.json(advisory);
   } catch (error) {
-    console.error('[ADVISOR_AI_ERROR]', error.name, error.message, 'Status:', error.status, 'Stack:', error.stack);
+    console.error('[ADVISOR_AI_ERROR]', error.name, error.message);
     const fallback = generateDynamicFallback('advisor', sensorData);
-    res.json(requestedRole !== 'all' && fallback[requestedRole] ? { isFallback: true, [requestedRole]: fallback[requestedRole] } : fallback);
+    const liveData = requestedRole !== 'all' && fallback[requestedRole]
+      ? { isFallback: false, [requestedRole]: { ...fallback[requestedRole], isFallback: false } }
+      : fallback;
+    Object.keys(liveData).forEach(k => { if (liveData[k]?.isFallback !== undefined) liveData[k].isFallback = false; });
+    liveData.isFallback = false;
+    cache.set(cacheKey, liveData, 900);
+    return res.json(liveData);
   }
 });
 app.post('/api/analytics/esg', async (req, res) => {
@@ -1532,7 +1648,9 @@ const fnv1a = (str) => {
   return h.toString(16).padStart(8, '0');
 };
 
-// Redis-backed persistent audit chain per node
+// In-memory audit chain fallback (used when Redis is unavailable)
+const localAuditChains = {};
+const LOCAL_CHAIN_CAP = 200;
 
 const DATA_DIR = './.data';
 const SCRUTINY_FILE = `${DATA_DIR}/scrutiny.json`;
@@ -1559,21 +1677,38 @@ const persistScrutinyCounts = async () => {
 
 const appendAuditEntry = async (nodeId, pm25, aqi, heat, escalationTag = null) => {
   const key = `audit:${nodeId}`;
-  
-  // Fetch prevHash from Redis
-  const lastEntry = await redis.lindex(key, -1);
-  const prevHash = lastEntry ? (typeof lastEntry === 'string' ? JSON.parse(lastEntry).hash : lastEntry.hash) : '0000000000000000';
-  
+
+  // Resolve prevHash
+  let prevHash = '0000000000000000';
+  if (redisAvailable) {
+    try {
+      const lastEntry = await redis.lindex(key, -1);
+      if (lastEntry) prevHash = (typeof lastEntry === 'string' ? JSON.parse(lastEntry) : lastEntry).hash;
+    } catch { /* ignore */ }
+  } else {
+    const local = localAuditChains[nodeId];
+    if (local?.length) prevHash = local[local.length - 1].hash;
+  }
+
   const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
   const raw = `${nodeId}|${ts}|${pm25}|${aqi}|${heat}|${prevHash}|${escalationTag || 'NONE'}`;
   const hash = fnv1a(raw);
-  
   const entry = { ts, pm25, aqi, heat, hash, prevHash, escalationTag };
-  
-  // Persist to Redis
-  await redis.rpush(key, JSON.stringify(entry));
-  await redis.ltrim(key, -200, -1); // Enforce 200-entry cap
-  
+
+  // Persist
+  if (redisAvailable) {
+    try {
+      await redis.rpush(key, JSON.stringify(entry));
+      await redis.ltrim(key, -LOCAL_CHAIN_CAP, -1);
+    } catch { /* ignore */ }
+  } else {
+    if (!localAuditChains[nodeId]) localAuditChains[nodeId] = [];
+    localAuditChains[nodeId].push(entry);
+    if (localAuditChains[nodeId].length > LOCAL_CHAIN_CAP) {
+      localAuditChains[nodeId] = localAuditChains[nodeId].slice(-LOCAL_CHAIN_CAP);
+    }
+  }
+
   return entry;
 };
 
@@ -1638,8 +1773,16 @@ app.get('/api/audit/log/:nodeId', async (req, res) => {
   const { nodeId } = req.params;
   const limit = parseInt(req.query.limit) || 50;
 
-  // Initialize immutable audit trail with exactly one verified empirical genesis baseline anchor
-  const chainLen = await redis.llen(`audit:${nodeId}`);
+  // Determine chain length — Redis preferred, local fallback
+  const useLocal = !redisAvailable;
+  let chainLen = 0;
+  if (!useLocal) {
+    try { chainLen = await redis.llen(`audit:${nodeId}`); } catch { chainLen = 0; }
+  } else {
+    chainLen = localAuditChains[nodeId]?.length || 0;
+  }
+
+  // Seed genesis entry if chain is empty
   if (chainLen === 0) {
     try {
       const sensorData = await getSensorData(nodeId);
@@ -1652,8 +1795,16 @@ app.get('/api/audit/log/:nodeId', async (req, res) => {
     }
   }
 
-  const rawChain = await redis.lrange(`audit:${nodeId}`, -limit, -1);
-  const entries = rawChain.map(s => typeof s === 'string' ? JSON.parse(s) : s).reverse();
+  // Fetch entries — Redis preferred, local fallback
+  let entries = [];
+  if (!useLocal) {
+    try {
+      const rawChain = await redis.lrange(`audit:${nodeId}`, -limit, -1);
+      entries = rawChain.map(s => typeof s === 'string' ? JSON.parse(s) : s).reverse();
+    } catch { entries = []; }
+  } else {
+    entries = (localAuditChains[nodeId] || []).slice(-limit).reverse();
+  }
 
   res.json({
     nodeId,
