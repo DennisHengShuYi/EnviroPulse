@@ -605,7 +605,7 @@ const CompliancePage = ({ districts, data }) => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--accent-cyan)', marginBottom: '5px' }}>
-              <ShieldCheck size={18} />
+              <FileSearch size={24} />
               <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '2px' }}>COMPLIANCE_INTELLIGENCE_UNIT</span>
             </div>
             <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900 }}>ANTI-GREENWASHING AUDIT ENGINE</h1>

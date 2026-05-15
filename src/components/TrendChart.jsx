@@ -112,7 +112,7 @@ const TrendChart = ({ data, hazeLevel }) => {
       </div>
 
       <div style={{ flex: 1, minHeight: '180px', height: '180px', width: '100%', minWidth: 0 }}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
           <AreaChart data={simulatedData} margin={{ top: 15, right: 10, left: 10, bottom: 10 }}>
             <defs>
               <linearGradient id="colorMetric" x1="0" y1="0" x2="0" y2="1">

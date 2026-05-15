@@ -511,7 +511,7 @@ const ReportsPage = ({ districts, headerDistrict }) => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                   <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '4px', height: '280px' }}>
                     <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#475569', marginBottom: '10px' }}>COMPLIANCE RADAR PROFILE</div>
-                    <ResponsiveContainer width="100%" height="85%">
+                    <ResponsiveContainer width="100%" height="85%" minWidth={0}>
                       <RadarChart cx="50%" cy="50%" outerRadius="75%" data={[
                         { subject: 'WHO PM2.5', val: stats?.pm25Compliance || 95 },
                         { subject: 'DOE API', val: stats?.doeCompliance || 98 },
@@ -530,7 +530,7 @@ const ReportsPage = ({ districts, headerDistrict }) => {
 
                   <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '4px', height: '280px' }}>
                     <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#475569', marginBottom: '10px' }}>PM2.5 HISTORICAL DISPERSION</div>
-                    <ResponsiveContainer width="100%" height="85%">
+                    <ResponsiveContainer width="100%" height="85%" minWidth={0}>
                       <LineChart data={stats?.trend || [
                         { day: 'D1', pm25: 12.1 }, { day: 'D2', pm25: 14.5 }, { day: 'D3', pm25: 18.2 }, { day: 'D4', pm25: 15.0 }
                       ]}>

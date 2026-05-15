@@ -6,8 +6,8 @@ import {
   Activity, 
   FileText, 
   User,
-  ShieldCheck,
   Users,
+  FileSearch,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -19,7 +19,7 @@ const Sidebar = ({ activePage, setActivePage, isCollapsed, onToggleCollapse }) =
     { id: 'sensors', label: 'SENSORS', icon: Activity },
     { id: 'reports', label: 'REPORTS', icon: FileText },
     { id: 'supply', label: 'SUPPLY_CHAIN', icon: Truck },
-    { id: 'compliance', label: 'COMPLIANCE_INTEL', icon: ShieldCheck },
+    { id: 'compliance', label: 'COMPLIANCE_INTEL', icon: FileSearch },
     { id: 'workers', label: 'WORKER_RISK', icon: Users },
   ];
 
