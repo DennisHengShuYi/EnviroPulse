@@ -51,7 +51,7 @@ const DOSH_LOGIC = {
   CRITICAL: { work: "STOP WORK", rest: "N/A", status: "IMMEDIATE EVACUATION", statusColor: "red" }
 };
 
-const WorkerCard = ({ worker, blur }) => {
+const WorkerCard = ({ worker }) => {
   const getRiskColor = (risk) => {
     switch (risk) {
       case 'CRITICAL': return 'bg-red-500 text-white';
@@ -63,7 +63,7 @@ const WorkerCard = ({ worker, blur }) => {
   };
 
   return (
-    <div className={`relative p-6 rounded-xl bg-white text-slate-800 border border-slate-200 shadow-xl transition-all duration-500 ${worker.isCritical ? 'border-2 border-red-500 animate-pulse' : ''} ${blur ? 'blur-sm grayscale opacity-50 select-none' : ''}`}>
+    <div className={`relative p-6 rounded-xl bg-white text-slate-800 border border-slate-200 shadow-xl transition-all duration-500 ${worker.isCritical ? 'border-2 border-red-500 animate-pulse' : ''}`}>
       <div className="flex justify-between items-start mb-4">
         <div>
           <h3 className="text-xl font-bold tracking-tight">{worker.name}</h3>
@@ -97,21 +97,13 @@ const WorkerCard = ({ worker, blur }) => {
           {worker.risk}
         </div>
       </div>
-
-      {blur && (
-        <div className="absolute inset-0 flex items-center justify-center z-10">
-          <button className="bg-cyan-500 text-black px-4 py-2 rounded-lg font-black text-xs uppercase shadow-2xl flex items-center gap-2 hover:bg-cyan-400 transition-all transform hover:scale-105 active:scale-95">
-            <Lock size={14} /> Upgrade to Premium
-          </button>
-        </div>
-      )}
     </div>
   );
 };
 
-const DOSHComplianceTable = ({ blur, workers }) => {
+const DOSHComplianceTable = ({ workers }) => {
   return (
-    <div className={`mt-12 bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xl transition-all duration-500 relative ${blur ? 'blur-sm grayscale opacity-50 select-none' : ''}`}>
+    <div className={`mt-12 bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xl transition-all duration-500 relative`}>
       <div className="p-6 border-b border-slate-200">
         <h2 className="text-lg font-bold text-slate-800 mb-1 uppercase tracking-tight">DOSHComplianceTable</h2>
         <p className="text-slate-500 text-xs italic">Referenced: DOSH Malaysia Heat Stress Guidelines (Table 2 Annex B)</p>
@@ -169,26 +161,16 @@ const DOSHComplianceTable = ({ blur, workers }) => {
           Schedules auto-generated based on DOSH WBGT heat stress assessment criteria for Malaysian climate.
         </p>
       </div>
-
-      {blur && (
-        <div className="absolute inset-0 flex items-center justify-center z-10">
-          <button className="bg-cyan-500 text-black px-6 py-3 rounded-lg font-black text-sm uppercase shadow-2xl flex items-center gap-2 hover:bg-cyan-400 transition-all transform hover:scale-105 active:scale-95">
-            <Lock size={18} /> Upgrade to Premium for DOSH Compliance & AI Alerts
-          </button>
-        </div>
-      )}
     </div>
   );
 };
 
 const WorkerGrid = ({ hazeLevel, triggerHazeSimulation }) => {
   const [role, setRole] = useState('Site Manager'); // Site Manager | Auditor/DOE
-  const [mode, setMode] = useState('Premium'); // Basic | Premium
   const [showWhatsApp, setShowWhatsApp] = useState(false);
   const [whatsAppMessage, setWhatsAppMessage] = useState(null);
 
   const isAuditor = role === 'Auditor/DOE';
-  const isBasic = mode === 'Basic';
 
   // Graduated risk based on hazeLevel
   const activeWorkers = workers.map(w => {
@@ -221,7 +203,7 @@ const WorkerGrid = ({ hazeLevel, triggerHazeSimulation }) => {
 
   // Trigger WhatsApp alerts
   useEffect(() => {
-    if (hazeLevel > 0 && !isBasic) {
+    if (hazeLevel > 0) {
       let severity = hazeLevel === 1 ? 'MODERATE' : (hazeLevel === 2 ? 'UNHEALTHY' : 'HAZARDOUS');
       let action = hazeLevel === 3 ? 'IMMEDIATE Site-wide shutdown' : (hazeLevel === 2 ? 'Limited outdoor activity' : 'Sensitive groups withdrawn');
       
@@ -233,7 +215,7 @@ const WorkerGrid = ({ hazeLevel, triggerHazeSimulation }) => {
       );
       setShowWhatsApp(true);
     }
-  }, [hazeLevel, isBasic]);
+  }, [hazeLevel]);
 
   return (
     <div className="bg-slate-50 overflow-y-auto relative min-h-screen" style={{ height: 'calc(100vh - 80px)' }}>
@@ -255,22 +237,6 @@ const WorkerGrid = ({ hazeLevel, triggerHazeSimulation }) => {
           </div>
 
           <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
-            {/* Freemium Toggle */}
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200">
-              <button 
-                onClick={() => setMode('Basic')}
-                className={`px-4 py-1.5 rounded-md text-[10px] font-black tracking-widest uppercase transition-all ${mode === 'Basic' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-              >
-                Basic
-              </button>
-              <button 
-                onClick={() => setMode('Premium')}
-                className={`px-4 py-1.5 rounded-md text-[10px] font-black tracking-widest uppercase transition-all ${mode === 'Premium' ? 'bg-cyan-500 text-black' : 'text-slate-500 hover:text-slate-300'}`}
-              >
-                Premium
-              </button>
-            </div>
-
             {/* Role Selector */}
             <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
               <Users size={14} className="text-slate-500" />
@@ -300,13 +266,13 @@ const WorkerGrid = ({ hazeLevel, triggerHazeSimulation }) => {
         {/* Main Grid Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {activeWorkers.map((worker, idx) => (
-            <WorkerCard key={idx} worker={worker} blur={isBasic} />
+            <WorkerCard key={idx} worker={worker} />
           ))}
         </div>
 
         {/* Compliance Table (Stage 3) */}
         <div className="mt-12">
-          <DOSHComplianceTable blur={isBasic} workers={activeWorkers} />
+          <DOSHComplianceTable workers={activeWorkers} />
         </div>
 
         {/* Footer Audit Log Footer (Stage 2) */}

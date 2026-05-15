@@ -40,8 +40,6 @@ const StatusBadge = ({ status }) => {
 const CompliancePage = ({ districts, submissions, setSubmissions }) => {
   const [verifying, setVerifying] = useState(null);
   const [results, setResults] = useState({});
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ company: '', zone: '', nodeId: '', date: '', reportedPm25: '', reportedAqi: '' });
   const [toast, setToast] = useState(null);
 
   const handleVerify = async (sub) => {
@@ -66,15 +64,6 @@ const CompliancePage = ({ districts, submissions, setSubmissions }) => {
     setToast({ type: 'success', message: `Submission for ${sub.company} verified and logged to audit chain.` });
     setTimeout(() => setToast(null), 3000);
   };
-
-  const handleSubmitForm = (e) => {
-    e.preventDefault();
-    const newSub = { ...form, id: `SUB-${Date.now()}`, nodeName: Array.isArray(districts) ? districts.find(d => d.id === form.nodeId)?.name : form.nodeId, reportedPm25: parseFloat(form.reportedPm25), reportedAqi: parseFloat(form.reportedAqi), reportedStatus: 'PENDING' };
-    setSubmissions(prev => [newSub, ...prev]);
-    setShowForm(false);
-    setForm({ company: '', zone: '', nodeId: '', date: '', reportedPm25: '', reportedAqi: '' });
-  };
-
   const inputStyle = { width: '100%', background: 'var(--bg-secondary)', border: '1px solid rgba(0,0,0,0.1)', color: 'var(--text-primary)', padding: '8px 10px', fontSize: '0.7rem', borderRadius: '3px', fontFamily: 'inherit' };
   const labelStyle = { fontSize: '0.55rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px', fontWeight: 800, letterSpacing: '1px' };
 
@@ -94,39 +83,7 @@ const CompliancePage = ({ districts, submissions, setSubmissions }) => {
               Audit Protocol v4.0.1 | Decentralized ledger verification for corporate environmental reports
             </p>
           </div>
-          <button 
-            onClick={() => setShowForm(true)}
-            style={{ background: 'var(--accent-cyan)', color: '#000', border: 'none', padding: '8px 16px', fontWeight: 900, fontSize: '0.65rem', cursor: 'pointer', borderRadius: '3px', letterSpacing: '1px' }}
-          >
-            NEW_SUBMISSION
-          </button>
         </div>
-
-        {showForm && (
-          <div className="widget animate-in" style={{ padding: '25px', borderLeft: '4px solid var(--accent-cyan)' }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 900, marginBottom: '20px' }}>COMPANY_COMPLIANCE_SUBMISSION_FORM</div>
-            <form onSubmit={handleSubmitForm}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginBottom: '15px' }}>
-                <div><label style={labelStyle}>COMPANY_NAME</label><input required style={inputStyle} value={form.company} onChange={e => setForm(p => ({...p, company: e.target.value}))} placeholder="Acme Sdn Bhd" /></div>
-                <div><label style={labelStyle}>INDUSTRIAL_ZONE</label><input required style={inputStyle} value={form.zone} onChange={e => setForm(p => ({...p, zone: e.target.value}))} placeholder="Cheras Industrial" /></div>
-                <div>
-                  <label style={labelStyle}>NEAREST_NODE</label>
-                  <select required style={inputStyle} value={form.nodeId} onChange={e => setForm(p => ({...p, nodeId: e.target.value}))}>
-                    <option value="">Select district node...</option>
-                    {districts?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select>
-                </div>
-                <div><label style={labelStyle}>SUBMISSION_DATE</label><input required type="date" style={inputStyle} value={form.date} onChange={e => setForm(p => ({...p, date: e.target.value}))} /></div>
-                <div><label style={labelStyle}>REPORTED_PM2.5 (µg/m³)</label><input required type="number" step="0.1" style={inputStyle} value={form.reportedPm25} onChange={e => setForm(p => ({...p, reportedPm25: e.target.value}))} placeholder="12.0" /></div>
-                <div><label style={labelStyle}>REPORTED_AQI</label><input required type="number" style={inputStyle} value={form.reportedAqi} onChange={e => setForm(p => ({...p, reportedAqi: e.target.value}))} placeholder="45" /></div>
-              </div>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button type="submit" style={{ background: 'var(--accent-cyan)', color: '#000', border: 'none', padding: '10px 20px', fontWeight: 900, fontSize: '0.7rem', cursor: 'pointer', borderRadius: '3px' }}>SUBMIT_FOR_VERIFICATION</button>
-                <button type="button" onClick={() => setShowForm(false)} style={{ background: 'transparent', border: '1px solid rgba(0,0,0,0.1)', color: 'var(--text-primary)', padding: '10px 20px', fontWeight: 900, fontSize: '0.7rem', cursor: 'pointer', borderRadius: '3px' }}>CANCEL</button>
-              </div>
-            </form>
-          </div>
-        )}
 
         {/* Submissions Table */}
         <div className="widget" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>

@@ -1,78 +1,156 @@
-# EnviroPulse
+# 🏭 EnviroPulse Terminal — Industrial Compliance Command Center
 
-EnviroPulse is a high-performance, real-time environmental monitoring dashboard designed for districts. It provides live data visualization of Air Quality Index (AQI), Heat Index, and various pollutants across multiple districts.
+A high-density, real-time industrial compliance command center designed for MSME factories and environmental monitoring districts. It provides live telemetry visualization of Air Quality Index (AQI), Heat Index, and various pollutants, coupled with an AI-driven compliance advisory engine.
 
-## 🚀 Getting Started
+🔗 **Important Links**
+- 📄 [EnviroPulse Documentation](#) — View Documentation
+- 🧠 [Compliance Strategy Deep-Dive](#) — How the Engine Assesses Risk
+- 🎤 [Pitch Deck](#) — View Slides
 
-This project consists of two main components that need to be running simultaneously:
-1.  **Frontend**: A React application built with Vite and Three.js for 3D visualizations.
-2.  **Backend**: A Node.js/Express simulation engine that generates live sensor data.
+👥 **Team Members**
+- 👨‍💻 Dennis — 3rd Year @ UM
+- 👨‍💻 Shao Xian — 3rd Year @ UM
+- 👨‍💻 Zhen Yu — 3rd Year @ UM
+- 👨‍💻 Sean Sean — 3rd Year @ UM
 
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) (v18 or higher recommended)
-- npm (comes with Node.js)
-
-### Installation
-
-1.  Clone the repository or navigate to the project directory.
-2.  Install the dependencies for the entire project:
-    ```bash
-    npm install
-    ```
-
-### Running the Project
-
-To see the full dashboard with live data, you need to open **two separate terminal windows**.
-
-#### Terminal 1: Backend Simulation Engine
-This runs the Express server that provides the API endpoints for the dashboard.
-```bash
-npm run server
-```
-The server will start on `http://localhost:3001`.
-
-#### Terminal 2: Frontend Dashboard
-This runs the Vite development server for the React UI.
-```bash
-npm run dev
-```
-The dashboard will be available at the URL provided in the terminal (usually `http://localhost:5173`).
+📋 **Table of Contents**
+- [Project Overview](#-project-overview)
+- [System Architecture](#-system-architecture)
+- [Features](#-features)
+- [Project Structure](#-project-structure)
+- [Tech Stack](#-tech-stack)
+- [Setup & Installation](#-setup--installation)
+- [How to Run](#-how-to-run)
+- [Troubleshooting](#-troubleshooting)
 
 ---
 
-## 🏙️ Features
-- **3D Digital Twin**: High-fidelity 3D urban model with real-world building extrusions via MapLibre GL JS.
-- **Atmospheric Simulations**: 60FPS Canvas-based wind vectors and Gaussian pollution plumes drifting from industrial sources (Klang Port, etc.).
-- **AI Predictive Engine**: Technical environmental forecasting using the **ilmu-glm-5.1** model for 48-hour risk analysis.
-- **Visibility Intelligence**: "Ghost Mode" building transparency and "Cyber-Beacon" location tracking for dense urban monitoring.
-- **Nationwide Coverage**: IDW Interpolated air quality mapping for 20+ Malaysian districts.
+🌐 **Project Overview**
+EnviroPulse Terminal simulates a centralized monitoring node for an industrial district. The system demonstrates:
+- **Real-Time Telemetry Tracking**: Live updates of PM2.5, NO2, AQI, and Heat Index.
+- **AI-Driven Advisory**: Real-time LLM inference engine that analyzes live sensor telemetry against statutory thresholds (EQA 1974, OSH Act 2024).
+- **Statutory Workflow Management**: Deterministic, fast-action manual verification workflow for tracking and authorizing industrial compliance submissions.
+- **Tiered Access Control**: A Basic/Premium toggle demonstrating feature-flagging.
+- The entire system runs locally — no physical hardware is needed.
 
-## 🚀 How To Run
-
-To launch the nationwide digital twin, follow these steps:
-
-### 1. Configure Environment
-Create a `.env` file in the root directory and add your Ilmu.ai API key:
-```env
-ANTHROPIC_API_KEY=your_key_here
+🏗️ **System Architecture**
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│                         React Frontend                              │
+│         (Vite + Recharts Dashboard — localhost:5173)                │
+│   Polls GET /api/sensors every 8000ms                               │
+└────────────────────────┬────────────────────────────────────────────┘
+                         │ REST API (HTTP)
+                         ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│          Backend: Express (port 3001)                               │
+│  ┌────────────────────────┐   ┌────────────────────────────────┐    │
+│  │  Simulation Loop       │   │       REST Endpoints           │    │
+│  │  (runs periodically)   │   │  /api/sensors  /api/trends     │    │
+│  │  - Sensor data gen     │   │  /api/alerts   /api/districts  │    │
+│  │  - Plume math          │   │  /api/advisor                  │    │
+│  └────────────────────────┘   └────────────────────────────────┘    │
+└────────────────────────┬────────────────────────────────────────────┘
+                         │ API Request
+                         ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                  LLM Inference Engine                               │
+│              (OpenAI / Anthropic SDK)                               │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2. Launch Backend (Terminal A)
-This handles the real-time sensor simulation, IDW math, and AI prediction routing.
+✨ **Features**
+
+🎛️ **High-Density Command Center**
+| Feature | Description |
+|---|---|
+| **Streamlined 3-Column Grid** | Optimized for operator focus, displaying live conditions, risk assessments, and compliance trends without visual bloat. |
+| **Tiered Access Control** | **Basic**: Core telemetry. **Premium**: AI Intelligence column and full navigation suite (Analytics, Reports, etc.). |
+| **Statutory Compliance Workflow** | Deterministic, fast-action manual verification workflow for tracking and authorizing compliance submissions. |
+
+🧠 **Live AI Compliance Advisory**
+| Feature | Description |
+|---|---|
+| **Statutory LLM Inference** | Analyzes live sensor telemetry against EQA 1974 & OSH Act 2024. |
+| **Actionable Directives** | Generates site-safety and emission-mitigation recommendations. |
+
+📁 **Project Structure**
+```text
+EnviroPulse/
+├── server/
+│   ├── index.js               # Express REST server + LLM Gateway
+├── src/
+│   ├── App.jsx                # Dashboard: polling, layout, tier state
+│   ├── main.jsx
+│   ├── index.css              # Vanilla CSS (High-density industrial aesthetic)
+│   ├── components/
+│   │   ├── AIAdvisory.jsx     # Premium AI Intelligence widget
+│   │   ├── Header.jsx         # Basic/Premium toggle & District Selector
+│   │   ├── PollutantGrid.jsx  # Live telemetry matrix
+│   │   ├── Sidebar.jsx        # Navigation controls
+│   ├── pages/
+│   │   ├── CompliancePage.jsx # Statutory workflow
+│   │   ├── AnalyticsPage.jsx  # Data comparison
+├── .env                       # API keys (not committed)
+├── package.json
+└── README.md
+```
+
+🛠️ **Tech Stack**
+| Layer | Technology |
+|---|---|
+| **Frontend Framework** | React 19 + Vite 8 |
+| **Styling** | Vanilla CSS |
+| **Data Visualization** | Recharts |
+| **Icons** | Lucide React |
+| **Backend Framework** | Node.js + Express 5 |
+| **AI Inference** | OpenAI SDK / Anthropic SDK |
+
+⚙️ **Setup & Installation**
+
+**Prerequisites**
+| Requirement | Notes |
+|---|---|
+| Node.js | v18 or higher recommended |
+| npm | For installing dependencies |
+| OpenAI / Anthropic Key | Required for Live AI Advisory |
+
+**Step 1 — Clone the Repository**
+```bash
+git clone https://github.com/DennisHengShuYi/EnviroPulse.git
+cd EnviroPulse
+```
+
+**Step 2 — Create the .env File**
+Create a `.env` in the project root:
+```env
+# Depending on your configured AI provider in the backend:
+ANTHROPIC_API_KEY=sk-...
+OPENAI_API_KEY=sk-...
+```
+
+**Step 3 — Install Dependencies**
+```bash
+npm install
+```
+
+🚀 **How to Run**
+You need two terminals running simultaneously.
+
+**Terminal 1 — Start the Backend Engine**
 ```bash
 npm run server
 ```
 
-### 3. Launch Dashboard (Terminal B)
-This starts the 3D geospatial interface.
+**Terminal 2 — Start the Frontend Dashboard**
 ```bash
 npm run dev
 ```
+Open your browser at: `http://localhost:5173`
 
-## 🛠 Tech Stack
-- **Engine**: React 19 + Vite
-- **Geospatial**: MapLibre GL JS (3D), Leaflet (2D)
-- **Intelligence**: ilmu.ai (ilmu-glm-5.1)
-- **Simulation**: HTML5 Canvas (Atmospheric Particles)
-- **Charts**: Recharts
+🔧 **Troubleshooting**
+| Problem | Fix |
+|---|---|
+| **Frontend blank / 504 error** | Run `npm install`, ensure backend is running on port 3001. |
+| **No AI Advisory Data** | Ensure `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` is set in `.env` and tier is set to PREMIUM. |
+| **Port 3001 already in use** | Kill the process using the port and restart `npm run server`. |
