@@ -1,6 +1,7 @@
 import React from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
 import L from 'leaflet';
+import { API_BASE } from '../config/api';
 
 // Custom high-tech marker icon with pulse animation
 const createTerminalIcon = () => L.divIcon({
@@ -45,7 +46,7 @@ const Map2DVisualization = ({ onSelectDistrict }) => {
   const center = [3.139, 101.6869]; // Kuala Lumpur
 
   React.useEffect(() => {
-    fetch('/api/districts')
+    fetch(`${API_BASE}/api/districts`)
       .then(res => res.json())
       .then(data => setDistricts(data))
       .catch(err => console.error('Districts fetch failed', err));

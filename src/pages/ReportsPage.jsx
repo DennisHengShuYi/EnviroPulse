@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { API_BASE } from '../config/api';
 
 const ReportsPage = ({ districts, headerDistrict, addSubmission }) => {
   const [generating, setGenerating] = useState(false);
@@ -33,7 +34,7 @@ const ReportsPage = ({ districts, headerDistrict, addSubmission }) => {
     setSubmitted(false);
     const fetchStats = async () => {
       try {
-        const res = await fetch(`/api/analytics/esg-stats?id=${selectedDistrict}&period=${encodeURIComponent(period)}`);
+        const res = await fetch(`${API_BASE}/api/analytics/esg-stats?id=${selectedDistrict}&period=${encodeURIComponent(period)}`);
         const json = await res.json();
         setStats(json);
       } catch (err) {
@@ -49,16 +50,16 @@ const ReportsPage = ({ districts, headerDistrict, addSubmission }) => {
 
     try {
       // 1. Ensure we have latest stats
-      const statsRes = await fetch(`/api/analytics/esg-stats?id=${selectedDistrict}&period=${encodeURIComponent(period)}`);
+      const statsRes = await fetch(`${API_BASE}/api/analytics/esg-stats?id=${selectedDistrict}&period=${encodeURIComponent(period)}`);
       const currentStats = await statsRes.json();
       setStats(currentStats);
 
       // 2. Get specific sensor data for this district
-      const sensorRes = await fetch(`/api/sensors?id=${selectedDistrict}`);
+      const sensorRes = await fetch(`${API_BASE}/api/sensors?id=${selectedDistrict}`);
       const sensorData = await sensorRes.json();
 
       // 3. Get AI Narrative
-      const response = await fetch('/api/analytics/esg', {
+      const response = await fetch(`${API_BASE}/api/analytics/esg`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

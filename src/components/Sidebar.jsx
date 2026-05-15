@@ -48,7 +48,7 @@ const Sidebar = ({ activePage, setActivePage, isCollapsed, onToggleCollapse, tie
               title={isCollapsed ? item.label : ''}
               style={{ opacity: isDisabled ? 0.3 : 1, cursor: isDisabled ? 'not-allowed' : 'pointer', filter: isDisabled ? 'grayscale(100%)' : 'none' }}
             >
-              <item.icon size={20} />
+              <item.icon size={24} />
               {!isCollapsed && <span>{item.label}</span>}
               {!isCollapsed && isDisabled && <div style={{ marginLeft: 'auto', fontSize: '0.65rem', border: '1px solid var(--accent-gold)', color: 'var(--accent-gold)', padding: '2px 4px', borderRadius: '4px' }}>PRO</div>}
             </div>

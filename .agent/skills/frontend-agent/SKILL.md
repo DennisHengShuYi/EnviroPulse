@@ -74,3 +74,104 @@ When refactoring React layouts, adding state variables, or tweaking canvas gener
 1. **Prevent unnecessary rerenders**: Ensure heavy visual blocks like `MapHero` and `TrendChart` are wrapped in `React.memo` or use isolated context selectors. Global state changes must not force reflows of live canvas surfaces.
 2. **Handle empty states gracefully**: If backend fetchers return missing object nodes during edge-case fallback scenarios, components must provide beautiful defensive fallback layouts rather than allowing `TypeError` page crashes.
 3. **Optimize PDF generation layout**: Ensure DOM nodes targeted by `html2canvas` enforce fixed pixel dimensions or standard web layouts to prevent output pagination truncation or blurred PDF graphic blocks.
+
+---
+
+## 6. Testing Requirements (Frontend)
+
+### Stack
+- **Test runner:** Vitest
+- **Component testing:** React Testing Library (`@testing-library/react`)
+- **DOM matchers:** `@testing-library/jest-dom`
+- **Mocking:** `vi.mock()` for `fetch` — never call real `/api/*` endpoints in tests
+- **User interactions:** `@testing-library/user-event` for clicks, form input, tab selection
+
+### Protocol: Red-Green-Refactor
+1. Write a failing test describing what the component should render or do
+2. Implement the minimum component code to make it pass
+3. Refactor without breaking the test
+4. A task is NOT done until `npm test` passes with the new test included
+
+### File Placement
+```
+tests/
+  frontend/
+    components/      ← one file per component in src/components/
+    pages/           ← one file per page in src/pages/
+    hooks/           ← if custom hooks are extracted
+```
+
+### What Must Be Tested Per Component
+
+Every component must have tests for all three of these states — no exceptions:
+
+**1. Renders correctly with valid data**
+- Component mounts without throwing
+- Key content is visible (metric values, labels, role names)
+- Correct colour/class applied for the given risk level
+
+**2. Handles empty or missing data gracefully**
+- No crash when API returns null or empty array
+- Fallback UI shown (skeleton, "No data available") — not a blank screen
+
+**3. Handles error / loading state**
+- Loading indicator shown while fetch is in progress
+- Error message shown when fetch fails — not a blank screen
+
+### Additional Tests by Component Type
+
+**Data display components** (HeroMetrics, PollutantGrid, SensorWidget):
+- Correct colour coding per threshold (Safe / Cat 1 / Cat 2 / STOP WORK / CRITICAL)
+- Values render with correct units (°C, µg/m³, AQI)
+
+**Interactive components** (AIAdvisory, CompliancePage):
+- Tab/role selection triggers the correct API call
+- Form submission with missing fields shows validation feedback
+- PASS / FAIL / DISCREPANCY verdict badge renders correctly
+
+**Map components** (MapHero, City3DView):
+- Renders container element without crashing (mock MapLibre / Leaflet)
+- Toggle (2D/3D, Ghost Mode) updates the correct state
+
+**Export components** (BursaReportModal, ReportsPage):
+- PDF export button triggers html2canvas + jsPDF (mock both)
+- Modal opens and closes correctly
+
+### Test Template
+
+```jsx
+// tests/frontend/components/HeroMetrics.test.jsx
+// UC-01: View Real-Time District Metrics
+
+import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import HeroMetrics from '../../../src/components/HeroMetrics'
+
+const mockData = { aqi: 155, heatIndex: 41.2, pm25: 48.3, wind: 12 }
+const emptyData = null
+
+describe('HeroMetrics', () => {
+  it('renders metric values with valid data', () => {
+    render(<HeroMetrics data={mockData} />)
+    expect(screen.getByText(/155/)).toBeInTheDocument()
+    expect(screen.getByText(/41.2/)).toBeInTheDocument()
+  })
+
+  it('applies critical colour coding when AQI exceeds 100', () => {
+    render(<HeroMetrics data={mockData} />)
+    const aqiCard = screen.getByTestId('aqi-card')
+    expect(aqiCard).toHaveClass('critical') // or check inline style
+  })
+
+  it('renders fallback UI when data is null', () => {
+    render(<HeroMetrics data={emptyData} />)
+    expect(screen.getByText(/loading|no data/i)).toBeInTheDocument()
+  })
+})
+```
+
+### What Must NOT Happen
+- Never call real `/api/*` endpoints — always mock `fetch` with `vi.fn()`
+- Never test implementation details (internal state, private functions) — test what the user sees
+- Never assert on exact pixel positions or CSS values — assert on classes, text, and roles
+- Never skip the empty state and error state tests — these are where crashes happen in production

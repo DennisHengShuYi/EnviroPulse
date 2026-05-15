@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Brain, RefreshCw, Maximize2, Minimize2 } from 'lucide-react';
+import { API_BASE } from '../config/api';
 
 const AIAdvisory = ({ data, history }) => {
   const [loading, setLoading] = useState(false);
@@ -16,7 +17,7 @@ const AIAdvisory = ({ data, history }) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 55000);
     try {
-      const response = await fetch('/api/advisor', {
+      const response = await fetch(`${API_BASE}/api/advisor`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sensorData: data, role: activeRole, history: history || [] }),

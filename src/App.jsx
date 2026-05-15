@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE } from './config/api';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import AlertPanel from './components/AlertPanel';
@@ -179,7 +180,7 @@ function App() {
   useEffect(() => {
     const init = async () => {
       try {
-        const res = await fetch('/api/districts');
+        const res = await fetch(`${API_BASE}/api/districts`);
         const list = await res.json();
         setDistricts(list);
         handleLocateMe(list);
@@ -201,9 +202,9 @@ function App() {
         }
 
         const [dataRes, trendRes, alertRes] = await Promise.all([
-          fetch(`/api/sensors${query}`),
-          fetch(`/api/trends${query}`),
-          fetch(`/api/alerts${query}`)
+          fetch(`${API_BASE}/api/sensors${query}`),
+          fetch(`${API_BASE}/api/trends${query}`),
+          fetch(`${API_BASE}/api/alerts${query}`)
         ]);
 
         const parseJson = async (res) => {
@@ -258,7 +259,7 @@ function App() {
   useEffect(() => {
     const fetchComparison = async () => {
       try {
-        const res = await fetch('/api/analytics/comparison');
+        const res = await fetch(`${API_BASE}/api/analytics/comparison`);
         const json = await res.json();
         if (json) setAllDistrictsData(json);
       } catch (e) { console.error('Comparison fetch error:', e); }

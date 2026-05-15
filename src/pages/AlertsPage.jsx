@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE } from '../config/api';
 import { Bell, ShieldAlert, Settings, Clock, CheckCircle2, Save, Activity, Trash2 } from 'lucide-react';
 
 const AlertsPage = ({ selectedDistrictId }) => {
@@ -17,7 +18,7 @@ const AlertsPage = ({ selectedDistrictId }) => {
     const districtQuery = `?id=${selectedDistrictId || 'klcc'}`;
     
     // 1. Fetch Config
-    fetch('/api/config/thresholds')
+    fetch(`${API_BASE}/api/config/thresholds`)
       .then(res => res.json())
       .then(data => {
         setConfig(data);
@@ -26,7 +27,7 @@ const AlertsPage = ({ selectedDistrictId }) => {
 
     // 2. Fetch Alerts
     const fetchAlerts = () => {
-      fetch(`/api/alerts${districtQuery}`)
+      fetch(`${API_BASE}/api/alerts${districtQuery}`)
         .then(res => res.json())
         .then(data => setAlerts(data));
     };
@@ -40,7 +41,7 @@ const AlertsPage = ({ selectedDistrictId }) => {
   const handleUpdate = async () => {
     setSaving(true);
     try {
-      const res = await fetch('/api/config/thresholds', {
+      const res = await fetch(`${API_BASE}/api/config/thresholds`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config)

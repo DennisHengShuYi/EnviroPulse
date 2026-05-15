@@ -4,6 +4,7 @@ import {
   Battery, Signal, Hash, Lock, Download,
   RefreshCw, X
 } from 'lucide-react';
+import { API_BASE } from '../config/api';
 
 const SensorsPage = ({ districts }) => {
   const [auditLog, setAuditLog] = useState([]);
@@ -17,9 +18,9 @@ const SensorsPage = ({ districts }) => {
     setLoadingAudit(true);
     try {
       // Trigger a sensor data refresh
-      fetch(`/api/sensors?id=${nodeId}`).catch(() => { });
+      fetch(`${API_BASE}/api/sensors?id=${nodeId}`).catch(() => { });
 
-      const res = await fetch(`/api/audit/log/${nodeId}?limit=20`);
+      const res = await fetch(`${API_BASE}/api/audit/log/${nodeId}?limit=20`);
       const json = await res.json();
       if (json.entries) setAuditLog(json.entries);
     } catch (err) {

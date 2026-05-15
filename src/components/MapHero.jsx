@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, Polygon, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import MiniWorkerGrid from './MiniWorkerGrid';
+import { API_BASE } from '../config/api';
 
 // Custom high-tech marker icon with pulse animation based on severity
 const createTerminalIcon = (type, severity = 'normal') => {
@@ -54,7 +55,7 @@ const MapHero = ({ onSelectDistrict, selectedId, userCoords }) => {
   const [mapZoom, setMapZoom] = useState(12);
 
   useEffect(() => {
-    fetch('/api/districts')
+    fetch(`${API_BASE}/api/districts`)
       .then(res => res.json())
       .then(data => {
         setDistricts(data);

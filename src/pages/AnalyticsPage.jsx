@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { API_BASE } from '../config/api';
 
 const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistrictsData }) => {
   const reportRef = React.useRef();
@@ -72,8 +73,8 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
         }
 
         const [histRes, anomRes] = await Promise.all([
-          fetch(`/api/analytics/historical${query}`),
-          fetch(`/api/analytics/anomalies${query}`)
+          fetch(`${API_BASE}/api/analytics/historical${query}`),
+          fetch(`${API_BASE}/api/analytics/anomalies${query}`)
         ]);
 
         const [histData, anomData] = await Promise.all([
@@ -104,7 +105,7 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000);
     try {
-      const predRes = await fetch(`/api/predict`, {
+      const predRes = await fetch(`${API_BASE}/api/predict`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sensorData: data, history, role: roleToFetch }),
@@ -144,7 +145,7 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
         if (selectedDistrictId === 'user_gps' && data) {
           query = `?lat=${data.lat}&lng=${data.lng}`;
         }
-        const res = await fetch(`/api/analytics/anomalies${query}`);
+        const res = await fetch(`${API_BASE}/api/analytics/anomalies${query}`);
         const json = await res.json();
         if (Array.isArray(json)) setAnomalies(json);
       } catch (err) {
