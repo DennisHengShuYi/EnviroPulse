@@ -92,19 +92,17 @@ const PollutantGrid = ({ pollutants, hazeLevel }) => {
     </div>
   );
 
-  return (
-    <div style={{ padding: '0 4px' }}>
+    <div className="grid-container" style={{ padding: '0 4px' }}>
       <LabelDivider text="PRIMARY_POLLUTANTS" />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+      <div className="responsive-grid-2" style={{ gap: '10px' }}>
         {airMetrics.map((m, i) => <MetricCard key={i} {...m} hazeLevel={hazeLevel} />)}
       </div>
 
       <LabelDivider text="RESOURCE_TRACKING" />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+      <div className="responsive-grid-2" style={{ gap: '10px' }}>
         {resourceMetrics.map((m, i) => <MetricCard key={i} {...m} />)}
       </div>
     </div>
-  );
 };
 
 export default PollutantGrid;

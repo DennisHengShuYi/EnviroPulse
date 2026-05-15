@@ -24,9 +24,22 @@ body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-mono);
-  overflow: hidden; /* Terminal vibe, no scroll */
   height: 100vh;
   width: 100vw;
+}
+
+@media (min-width: 769px) {
+  body {
+    overflow: hidden; /* Only hide scroll on desktop for terminal vibe */
+  }
+}
+
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+    overflow-y: auto;
+    height: auto;
+  }
 }
 
 #root {
@@ -47,11 +60,30 @@ body {
   flex-direction: column;
   padding: 2rem 0;
   backdrop-filter: blur(20px);
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
   z-index: 100;
   box-shadow: 2px 0 15px rgba(0,0,0,0.02);
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100% !important;
+    height: 60px;
+    flex-direction: row;
+    padding: 0;
+    border-right: none;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    justify-content: space-around;
+    align-items: center;
+  }
+  .sidebar.collapsed {
+    width: 100% !important;
+  }
 }
 
 .sidebar.collapsed {
@@ -70,6 +102,12 @@ body {
   padding: 0;
   display: flex;
   justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .logo-container {
+    display: none !important;
+  }
 }
 
 .nav-link {
@@ -100,6 +138,26 @@ body {
   border-left: 4px solid var(--accent-cyan);
 }
 
+@media (max-width: 768px) {
+  .nav-link span {
+    display: none !important;
+  }
+  .nav-link {
+    padding: 0 !important;
+    border-left: none !important;
+    border-top: 4px solid transparent;
+  }
+  .nav-link.active {
+    border-top: 4px solid var(--accent-cyan);
+    background: none;
+  }
+  .nav-menu {
+    display: flex;
+    width: 100%;
+    justify-content: space-around;
+  }
+}
+
 .sidebar.collapsed .nav-link:hover, .sidebar.collapsed .nav-link.active {
   border-left-width: 4px;
 }
@@ -124,6 +182,12 @@ body {
   background: var(--accent-cyan);
   color: #fff;
   box-shadow: var(--border-glow);
+}
+
+@media (max-width: 768px) {
+  .collapse-toggle, .sidebar-footer {
+    display: none !important;
+  }
 }
 
 .main-content {
@@ -156,6 +220,22 @@ body {
   flex: 1;
 }
 
+@media (max-width: 1200px) {
+  .dashboard-grid-3col {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-grid-3col {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+    padding-bottom: 80px; /* Space for mobile bottom bar */
+  }
+}
+
 .dashboard-grid-2col {
   display: grid;
   grid-template-columns: 1fr 1.6fr;
@@ -164,6 +244,16 @@ body {
   height: 100%;
   overflow: hidden;
   flex: 1;
+}
+
+@media (max-width: 768px) {
+  .dashboard-grid-2col {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+    padding-bottom: 80px;
+  }
 }
 
 .dashboard-row {
@@ -181,6 +271,13 @@ body {
   overflow-y: auto;
   min-height: 0;
   height: 100%;
+}
+
+@media (max-width: 768px) {
+  .dashboard-column {
+    height: auto;
+    overflow-y: visible;
+  }
 }
 
 /* Hide scrollbars for columns to keep terminal aesthetic */
@@ -232,6 +329,119 @@ body {
   to { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; }
 }
 
+/* --- RESPONSIVE GRID UTILS --- */
+.grid-container { display: flex; flex-direction: column; gap: 16px; width: 100%; }
+.responsive-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.responsive-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+@media (max-width: 768px) {
+  .responsive-grid-3 { grid-template-columns: 1fr; }
+  .responsive-grid-2 { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .responsive-grid-3, .responsive-grid-2 { grid-template-columns: 1fr; }
+}
+
+/* --- HEADER RESPONSIVENESS --- */
+.app-header {
+  padding: 1rem 2rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 80;
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    padding: 0.5rem 1rem;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .header-left, .header-right {
+    width: 100%;
+    justify-content: space-between !important;
+  }
+}
+
+.header-group { display: flex; alignItems: center; gap: 1.5rem; }
+@media (max-width: 768px) {
+  .header-group { gap: 10px; width: 100%; justify-content: space-between; }
+}
+
+/* --- ANALYTICS GRID --- */
+.analytics-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; }
+.span-12 { grid-column: span 12; }
+.span-6 { grid-column: span 6; }
+
+@media (max-width: 1024px) {
+  .span-6 { grid-column: span 12; }
+}
+
+@media (max-width: 768px) {
+  .analytics-grid { display: flex; flex-direction: column; }
+  .analytics-container { height: auto !important; padding: 1rem !important; }
+}
+
+/* --- FLEX HELPERS --- */
+.flex-stack { display: flex; flex-direction: column; gap: 16px; }
+.flex-row-responsive { display: flex; flex-direction: row; gap: 16px; }
+
+@media (max-width: 768px) {
+  .flex-row-responsive { flex-direction: column; }
+}
+
+/* --- RESPONSIVE GRIDS --- */
+.responsive-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.responsive-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 1024px) {
+  .responsive-grid-3 { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .responsive-grid-3, .responsive-grid-2 {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
+/* --- REPORT MAIN GRID --- */
+.report-main-grid {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 25px;
+  margin-bottom: 40px;
+}
+
+@media (max-width: 1024px) {
+  .report-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .report-main-grid {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
 /* --- HERO METRICS --- */
 .hero-metrics {
   display: grid;
@@ -239,6 +449,18 @@ body {
   gap: 20px;
   width: 100%;
   margin-bottom: 20px;
+}
+
+@media (max-width: 1100px) {
+  .hero-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-metrics {
+    grid-template-columns: 1fr;
+  }
 }
 
 .hero-card, .widget {

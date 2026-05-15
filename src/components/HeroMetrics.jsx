@@ -65,14 +65,9 @@ const HeroMetrics = ({ data, hazeLevel }) => {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
-      {/* Row 1: Three arc gauges – fixed 3 columns */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '12px',
-        alignItems: 'stretch'
-      }}>
+    <div className="grid-container">
+      {/* Row 1: Three arc gauges */}
+      <div className="responsive-grid-3">
         {arcMetrics.map((m, i) => (
           <ArcGauge
             key={i}
@@ -87,12 +82,8 @@ const HeroMetrics = ({ data, hazeLevel }) => {
         ))}
       </div>
 
-      {/* Row 2: 2x2 KPI Tiles – ensure KPITile also uses light theme */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '12px'
-      }}>
+      {/* Row 2: 2x2 KPI Tiles */}
+      <div className="responsive-grid-2">
         {kpiMetrics.map((m, i) => {
           const cleanValue = typeof m.value === 'string' ? m.value.split(' ')[0] : m.value;
           return (

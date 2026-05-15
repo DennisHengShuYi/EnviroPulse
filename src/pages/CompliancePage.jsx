@@ -68,11 +68,11 @@ const CompliancePage = ({ districts, submissions, setSubmissions }) => {
   const labelStyle = { fontSize: '0.55rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px', fontWeight: 800, letterSpacing: '1px' };
 
   return (
-    <div style={{ height: 'calc(100vh - 80px)', overflowY: 'auto', padding: '2rem', color: 'var(--text-primary)' }}>
+    <div className="analytics-container" style={{ height: 'calc(100vh - 80px)', overflowY: 'auto', padding: '2rem', color: 'var(--text-primary)' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
 
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="flex-row-responsive" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--accent-cyan)', marginBottom: '5px' }}>
               <ShieldCheck size={24} />

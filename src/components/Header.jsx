@@ -10,29 +10,18 @@ const Header = ({ districtName, districts, onSelectDistrict, onLocateMe, alertCo
   }, []);
 
   return (
-    <header style={{ 
-      padding: '1rem 2rem', 
-      borderBottom: '1px solid var(--border-color)',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      background: 'rgba(255, 255, 255, 0.85)',
-      backdropFilter: 'blur(10px)',
-      position: 'sticky',
-      top: 0,
-      zIndex: 80
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+    <header className="app-header">
+      <div className="header-group header-left">
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div className="marker-pulse" style={{ width: 8, height: 8, borderRadius: '50%', background: isLive ? '#00f0ff' : '#ffb800' }}></div>
-          <span style={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '1px' }}>
-            STATUS: <span style={{ color: isLive ? '#00ff82' : '#ffb800' }}>{isLive ? 'LIVE_STABLE' : 'FALLBACK_MODE'}</span>
+          <span style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '1px' }}>
+            STATUS: <span style={{ color: isLive ? '#00ff82' : '#ffb800' }}>{isLive ? 'LIVE' : 'FALLBACK'}</span>
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-            <MapPin size={16} className="cyan" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+            <MapPin size={14} className="cyan" />
             <select 
               value={districtName} 
               onChange={(e) => onSelectDistrict(e.target.value)}
@@ -40,16 +29,16 @@ const Header = ({ districtName, districts, onSelectDistrict, onLocateMe, alertCo
                 background: 'transparent', 
                 border: 'none', 
                 color: 'var(--text-primary)', 
-                fontSize: '0.9rem', 
+                fontSize: '0.8rem', 
                 fontWeight: 700,
                 cursor: 'pointer',
                 outline: 'none',
                 appearance: 'none',
-                paddingRight: '20px'
+                paddingRight: '15px'
               }}
             >
               <optgroup label="CURRENT_GPS" style={{ background: 'var(--bg-primary)', color: 'var(--accent-cyan)', fontSize: '0.7rem' }}>
-                <option value="user_gps" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>[ LOCAL_STATION ]</option>
+                <option value="user_gps" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>[ LOCAL ]</option>
               </optgroup>
               {Array.from(new Set(districts.map(d => d.region))).map(region => (
                 <optgroup key={region} label={region} style={{ background: 'var(--bg-primary)', color: 'var(--accent-cyan)', fontSize: '0.7rem' }}>
@@ -59,112 +48,92 @@ const Header = ({ districtName, districts, onSelectDistrict, onLocateMe, alertCo
                 </optgroup>
               ))}
             </select>
-            <ChevronDown size={14} style={{ position: 'absolute', right: 0, pointerEvents: 'none' }} />
+            <ChevronDown size={12} style={{ position: 'absolute', right: 0, pointerEvents: 'none' }} />
           </div>
 
           <button 
             onClick={onLocateMe}
-            title="SYNC GPS LOCATION"
+            title="SYNC GPS"
             style={{
               background: 'rgba(0, 240, 255, 0.1)',
               border: '1px solid rgba(0, 240, 255, 0.2)',
               color: 'var(--accent-cyan)',
-              padding: '6px',
+              padding: '4px',
               borderRadius: '4px',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.3s ease'
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.background = 'rgba(0, 240, 255, 0.2)';
-              e.currentTarget.style.boxShadow = '0 0 10px rgba(0, 240, 255, 0.3)';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.background = 'rgba(0, 240, 255, 0.1)';
-              e.currentTarget.style.boxShadow = 'none';
+              justifyContent: 'center'
             }}
           >
-            <Crosshair size={16} />
+            <Crosshair size={14} />
           </button>
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-        {/* Tier Toggle Button */}
-        <div style={{ display: 'flex', background: 'var(--bg-primary)', borderRadius: '6px', padding: '4px', border: '1px solid var(--border-color)', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)' }}>
+      <div className="header-group header-right">
+        {/* Tier Toggle - simplified for mobile */}
+        <div style={{ display: 'flex', background: 'var(--bg-primary)', borderRadius: '6px', padding: '2px', border: '1px solid rgba(0,0,0,0.05)' }}>
           <button 
             onClick={() => setTier && setTier('basic')}
             style={{ 
-              padding: '6px 16px', 
+              padding: '4px 10px', 
               border: 'none', 
               borderRadius: '4px', 
               fontWeight: 800, 
-              fontSize: '0.7rem',
-              letterSpacing: '0.5px',
+              fontSize: '0.6rem',
               background: tier === 'basic' ? '#00bcd4' : 'transparent',
               color: tier === 'basic' ? '#000' : 'var(--text-secondary)',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              boxShadow: tier === 'basic' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
-            }}>BASIC</button>
+              cursor: 'pointer'
+            }}>B</button>
           <button 
             onClick={() => setTier && setTier('premium')}
             style={{ 
-              padding: '6px 16px', 
+              padding: '4px 10px', 
               border: 'none', 
               borderRadius: '4px', 
               fontWeight: 800, 
-              fontSize: '0.7rem',
-              letterSpacing: '0.5px',
+              fontSize: '0.6rem',
               background: tier === 'premium' ? '#00bcd4' : 'transparent',
               color: tier === 'premium' ? '#000' : 'var(--text-secondary)',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              boxShadow: tier === 'premium' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
-            }}>PREMIUM</button>
+              cursor: 'pointer'
+            }}>P</button>
         </div>
 
-        {/* Alert Toggle Button */}
         <div 
           onClick={onToggleAlerts}
           style={{ 
             position: 'relative', 
             cursor: 'pointer', 
-            padding: '8px',
+            padding: '6px 10px',
             borderRadius: '4px',
-            background: showAlerts ? 'rgba(255, 62, 62, 0.1)' : 'var(--bg-secondary)',
-            border: `1px solid ${showAlerts ? 'var(--accent-red)' : 'var(--border-color)'}`,
+            background: showAlerts ? 'rgba(255, 62, 62, 0.1)' : 'rgba(0,0,0,0.02)',
+            border: `1px solid ${showAlerts ? 'var(--accent-red)' : 'rgba(0,0,0,0.05)'}`,
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            transition: 'all 0.3s ease'
+            gap: '6px'
           }}
         >
           {alertCount > 0 ? (
-            <ShieldAlert size={18} className={showAlerts ? 'white' : 'red'} />
+            <ShieldAlert size={14} className={showAlerts ? 'white' : 'red'} />
           ) : (
-            <Bell size={18} className="cyan" />
+            <Bell size={14} className="cyan" />
           )}
-          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: alertCount > 0 ? 'var(--accent-red)' : 'var(--accent-cyan)' }}>
-            {alertCount > 0 ? `ALERTS (${alertCount})` : 'SYSTEM_STABLE'}
+          <span style={{ fontSize: '0.65rem', fontWeight: 800, color: alertCount > 0 ? 'var(--accent-red)' : 'var(--accent-cyan)' }}>
+            {alertCount > 0 ? `${alertCount}` : 'OK'}
           </span>
-          {alertCount > 0 && !showAlerts && (
-            <div className="marker-pulse" style={{ position: 'absolute', top: -4, right: -4, width: 10, height: 10, background: 'var(--accent-red)', borderRadius: '50%' }}></div>
-          )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
-          <Clock size={16} />
-          <span style={{ fontSize: '0.9rem', fontFamily: 'JetBrains Mono' }}>
-            {time.toLocaleTimeString([], { hour12: false })}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
+          <Clock size={14} />
+          <span style={{ fontSize: '0.75rem', fontFamily: 'monospace' }}>
+            {time.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })}
           </span>
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(0, 255, 130, 0.1)', padding: '4px 12px', borderRadius: '2px', border: '1px solid rgba(0, 255, 130, 0.2)' }}>
-          <ShieldCheck size={14} style={{ color: '#00ff82' }} />
-          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#00ff82' }}>SECURE_CONN</span>
+        <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(0, 255, 130, 0.1)', padding: '4px 8px', borderRadius: '2px', border: '1px solid rgba(0, 255, 130, 0.2)' }}>
+          <ShieldCheck size={12} style={{ color: '#00ff82' }} />
+          <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#00ff82' }}>SEC</span>
         </div>
       </div>
     </header>

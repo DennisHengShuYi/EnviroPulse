@@ -269,10 +269,10 @@ const ReportsPage = ({ districts, headerDistrict, addSubmission }) => {
   }, [selectedDistrict]);
 
   return (
-    <div style={{ padding: '2rem', background: '#ffffff', color: '#1e293b', minHeight: '100vh', overflowY: 'auto' }} className="printable-area">
+    <div style={{ padding: '2rem', background: '#ffffff', color: '#1e293b', minHeight: '100vh', overflowY: 'auto' }} className="printable-area analytics-container">
 
       {/* HEADER + CONTROLS */}
-      <div style={{ marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }} className="no-print">
+      <div className="flex-row-responsive" style={{ marginBottom: '30px', justifyContent: 'space-between', alignItems: 'flex-start' }} className="no-print">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#0891b2', marginBottom: '5px' }}>
             <FileText size={18} />
@@ -334,7 +334,7 @@ const ReportsPage = ({ districts, headerDistrict, addSubmission }) => {
         </div>
       </div>
 
-      <div className="report-main-grid" style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '25px', marginBottom: '40px' }}>
+      <div className="report-main-grid">
         {/* CONFIG PANEL */}
         <div className="widget" style={{ padding: '20px', height: 'fit-content', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
           <div style={{ fontSize: '0.7rem', fontWeight: 900, marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', color: '#0f172a' }}>REPORT_PARAMETERS</div>
@@ -471,7 +471,7 @@ const ReportsPage = ({ districts, headerDistrict, addSubmission }) => {
                 </p>
 
                 {/* ANOMALY / BREACH ASSESSMENT SECTION */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '15px' }}>
+                <div className="responsive-grid-2" style={{ gap: '15px' }}>
                   <div style={{ padding: '15px', background: '#fef2f2', borderRadius: '4px', border: '1px solid #fecaca' }}>
                     <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#dc2626', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <AlertTriangle size={12} /> SPATIAL COMPLIANCE ANOMALIES
@@ -508,7 +508,7 @@ const ReportsPage = ({ districts, headerDistrict, addSubmission }) => {
                 </p>
 
                 {/* METRICS GRID */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '25px' }}>
+                <div className="responsive-grid-2" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px', marginBottom: '25px' }}>
                   <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
                     <span style={{ fontSize: '0.55rem', color: '#475569', fontWeight: 800 }}>PM2.5 AVERAGE LOAD</span>
                     <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0891b2' }}>{stats?.currentPm25 || 12.5}</div>
@@ -532,7 +532,7 @@ const ReportsPage = ({ districts, headerDistrict, addSubmission }) => {
                 </div>
 
                 {/* VISUAL CHARTS UNDER METRICS */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                <div className="responsive-grid-2" style={{ gap: '20px' }}>
                   <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '4px', height: '280px' }}>
                     <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#475569', marginBottom: '10px' }}>COMPLIANCE RADAR PROFILE</div>
                     <ResponsiveContainer width="100%" height="85%" minWidth={0}>
@@ -580,7 +580,7 @@ const ReportsPage = ({ districts, headerDistrict, addSubmission }) => {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
+                <div className="responsive-grid-3" style={{ gap: '15px' }}>
                   {[
                     { key: 'antiCorruption', label: 'Anti-Corruption', icon: Shield, color: '#b45309' },
                     { key: 'community', label: 'Community/Society', icon: Users, color: '#0891b2' },
@@ -608,7 +608,7 @@ const ReportsPage = ({ districts, headerDistrict, addSubmission }) => {
               </div>
 
               {/* GHG EMISSIONS INVENTORY (IFRS S2 / CSI CALCULATOR) */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '20px' }}>
+              <div className="responsive-grid-2" style={{ gridTemplateColumns: '1.5fr 1fr', gap: '20px' }}>
                 <div className="widget" style={{ padding: '25px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
                     <Leaf size={16} style={{ color: '#16a34a' }} />
@@ -664,7 +664,7 @@ const ReportsPage = ({ districts, headerDistrict, addSubmission }) => {
                   <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 900, letterSpacing: '1px', color: '#0891b2' }}>SUPPLY CHAIN (SCOPE 3) DISCLOSURE</h3>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
+                <div className="responsive-grid-3" style={{ gap: '15px' }}>
                   {[
                     { tier: 'TIER_1', label: 'Direct Suppliers', intensity: 'Medium', compliance: '94%', count: '24 Nodes' },
                     { tier: 'TIER_2', label: 'Indirect/MSMEs', intensity: 'High', compliance: '82%', count: '86 Nodes' },

@@ -181,17 +181,15 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
   return (
     <div className="analytics-container" ref={reportRef} style={{ height: 'calc(100vh - 80px)', overflowY: 'auto', padding: '2rem', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+      <div className="flex-row-responsive" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#000', marginBottom: '4px' }}>
               <TrendingUp size={16} />
-              <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '2px' }}>PREDICTIVE_INTELLIGENCE_ENGINE</span>
+              <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '2px' }}>PREDICTIVE_ENGINE</span>
             </div>
             <span style={{ fontSize: '0.6rem', color: '#000' }}>
-              LOCATION: {selectedDistrict.name.toUpperCase()} | 
-              SCOPE: 24H_AUDIT | 
-              ROLE: <span style={{ color: FACTORY_COLOR, fontWeight: 900 }}>{roleLabel}</span>
+              {selectedDistrict.name.toUpperCase()} | 24H_AUDIT | <span style={{ color: FACTORY_COLOR, fontWeight: 900 }}>{roleLabel}</span>
             </span>
           </div>
         </div>
@@ -200,15 +198,15 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
         {exporting && (
           <div style={{ background: 'rgba(0, 240, 255, 0.1)', border: '1px solid var(--accent-cyan)', padding: '4px 12px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div className="spin" style={{ width: 12, height: 12, border: '2px solid var(--accent-cyan)', borderTopColor: 'transparent', borderRadius: '50%' }}></div>
-            <span style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--accent-cyan)' }}>GENERATING_AUDIT_PDF: {roleLabel}...</span>
+            <span style={{ fontSize: '0.5rem', fontWeight: 800, color: 'var(--accent-cyan)' }}>GENERATING_AUDIT...</span>
           </div>
         )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '20px' }}>
+      <div className="analytics-grid">
         
         {/* Pattern Analysis: 7-Day Trend */}
-        <div className="widget" style={{ gridColumn: 'span 12', padding: '20px' }}>
+        <div className="widget span-12" style={{ padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <TrendingUp size={18} style={{ color: '#000' }} />
@@ -261,7 +259,7 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
         </div>
 
         {/* Predictive Engine — Factory MSME */}
-        <div className="widget" style={{ gridColumn: 'span 12', padding: '24px' }}>
+        <div className="widget span-12" style={{ padding: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <Zap size={20} style={{ color: FACTORY_COLOR }} />
@@ -283,8 +281,8 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
             return (
               <div style={{ animation: 'fadeIn 0.3s ease' }}>
 
-                {/* Row 1: Breach Probability + Peak Risk + Dispersion — 3 KPI cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px' }}>
+                {/* Row 1: Breach Probability + Peak Risk + Dispersion */}
+                <div className="responsive-grid-3" style={{ gap: '16px', marginBottom: '20px' }}>
                   <div style={{ background: `${bpColor}0d`, border: `1px solid ${bpColor}33`, borderRadius: '8px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <div style={{ fontSize: '0.52rem', color: bpColor, fontWeight: 900, letterSpacing: '1px' }}>BREACH_PROBABILITY (4H)</div>
                     <div style={{ fontSize: '2.4rem', fontWeight: 900, color: bpColor, lineHeight: 1, fontFamily: 'JetBrains Mono' }}>
@@ -346,7 +344,7 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
                 </div>
 
                 {/* Row 3: Worker Safety Forecast + Pre-Emptive Actions */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '16px', marginBottom: '20px' }}>
+                <div className="responsive-grid-2" style={{ gridTemplateColumns: '1fr 1.5fr', gap: '16px', marginBottom: '20px' }}>
 
                   {/* Worker Safety Forecast */}
                   <div style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.06)', borderRadius: '8px', padding: '18px' }}>
@@ -396,7 +394,7 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
                 </div>
 
                 {/* Row 4: Heat Index 6H mini chart + PM2.5 forecast table */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="responsive-grid-2" style={{ gap: '16px' }}>
                   <div style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.06)', borderRadius: '8px', padding: '18px' }}>
                     <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#000', marginBottom: '12px', letterSpacing: '1px' }}>HEAT_INDEX_FORECAST — 6H</div>
                     <div style={{ height: '120px' }}>
@@ -465,7 +463,7 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
         </div>
 
         {/* City Comparison */}
-        <div className="widget" style={{ gridColumn: 'span 6', padding: '20px' }}>
+        <div className="widget span-6" style={{ padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
             <Layers size={18} style={{ color: '#000' }} />
             <h2 style={{ fontSize: '0.8rem', fontWeight: 900, margin: 0, color: '#000' }}>NATIONWIDE_COMPARISON (AQI)</h2>
@@ -491,7 +489,7 @@ const AnalyticsPage = ({ onBack, selectedDistrictId, districts, data, allDistric
         </div>
 
         {/* Anomaly Detection */}
-        <div className="widget" style={{ gridColumn: 'span 6', padding: '20px' }}>
+        <div className="widget span-6" style={{ padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
             <AlertTriangle size={18} style={{ color: '#ffb800' }} />
             <h2 style={{ fontSize: '0.8rem', fontWeight: 900, margin: 0, color: '#000' }}>ANOMALY_DETECTION_LOG</h2>
